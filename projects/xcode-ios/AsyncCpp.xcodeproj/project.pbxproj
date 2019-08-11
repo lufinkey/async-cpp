@@ -9,6 +9,9 @@
 /* Begin PBXBuildFile section */
 		A57865432300BC3A00CDC3E8 /* Macros.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A57865412300BC2B00CDC3E8 /* Macros.hpp */; };
 		A57865442300BC3A00CDC3E8 /* Types.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A57865422300BC3100CDC3E8 /* Types.hpp */; };
+		A57865472300BCF300CDC3E8 /* DispatchWorkItem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A57865452300BCF300CDC3E8 /* DispatchWorkItem.cpp */; };
+		A57865492300BD0900CDC3E8 /* DispatchTimeoutResult.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A57865482300BD0100CDC3E8 /* DispatchTimeoutResult.hpp */; };
+		A578654A2300BD0900CDC3E8 /* DispatchWorkItem.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A57865462300BCF300CDC3E8 /* DispatchWorkItem.hpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -18,6 +21,8 @@
 			dstPath = "include/$(PRODUCT_NAME)";
 			dstSubfolderSpec = 16;
 			files = (
+				A57865492300BD0900CDC3E8 /* DispatchTimeoutResult.hpp in CopyFiles */,
+				A578654A2300BD0900CDC3E8 /* DispatchWorkItem.hpp in CopyFiles */,
 				A57865432300BC3A00CDC3E8 /* Macros.hpp in CopyFiles */,
 				A57865442300BC3A00CDC3E8 /* Types.hpp in CopyFiles */,
 			);
@@ -29,6 +34,9 @@
 		A578650E23006DA200CDC3E8 /* libAsyncCpp.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libAsyncCpp.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		A57865412300BC2B00CDC3E8 /* Macros.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Macros.hpp; sourceTree = "<group>"; };
 		A57865422300BC3100CDC3E8 /* Types.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Types.hpp; sourceTree = "<group>"; };
+		A57865452300BCF300CDC3E8 /* DispatchWorkItem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DispatchWorkItem.cpp; sourceTree = "<group>"; };
+		A57865462300BCF300CDC3E8 /* DispatchWorkItem.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = DispatchWorkItem.hpp; sourceTree = "<group>"; };
+		A57865482300BD0100CDC3E8 /* DispatchTimeoutResult.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = DispatchTimeoutResult.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -63,6 +71,9 @@
 			children = (
 				A57865412300BC2B00CDC3E8 /* Macros.hpp */,
 				A57865422300BC3100CDC3E8 /* Types.hpp */,
+				A57865482300BD0100CDC3E8 /* DispatchTimeoutResult.hpp */,
+				A57865462300BCF300CDC3E8 /* DispatchWorkItem.hpp */,
+				A57865452300BCF300CDC3E8 /* DispatchWorkItem.cpp */,
 			);
 			name = src;
 			path = ../../src;
@@ -124,6 +135,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A57865472300BCF300CDC3E8 /* DispatchWorkItem.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
