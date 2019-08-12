@@ -37,8 +37,21 @@ namespace fgl {
 		template<typename T>
 		T sync(Function<T()> work);
 		
+		#ifdef FGL_DISPATCH_USES_MAIN
+			[[noreturn]]
+			static void dispatchMain(Function<void()> firstBlock = nullptr);
+			static DispatchQueue* getMainQueue();
+		#endif
+		
 	private:
-		void main();
+		enum class SystemType {
+			MAIN
+		};
+		static String labelForSystemType(SystemType);
+		
+		DispatchQueue(SystemType);
+		
+		void run();
 		void step();
 		
 		struct QueueItem {
@@ -80,6 +93,11 @@ namespace fgl {
 		std::condition_variable queueWaitCondition;
 		
 		bool alive;
+		
+		#ifdef FGL_DISPATCH_USES_MAIN
+			static DispatchQueue* mainQueue;
+			static bool mainQueueRunning;
+		#endif
 	};
 	
 	

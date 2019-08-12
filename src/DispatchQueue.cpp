@@ -9,8 +9,17 @@
 #include "DispatchQueue.hpp"
 
 namespace fgl {
+	#ifdef FGL_DISPATCH_USES_MAIN
+	DispatchQueue* DispatchQueue::mainQueue = new DispatchQueue(SystemType::MAIN);
+	#endif
+	
 	DispatchQueue::DispatchQueue(String label)
-	: label(label), thread([=]() { this->main(); }), alive(true) {
+	: label(label), thread([=]() { this->run(); }), alive(true) {
+		//
+	}
+	
+	DispatchQueue::DispatchQueue(SystemType systemType)
+	: label(labelForSystemType(systemType)), thread(), alive(true) {
 		//
 	}
 	
@@ -20,7 +29,7 @@ namespace fgl {
 		thread.join();
 	}
 	
-	void DispatchQueue::main() {
+	void DispatchQueue::run() {
 		while(alive) {
 			step();
 		}
@@ -102,4 +111,22 @@ namespace fgl {
 			return finished;
 		});
 	}
+	
+	
+	
+	#ifdef FGL_DISPATCH_USES_MAIN
+	
+	void DispatchQueue::dispatchMain() {
+		FGL_ASSERT(!mainQueueRunning, "main DispatchQueue has already been dispatched");
+		mainQueueRunning = true;
+		mainQueue->run();
+	}
+	
+	DispatchQueue* DispatchQueue::getMainQueue() {
+		return mainQueue;
+	}
+	
+	#endif
+	
+	
 }
