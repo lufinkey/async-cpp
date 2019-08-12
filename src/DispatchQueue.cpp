@@ -22,45 +22,49 @@ namespace fgl {
 	
 	void DispatchQueue::main() {
 		while(alive) {
-			DispatchWorkItem* workItem = nullptr;
-			Function<void()> onFinishItem = nullptr;
-			std::unique_lock<std::mutex> lock(mutex);
+			step();
+		}
+	}
+	
+	void DispatchQueue::step() {
+		DispatchWorkItem* workItem = nullptr;
+		Function<void()> onFinishItem = nullptr;
+		std::unique_lock<std::mutex> lock(mutex);
+		if(scheduledItemQueue.size() > 0) {
+			auto item = scheduledItemQueue.front();
+			if(item->timeUntil().count() <= 0) {
+				workItem = item->workItem;
+				scheduledItemQueue.pop_front();
+			}
+		}
+		if(workItem == nullptr && itemQueue.size() > 0) {
+			auto& item = itemQueue.front();
+			workItem = item.workItem;
+			onFinishItem = item.onFinish;
+			itemQueue.pop_front();
+		}
+		if(workItem != nullptr) {
+			lock.unlock();
+			workItem->perform();
+			if(onFinishItem) {
+				onFinishItem();
+			}
+		}
+		else {
 			if(scheduledItemQueue.size() > 0) {
-				auto item = scheduledItemQueue.front();
-				if(item->timeUntil().count() <= 0) {
-					workItem = item->workItem;
-					scheduledItemQueue.pop_front();
-				}
-			}
-			if(workItem == nullptr && itemQueue.size() > 0) {
-				auto& item = itemQueue.front();
-				workItem = item.workItem;
-				onFinishItem = item.onFinish;
-				itemQueue.pop_front();
-			}
-			if(workItem != nullptr) {
+				auto nextItem = scheduledItemQueue.front();
 				lock.unlock();
-				workItem->perform();
-				if(onFinishItem) {
-					onFinishItem();
-				}
+				nextItem->wait(queueWaitCondition, [&]() {
+					return (itemQueue.size() > 0 || scheduledItemQueue.size() > 0 || !alive);
+				});
 			}
 			else {
-				if(scheduledItemQueue.size() > 0) {
-					auto nextItem = scheduledItemQueue.front();
-					lock.unlock();
-					nextItem->wait(queueWaitCondition, [&]() {
-						return (itemQueue.size() > 0 || scheduledItemQueue.size() > 0 || !alive);
-					});
-				}
-				else {
-					std::mutex waitMutex;
-					std::unique_lock<std::mutex> waitLock(waitMutex);
-					lock.unlock();
-					queueWaitCondition.wait(waitLock, [&]() {
-						return (itemQueue.size() > 0 || scheduledItemQueue.size() > 0 || !alive);
-					});
-				}
+				std::mutex waitMutex;
+				std::unique_lock<std::mutex> waitLock(waitMutex);
+				lock.unlock();
+				queueWaitCondition.wait(waitLock, [&]() {
+					return (itemQueue.size() > 0 || scheduledItemQueue.size() > 0 || !alive);
+				});
 			}
 		}
 	}

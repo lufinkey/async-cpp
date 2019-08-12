@@ -39,6 +39,7 @@ namespace fgl {
 		
 	private:
 		void main();
+		void step();
 		
 		struct QueueItem {
 			DispatchWorkItem* workItem;
