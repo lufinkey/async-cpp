@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <condition_variable>
+#include <mutex>
 #include "Macros.hpp"
 #include "Types.hpp"
 #include "DispatchTimeoutResult.hpp"
@@ -44,7 +46,7 @@ namespace fgl {
 	private:
 		Function<void()> work;
 		LinkedList<Function<void()>> notifyItems;
-		Mutex mutex;
+		std::mutex mutex;
 		Options options;
 		bool ranOnce;
 		bool cancelled;
@@ -57,21 +59,33 @@ namespace fgl {
 	DispatchTimeoutResult DispatchWorkItem::waitFor(std::chrono::duration<Rep,Period> timeout) {
 		std::condition_variable cv;
 		std::mutex waitMutex;
-		std::unique_lock<std::mutex> lock(waitMutex);
+		std::unique_lock<std::mutex> waitLock(waitMutex);
 		bool finished = false;
-		mutex.lock();
-		notifyItems.push_back([&]() {
+		Function<void()> notifyBlock = [&]() {
 			finished = true;
 			cv.notify_one();
-		});
-		mutex.unlock();
-		auto result = cv.wait_for(lock, timeout, [&]() {
+		};
+		
+		std::unique_lock<std::mutex> lock(mutex);
+		notifyItems.push_back(notifyBlock);
+		lock.unlock();
+		auto result = cv.wait_for(waitLock, timeout, [&]() {
 			return finished;
 		});
+		
 		switch(result) {
 			case std::cv_status::no_timeout:
 				return DispatchTimeoutResult::SUCCESS;
 			case std::cv_status::timeout:
+				lock.lock();
+				for(auto it=notifyItems.begin(); it!=notifyItems.end(); it++) {
+					auto& item = *it;
+					if(notifyBlock.target<void(*)()>() != item.target<void(*)()>()) {
+						notifyItems.erase(it);
+						break;
+					}
+				}
+				lock.unlock();
 				return DispatchTimeoutResult::TIMED_OUT;
 		}
 		FGL_ASSERT(false, "invalid std::cv_status value");
@@ -81,21 +95,33 @@ namespace fgl {
 	DispatchTimeoutResult DispatchWorkItem::waitUntil(std::chrono::time_point<Clock,Duration> time) {
 		std::condition_variable cv;
 		std::mutex waitMutex;
-		std::unique_lock<std::mutex> lock(waitMutex);
+		std::unique_lock<std::mutex> waitLock(waitMutex);
 		bool finished = false;
-		mutex.lock();
-		notifyItems.push_back([&]() {
+		Function<void()> notifyBlock = [&]() {
 			finished = true;
 			cv.notify_one();
-		});
-		mutex.unlock();
-		auto result = cv.wait_until(lock, time, [&]() {
+		};
+		
+		std::unique_lock<std::mutex> lock(mutex);
+		notifyItems.push_back(notifyBlock);
+		lock.unlock();
+		auto result = cv.wait_until(waitLock, time, [&]() {
 			return finished;
 		});
+		
 		switch(result) {
 			case std::cv_status::no_timeout:
 				return DispatchTimeoutResult::SUCCESS;
 			case std::cv_status::timeout:
+				lock.lock();
+				for(auto it=notifyItems.begin(); it!=notifyItems.end(); it++) {
+					auto& item = *it;
+					if(notifyBlock.target<void(*)()>() != item.target<void(*)()>()) {
+						notifyItems.erase(it);
+						break;
+					}
+				}
+				lock.unlock();
 				return DispatchTimeoutResult::TIMED_OUT;
 		}
 		FGL_ASSERT(false, "invalid std::cv_status value");

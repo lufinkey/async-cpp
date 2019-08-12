@@ -11,7 +11,6 @@
 #include <chrono>
 #include <functional>
 #include <list>
-#include <mutex>
 #include <string>
 
 namespace fgl {
@@ -19,6 +18,5 @@ namespace fgl {
 	using Function = std::function<T>;
 	template<typename T>
 	using LinkedList = std::list<T>;
-	using Mutex = std::mutex;
 	using String = std::string;
 }

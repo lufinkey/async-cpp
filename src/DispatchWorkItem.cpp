@@ -22,24 +22,26 @@ namespace fgl {
 	}
 	
 	void DispatchWorkItem::perform() {
-		mutex.lock();
+		std::unique_lock<std::mutex> lock(mutex);
 		if(cancelled) {
-			mutex.unlock();
 			return;
 		}
 		if(options.deleteAfterRunning && ranOnce) {
 			FGL_WARN("DispatchWorkItem with option deleteAfterRunning is being run more than once");
 		}
 		ranOnce = true;
-		mutex.unlock();
+		lock.unlock();
+		
 		work();
+		
 		LinkedList<Function<void()>> notifyItems;
-		mutex.lock();
+		lock.lock();
 		notifyItems.swap(this->notifyItems);
-		mutex.unlock();
+		lock.unlock();
 		for(auto& notifyItem : notifyItems) {
 			notifyItem();
 		}
+		
 		if(options.deleteAfterRunning) {
 			delete this;
 		}

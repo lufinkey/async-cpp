@@ -12,6 +12,7 @@
 		A57865472300BCF300CDC3E8 /* DispatchWorkItem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A57865452300BCF300CDC3E8 /* DispatchWorkItem.cpp */; };
 		A57865492300BD0900CDC3E8 /* DispatchTimeoutResult.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A57865482300BD0100CDC3E8 /* DispatchTimeoutResult.hpp */; };
 		A578654A2300BD0900CDC3E8 /* DispatchWorkItem.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A57865462300BCF300CDC3E8 /* DispatchWorkItem.hpp */; };
+		A578654D2300BD3E00CDC3E8 /* DispatchQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A578654C2300BD3E00CDC3E8 /* DispatchQueue.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -37,6 +38,8 @@
 		A57865452300BCF300CDC3E8 /* DispatchWorkItem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DispatchWorkItem.cpp; sourceTree = "<group>"; };
 		A57865462300BCF300CDC3E8 /* DispatchWorkItem.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = DispatchWorkItem.hpp; sourceTree = "<group>"; };
 		A57865482300BD0100CDC3E8 /* DispatchTimeoutResult.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = DispatchTimeoutResult.hpp; sourceTree = "<group>"; };
+		A578654B2300BD3E00CDC3E8 /* DispatchQueue.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = DispatchQueue.hpp; sourceTree = "<group>"; };
+		A578654C2300BD3E00CDC3E8 /* DispatchQueue.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DispatchQueue.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -71,6 +74,8 @@
 			children = (
 				A57865412300BC2B00CDC3E8 /* Macros.hpp */,
 				A57865422300BC3100CDC3E8 /* Types.hpp */,
+				A578654B2300BD3E00CDC3E8 /* DispatchQueue.hpp */,
+				A578654C2300BD3E00CDC3E8 /* DispatchQueue.cpp */,
 				A57865482300BD0100CDC3E8 /* DispatchTimeoutResult.hpp */,
 				A57865462300BCF300CDC3E8 /* DispatchWorkItem.hpp */,
 				A57865452300BCF300CDC3E8 /* DispatchWorkItem.cpp */,
@@ -136,6 +141,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A57865472300BCF300CDC3E8 /* DispatchWorkItem.cpp in Sources */,
+				A578654D2300BD3E00CDC3E8 /* DispatchQueue.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
