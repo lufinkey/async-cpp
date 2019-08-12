@@ -12,69 +12,130 @@ namespace fgl {
 	DispatchQueue* DispatchQueue::mainQueue = nullptr;
 	
 	DispatchQueue::DispatchQueue(String label)
-	: label(label), thread([=]() { this->run(); }), alive(true) {
+	: label(label), type(Type::BACKGROUND), alive(true), stopped(true) {
 		//
 	}
 	
 	DispatchQueue::DispatchQueue(SystemType systemType)
-	: label(labelForSystemType(systemType)), thread(), alive(true) {
+	: label(labelForSystemType(systemType)), type(typeForSysemType(systemType)), alive(true), stopped(true) {
 		//
 	}
 	
 	DispatchQueue::~DispatchQueue() {
+		FGL_ASSERT((itemQueue.size() == 0 || scheduledItemQueue.size() == 0), "Trying to destroy DispatchQueue \""+label+"\" while unfinished items remain");
 		alive = false;
-		queueWaitCondition.notify_one();
-		thread.join();
+		if(thread.joinable()) {
+			thread.join();
+		}
+	}
+	
+	
+	
+	String DispatchQueue::labelForSystemType(SystemType type) {
+		switch(type) {
+			case SystemType::MAIN:
+				return "Main";
+			default:
+				FGL_ASSERT(false, "Unknown DispatchQueue::SystemType");
+		}
+	}
+	
+	DispatchQueue::Type DispatchQueue::typeForSysemType(SystemType type) {
+		switch(type) {
+			case SystemType::MAIN:
+				return Type::MAIN;
+			default:
+				FGL_ASSERT(false, "Unknown DispatchQueue::SystemType");
+		}
+	}
+	
+	
+	
+	void DispatchQueue::notify() {
+		if(stopped && type != Type::MAIN) {
+			if(thread.joinable()) {
+				thread.join();
+			}
+			thread = std::thread([=]() {
+				this->run();
+			});
+		}
+		else {
+			queueWaitCondition.notify_one();
+		}
 	}
 	
 	void DispatchQueue::run() {
+		stopped = false;
 		while(alive) {
-			step();
+			std::unique_lock<std::mutex> lock(mutex);
+			
+			// get next work item
+			DispatchWorkItem* workItem = nullptr;
+			Function<void()> onFinishItem = nullptr;
+			if(scheduledItemQueue.size() > 0) {
+				auto item = scheduledItemQueue.front();
+				if(item->timeUntil().count() <= 0) {
+					workItem = item->workItem;
+					scheduledItemQueue.pop_front();
+				}
+			}
+			if(workItem == nullptr && itemQueue.size() > 0) {
+				auto& item = itemQueue.front();
+				workItem = item.workItem;
+				onFinishItem = item.onFinish;
+				itemQueue.pop_front();
+			}
+			
+			if(workItem != nullptr) {
+				// perform next work item
+				lock.unlock();
+				workItem->perform();
+				if(onFinishItem) {
+					onFinishItem();
+				}
+			}
+			else {
+				if(scheduledItemQueue.size() > 0) {
+					// wait for next scheduled item
+					auto nextItem = scheduledItemQueue.front();
+					lock.unlock();
+					nextItem->wait(queueWaitCondition, [&]() { return shouldWake(); });
+				}
+				else if(type == Type::MAIN) {
+					// wait for any item
+					std::mutex waitMutex;
+					std::unique_lock<std::mutex> waitLock(waitMutex);
+					lock.unlock();
+					queueWaitCondition.wait(waitLock, [&]() { return shouldWake(); });
+				}
+				else {
+					// no more items, so stop the thread for now
+					stopped = true;
+					lock.unlock();
+					break;
+				}
+			}
 		}
 	}
 	
-	void DispatchQueue::step() {
-		DispatchWorkItem* workItem = nullptr;
-		Function<void()> onFinishItem = nullptr;
-		std::unique_lock<std::mutex> lock(mutex);
+	bool DispatchQueue::shouldWake() const {
+		if(!alive) {
+			return true;
+		}
+		if(itemQueue.size() > 0) {
+			return true;
+		}
 		if(scheduledItemQueue.size() > 0) {
 			auto item = scheduledItemQueue.front();
 			if(item->timeUntil().count() <= 0) {
-				workItem = item->workItem;
-				scheduledItemQueue.pop_front();
+				return true;
 			}
 		}
-		if(workItem == nullptr && itemQueue.size() > 0) {
-			auto& item = itemQueue.front();
-			workItem = item.workItem;
-			onFinishItem = item.onFinish;
-			itemQueue.pop_front();
-		}
-		if(workItem != nullptr) {
-			lock.unlock();
-			workItem->perform();
-			if(onFinishItem) {
-				onFinishItem();
-			}
-		}
-		else {
-			if(scheduledItemQueue.size() > 0) {
-				auto nextItem = scheduledItemQueue.front();
-				lock.unlock();
-				nextItem->wait(queueWaitCondition, [&]() {
-					return (itemQueue.size() > 0 || scheduledItemQueue.size() > 0 || !alive);
-				});
-			}
-			else {
-				std::mutex waitMutex;
-				std::unique_lock<std::mutex> waitLock(waitMutex);
-				lock.unlock();
-				queueWaitCondition.wait(waitLock, [&]() {
-					return (itemQueue.size() > 0 || scheduledItemQueue.size() > 0 || !alive);
-				});
-			}
-		}
+		return false;
 	}
+	
+	
 	
 	void DispatchQueue::async(Function<void()> work) {
 		async(new DispatchWorkItem({ .deleteAfterRunning=true }, work));
@@ -83,8 +144,8 @@ namespace fgl {
 	void DispatchQueue::async(DispatchWorkItem* workItem) {
 		std::unique_lock<std::mutex> lock(mutex);
 		itemQueue.push_back({ .workItem=workItem });
+		notify();
 		lock.unlock();
-		queueWaitCondition.notify_one();
 	}
 	
 	void DispatchQueue::sync(Function<void()> work) {
@@ -102,9 +163,9 @@ namespace fgl {
 			finished = true;
 			cv.notify_one();
 		} });
+		notify();
 		lock.unlock();
 		
-		queueWaitCondition.notify_one();
 		cv.wait(waitLock, [&]() {
 			return finished;
 		});

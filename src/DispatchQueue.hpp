@@ -50,15 +50,21 @@ namespace fgl {
 		}
 		
 	private:
+		enum class Type {
+			MAIN,
+			BACKGROUND
+		};
 		enum class SystemType {
 			MAIN
 		};
 		static String labelForSystemType(SystemType);
+		static Type typeForSysemType(SystemType);
 		
 		DispatchQueue(SystemType);
 		
+		void notify();
 		void run();
-		void step();
+		bool shouldWake() const;
 		
 		struct QueueItem {
 			DispatchWorkItem* workItem;
@@ -98,7 +104,9 @@ namespace fgl {
 		
 		std::condition_variable queueWaitCondition;
 		
+		DispatchQueue::Type type;
 		bool alive;
+		bool stopped;
 		
 		static DispatchQueue* mainQueue;
 		static bool mainQueueRunning;
@@ -129,7 +137,7 @@ namespace fgl {
 			scheduledItemQueue.push_back(scheduledItem);
 		}
 		lock.unlock();
-		queueWaitCondition.notify_one();
+		notify();
 	}
 	
 	template<typename T>
