@@ -16,7 +16,7 @@ namespace fgl {
 		#define FGL_ASSERT(condition, message) { \
 			if(!(condition)) { \
 				std::cerr << "Assertion `" #condition "` failed in " << __FILE__ \
-					<< " line " << __LINE__ << ": " << message << std::endl; \
+					<< " line " << __LINE__ << ": " << (message) << std::endl; \
 				std::terminate(); \
 			} \
 		}
@@ -25,7 +25,7 @@ namespace fgl {
 	#ifndef FGL_WARN
 		#ifdef FGL_SHOW_WARNINGS
 			#define FGL_WARN(message) { \
-				std::cerr << "Warning: " << message << std::endl; \
+				std::cerr << "Warning: " << (message) << std::endl; \
 			}
 			#else
 				#define FGL_WARN(message)
