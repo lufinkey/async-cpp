@@ -13,6 +13,7 @@
 #include <memory>
 #include <mutex>
 #include <thread>
+#include "Macros.hpp"
 #include "Types.hpp"
 #include "DispatchWorkItem.hpp"
 
@@ -37,11 +38,16 @@ namespace fgl {
 		template<typename T>
 		T sync(Function<T()> work);
 		
-		#ifdef FGL_DISPATCH_USES_MAIN
-			[[noreturn]]
-			static void dispatchMain(Function<void()> firstBlock = nullptr);
-			static DispatchQueue* getMainQueue();
-		#endif
+		[[noreturn]]
+		static void dispatchMain();
+		static DispatchQueue* getMainQueue();
+		static bool usesMainQueue() {
+			#ifdef FGL_DISPATCH_USES_MAIN
+				return true;
+			#else
+				return false;
+			#endif
+		}
 		
 	private:
 		enum class SystemType {
@@ -87,17 +93,15 @@ namespace fgl {
 		std::thread thread;
 		std::mutex mutex;
 		
-		LinkedList<QueueItem> itemQueue;
-		LinkedList<ScheduledQueueItem*> scheduledItemQueue;
+		std::list<QueueItem> itemQueue;
+		std::list<ScheduledQueueItem*> scheduledItemQueue;
 		
 		std::condition_variable queueWaitCondition;
 		
 		bool alive;
 		
-		#ifdef FGL_DISPATCH_USES_MAIN
-			static DispatchQueue* mainQueue;
-			static bool mainQueueRunning;
-		#endif
+		static DispatchQueue* mainQueue;
+		static bool mainQueueRunning;
 	};
 	
 	

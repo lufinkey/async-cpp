@@ -6,6 +6,8 @@
 //  Copyright © 2019 Luis Finke. All rights reserved.
 //
 
+#pragma once
+
 #include <exception>
 #include <iostream>
 

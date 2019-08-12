@@ -9,9 +9,7 @@
 #include "DispatchQueue.hpp"
 
 namespace fgl {
-	#ifdef FGL_DISPATCH_USES_MAIN
-	DispatchQueue* DispatchQueue::mainQueue = new DispatchQueue(SystemType::MAIN);
-	#endif
+	DispatchQueue* DispatchQueue::mainQueue = nullptr;
 	
 	DispatchQueue::DispatchQueue(String label)
 	: label(label), thread([=]() { this->run(); }), alive(true) {
@@ -114,19 +112,18 @@ namespace fgl {
 	
 	
 	
-	#ifdef FGL_DISPATCH_USES_MAIN
-	
 	void DispatchQueue::dispatchMain() {
+		FGL_ASSERT(usesMainQueue(), "FGL_DISPATCH_USES_MAIN must be defined in order to use this function");
 		FGL_ASSERT(!mainQueueRunning, "main DispatchQueue has already been dispatched");
 		mainQueueRunning = true;
 		mainQueue->run();
+		exit(0);
 	}
 	
 	DispatchQueue* DispatchQueue::getMainQueue() {
+		if(mainQueue == nullptr && usesMainQueue()) {
+			mainQueue = new DispatchQueue(SystemType::MAIN);
+		}
 		return mainQueue;
 	}
-	
-	#endif
-	
-	
 }

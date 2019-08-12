@@ -14,6 +14,7 @@
 		A578654A2300BD0900CDC3E8 /* DispatchWorkItem.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A57865462300BCF300CDC3E8 /* DispatchWorkItem.hpp */; };
 		A578654D2300BD3E00CDC3E8 /* DispatchQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A578654C2300BD3E00CDC3E8 /* DispatchQueue.cpp */; };
 		A578654F230100D400CDC3E8 /* DispatchQueue.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A578654B2300BD3E00CDC3E8 /* DispatchQueue.hpp */; };
+		A578655323011D2C00CDC3E8 /* Promise.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A578655223011D2C00CDC3E8 /* Promise.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -42,6 +43,9 @@
 		A57865482300BD0100CDC3E8 /* DispatchTimeoutResult.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = DispatchTimeoutResult.hpp; sourceTree = "<group>"; };
 		A578654B2300BD3E00CDC3E8 /* DispatchQueue.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = DispatchQueue.hpp; sourceTree = "<group>"; };
 		A578654C2300BD3E00CDC3E8 /* DispatchQueue.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DispatchQueue.cpp; sourceTree = "<group>"; };
+		A57865502301023300CDC3E8 /* Promise.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Promise.hpp; sourceTree = "<group>"; };
+		A57865512301044800CDC3E8 /* PromiseErrorPtr.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = PromiseErrorPtr.hpp; sourceTree = "<group>"; };
+		A578655223011D2C00CDC3E8 /* Promise.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Promise.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -81,6 +85,9 @@
 				A57865482300BD0100CDC3E8 /* DispatchTimeoutResult.hpp */,
 				A57865462300BCF300CDC3E8 /* DispatchWorkItem.hpp */,
 				A57865452300BCF300CDC3E8 /* DispatchWorkItem.cpp */,
+				A57865512301044800CDC3E8 /* PromiseErrorPtr.hpp */,
+				A57865502301023300CDC3E8 /* Promise.hpp */,
+				A578655223011D2C00CDC3E8 /* Promise.cpp */,
 			);
 			name = src;
 			path = ../../src;
@@ -142,6 +149,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A578655323011D2C00CDC3E8 /* Promise.cpp in Sources */,
 				A57865472300BCF300CDC3E8 /* DispatchWorkItem.cpp in Sources */,
 				A578654D2300BD3E00CDC3E8 /* DispatchQueue.cpp in Sources */,
 			);
@@ -265,6 +273,7 @@
 		A578651823006DA200CDC3E8 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
 				CODE_SIGN_STYLE = Automatic;
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -276,6 +285,7 @@
 		A578651923006DA200CDC3E8 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
 				CODE_SIGN_STYLE = Automatic;
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";

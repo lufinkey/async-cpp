@@ -9,6 +9,7 @@
 #pragma once
 
 #include <condition_variable>
+#include <list>
 #include <mutex>
 #include "Macros.hpp"
 #include "Types.hpp"
@@ -45,7 +46,7 @@ namespace fgl {
 		
 	private:
 		Function<void()> work;
-		LinkedList<Function<void()>> notifyItems;
+		std::list<Function<void()>> notifyItems;
 		std::mutex mutex;
 		Options options;
 		bool ranOnce;
