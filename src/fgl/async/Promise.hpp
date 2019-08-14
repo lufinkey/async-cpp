@@ -28,18 +28,18 @@ namespace fgl {
 	class Promise {
 	public:
 		template<typename Arg, typename Return>
-		struct _Block {
+		struct _block {
 			using type = Function<Return(Arg)>;
 		};
 		template<typename Return>
-		struct _Block<void, Return> {
+		struct _block<void, Return> {
 			using type = Function<Return()>;
 		};
 		
-		using Resolver = typename _Block<Result,void>::type;
+		using Resolver = typename _block<Result,void>::type;
 		using Rejecter = Function<void(PromiseErrorPtr)>;
 		template<typename Return>
-		using Then = typename _Block<Result,Return>::type;
+		using Then = typename _block<Result,Return>::type;
 		template<typename ErrorType, typename Return>
 		using Catch = Function<Return(ErrorType)>;
 		
