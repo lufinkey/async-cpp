@@ -12,6 +12,7 @@
 #include <list>
 #include <mutex>
 #include <thread>
+#include <type_traits>
 #include <utility>
 #include "Common.hpp"
 #include "DispatchQueue.hpp"

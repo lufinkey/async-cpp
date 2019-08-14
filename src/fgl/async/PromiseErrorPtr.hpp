@@ -8,8 +8,9 @@
 
 #pragma once
 
-#include "Common.hpp"
 #include <exception>
+#include <type_traits>
+#include "Common.hpp"
 
 namespace fgl {
 	class PromiseErrorPtr {
