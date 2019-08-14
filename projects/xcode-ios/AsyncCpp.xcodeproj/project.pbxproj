@@ -7,14 +7,15 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A57865432300BC3A00CDC3E8 /* Macros.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A57865412300BC2B00CDC3E8 /* Macros.hpp */; };
-		A57865442300BC3A00CDC3E8 /* Types.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A57865422300BC3100CDC3E8 /* Types.hpp */; };
-		A57865472300BCF300CDC3E8 /* DispatchWorkItem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A57865452300BCF300CDC3E8 /* DispatchWorkItem.cpp */; };
-		A57865492300BD0900CDC3E8 /* DispatchTimeoutResult.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A57865482300BD0100CDC3E8 /* DispatchTimeoutResult.hpp */; };
-		A578654A2300BD0900CDC3E8 /* DispatchWorkItem.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A57865462300BCF300CDC3E8 /* DispatchWorkItem.hpp */; };
-		A578654D2300BD3E00CDC3E8 /* DispatchQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A578654C2300BD3E00CDC3E8 /* DispatchQueue.cpp */; };
-		A578654F230100D400CDC3E8 /* DispatchQueue.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A578654B2300BD3E00CDC3E8 /* DispatchQueue.hpp */; };
-		A578655323011D2C00CDC3E8 /* Promise.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A578655223011D2C00CDC3E8 /* Promise.cpp */; };
+		A53E4E5C23048B19000BB7D8 /* DispatchQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A53E4E512304892D000BB7D8 /* DispatchQueue.cpp */; };
+		A53E4E5D23048B1C000BB7D8 /* DispatchWorkItem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A53E4E522304892D000BB7D8 /* DispatchWorkItem.cpp */; };
+		A53E4E5E23048B1E000BB7D8 /* Promise.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A53E4E542304892D000BB7D8 /* Promise.cpp */; };
+		A53E4E6023048BE6000BB7D8 /* Common.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4E532304892D000BB7D8 /* Common.hpp */; };
+		A53E4E6123048BE6000BB7D8 /* DispatchQueue.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4E4F2304892D000BB7D8 /* DispatchQueue.hpp */; };
+		A53E4E6223048BE6000BB7D8 /* DispatchTimeoutResult.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4E4E2304892D000BB7D8 /* DispatchTimeoutResult.hpp */; };
+		A53E4E6323048BE6000BB7D8 /* DispatchWorkItem.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4E502304892D000BB7D8 /* DispatchWorkItem.hpp */; };
+		A53E4E6423048BE6000BB7D8 /* PromiseErrorPtr.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4E4B2304892D000BB7D8 /* PromiseErrorPtr.hpp */; };
+		A53E4E6523048BE6000BB7D8 /* Promise.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4E4C2304892D000BB7D8 /* Promise.hpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -24,28 +25,28 @@
 			dstPath = "include/$(PRODUCT_NAME)";
 			dstSubfolderSpec = 16;
 			files = (
-				A578654F230100D400CDC3E8 /* DispatchQueue.hpp in CopyFiles */,
-				A57865492300BD0900CDC3E8 /* DispatchTimeoutResult.hpp in CopyFiles */,
-				A578654A2300BD0900CDC3E8 /* DispatchWorkItem.hpp in CopyFiles */,
-				A57865432300BC3A00CDC3E8 /* Macros.hpp in CopyFiles */,
-				A57865442300BC3A00CDC3E8 /* Types.hpp in CopyFiles */,
+				A53E4E6023048BE6000BB7D8 /* Common.hpp in CopyFiles */,
+				A53E4E6123048BE6000BB7D8 /* DispatchQueue.hpp in CopyFiles */,
+				A53E4E6223048BE6000BB7D8 /* DispatchTimeoutResult.hpp in CopyFiles */,
+				A53E4E6323048BE6000BB7D8 /* DispatchWorkItem.hpp in CopyFiles */,
+				A53E4E6423048BE6000BB7D8 /* PromiseErrorPtr.hpp in CopyFiles */,
+				A53E4E6523048BE6000BB7D8 /* Promise.hpp in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		A53E4E4B2304892D000BB7D8 /* PromiseErrorPtr.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = PromiseErrorPtr.hpp; sourceTree = "<group>"; };
+		A53E4E4C2304892D000BB7D8 /* Promise.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Promise.hpp; sourceTree = "<group>"; };
+		A53E4E4E2304892D000BB7D8 /* DispatchTimeoutResult.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DispatchTimeoutResult.hpp; sourceTree = "<group>"; };
+		A53E4E4F2304892D000BB7D8 /* DispatchQueue.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DispatchQueue.hpp; sourceTree = "<group>"; };
+		A53E4E502304892D000BB7D8 /* DispatchWorkItem.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DispatchWorkItem.hpp; sourceTree = "<group>"; };
+		A53E4E512304892D000BB7D8 /* DispatchQueue.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DispatchQueue.cpp; sourceTree = "<group>"; };
+		A53E4E522304892D000BB7D8 /* DispatchWorkItem.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DispatchWorkItem.cpp; sourceTree = "<group>"; };
+		A53E4E532304892D000BB7D8 /* Common.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Common.hpp; sourceTree = "<group>"; };
+		A53E4E542304892D000BB7D8 /* Promise.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Promise.cpp; sourceTree = "<group>"; };
 		A578650E23006DA200CDC3E8 /* libAsyncCpp.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libAsyncCpp.a; sourceTree = BUILT_PRODUCTS_DIR; };
-		A57865412300BC2B00CDC3E8 /* Macros.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Macros.hpp; sourceTree = "<group>"; };
-		A57865422300BC3100CDC3E8 /* Types.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Types.hpp; sourceTree = "<group>"; };
-		A57865452300BCF300CDC3E8 /* DispatchWorkItem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DispatchWorkItem.cpp; sourceTree = "<group>"; };
-		A57865462300BCF300CDC3E8 /* DispatchWorkItem.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = DispatchWorkItem.hpp; sourceTree = "<group>"; };
-		A57865482300BD0100CDC3E8 /* DispatchTimeoutResult.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = DispatchTimeoutResult.hpp; sourceTree = "<group>"; };
-		A578654B2300BD3E00CDC3E8 /* DispatchQueue.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = DispatchQueue.hpp; sourceTree = "<group>"; };
-		A578654C2300BD3E00CDC3E8 /* DispatchQueue.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DispatchQueue.cpp; sourceTree = "<group>"; };
-		A57865502301023300CDC3E8 /* Promise.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Promise.hpp; sourceTree = "<group>"; };
-		A57865512301044800CDC3E8 /* PromiseErrorPtr.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = PromiseErrorPtr.hpp; sourceTree = "<group>"; };
-		A578655223011D2C00CDC3E8 /* Promise.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Promise.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -59,6 +60,30 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		A53E4E492304892D000BB7D8 /* fgl */ = {
+			isa = PBXGroup;
+			children = (
+				A53E4E4A2304892D000BB7D8 /* async */,
+			);
+			path = fgl;
+			sourceTree = "<group>";
+		};
+		A53E4E4A2304892D000BB7D8 /* async */ = {
+			isa = PBXGroup;
+			children = (
+				A53E4E532304892D000BB7D8 /* Common.hpp */,
+				A53E4E4F2304892D000BB7D8 /* DispatchQueue.hpp */,
+				A53E4E512304892D000BB7D8 /* DispatchQueue.cpp */,
+				A53E4E4E2304892D000BB7D8 /* DispatchTimeoutResult.hpp */,
+				A53E4E502304892D000BB7D8 /* DispatchWorkItem.hpp */,
+				A53E4E522304892D000BB7D8 /* DispatchWorkItem.cpp */,
+				A53E4E4B2304892D000BB7D8 /* PromiseErrorPtr.hpp */,
+				A53E4E4C2304892D000BB7D8 /* Promise.hpp */,
+				A53E4E542304892D000BB7D8 /* Promise.cpp */,
+			);
+			path = async;
+			sourceTree = "<group>";
+		};
 		A578650523006DA200CDC3E8 = {
 			isa = PBXGroup;
 			children = (
@@ -78,16 +103,7 @@
 		A578651A23006EAB00CDC3E8 /* src */ = {
 			isa = PBXGroup;
 			children = (
-				A57865412300BC2B00CDC3E8 /* Macros.hpp */,
-				A57865422300BC3100CDC3E8 /* Types.hpp */,
-				A578654B2300BD3E00CDC3E8 /* DispatchQueue.hpp */,
-				A578654C2300BD3E00CDC3E8 /* DispatchQueue.cpp */,
-				A57865482300BD0100CDC3E8 /* DispatchTimeoutResult.hpp */,
-				A57865462300BCF300CDC3E8 /* DispatchWorkItem.hpp */,
-				A57865452300BCF300CDC3E8 /* DispatchWorkItem.cpp */,
-				A57865512301044800CDC3E8 /* PromiseErrorPtr.hpp */,
-				A57865502301023300CDC3E8 /* Promise.hpp */,
-				A578655223011D2C00CDC3E8 /* Promise.cpp */,
+				A53E4E492304892D000BB7D8 /* fgl */,
 			);
 			name = src;
 			path = ../../src;
@@ -149,9 +165,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A578655323011D2C00CDC3E8 /* Promise.cpp in Sources */,
-				A57865472300BCF300CDC3E8 /* DispatchWorkItem.cpp in Sources */,
-				A578654D2300BD3E00CDC3E8 /* DispatchQueue.cpp in Sources */,
+				A53E4E5E23048B1E000BB7D8 /* Promise.cpp in Sources */,
+				A53E4E5C23048B19000BB7D8 /* DispatchQueue.cpp in Sources */,
+				A53E4E5D23048B1C000BB7D8 /* DispatchWorkItem.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

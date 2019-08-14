@@ -12,8 +12,7 @@
 #include <list>
 #include <mutex>
 #include <utility>
-#include "Macros.hpp"
-#include "Types.hpp"
+#include "Common.hpp"
 #include "DispatchQueue.hpp"
 #include "PromiseErrorPtr.hpp"
 

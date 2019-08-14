@@ -11,8 +11,7 @@
 #include <condition_variable>
 #include <list>
 #include <mutex>
-#include "Macros.hpp"
-#include "Types.hpp"
+#include "Common.hpp"
 #include "DispatchTimeoutResult.hpp"
 
 namespace fgl {

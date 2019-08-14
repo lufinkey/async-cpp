@@ -13,8 +13,7 @@
 #include <memory>
 #include <mutex>
 #include <thread>
-#include "Macros.hpp"
-#include "Types.hpp"
+#include "Common.hpp"
 #include "DispatchWorkItem.hpp"
 
 namespace fgl {

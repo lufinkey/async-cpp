@@ -8,7 +8,6 @@
 
 #include "DispatchWorkItem.hpp"
 #include "DispatchQueue.hpp"
-#include "Macros.hpp"
 
 namespace fgl {
 	DispatchWorkItem::DispatchWorkItem(Function<void()> work)

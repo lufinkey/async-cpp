@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "Common.hpp"
 #include <exception>
 
 namespace fgl {
