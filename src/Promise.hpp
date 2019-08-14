@@ -819,26 +819,23 @@ namespace fgl {
 			}
 			
 			Result await() {
-				std::mutex waitMutex;
-				std::unique_lock<std::mutex> waitLock(waitMutex);
-				std::condition_variable waitCondition;
-				std::unique_lock<std::mutex> lock(mutex);
 				switch(state) {
-					case State::EXECUTING:
+					case State::EXECUTING: {
+						std::mutex waitMutex;
+						std::unique_lock<std::mutex> waitLock(waitMutex);
+						std::condition_variable waitCondition;
 						if constexpr(std::is_same<Result,void>::value) {
 							std::exception_ptr error_ptr;
 							bool rejected = false;
 							bool resolved = false;
-							resolvers.push_back([&]() {
+							this->handle(nullptr, [&]() {
 								resolved = true;
 								waitCondition.notify_one();
-							});
-							rejecters.push_back([&](auto error) {
+							}, nullptr, [&](auto error) {
 								rejected = true;
 								error_ptr = error;
 								waitCondition.notify_one();
 							});
-							lock.unlock();
 							waitCondition.wait(waitLock, [&]() {
 								return (resolved || rejected);
 							});
@@ -852,17 +849,15 @@ namespace fgl {
 							std::exception_ptr error_ptr;
 							bool rejected = false;
 							bool resolved = false;
-							resolvers.push_back([&](auto result) {
+							this->handle(nullptr, [&](auto result) {
 								resolved = true;
 								result_ptr = std::make_unique(result);
 								waitCondition.notify_one();
-							});
-							rejecters.push_back([&](auto error) {
+							}, nullptr, [&](auto error) {
 								rejected = true;
 								error_ptr = error;
 								waitCondition.notify_one();
 							});
-							lock.unlock();
 							waitCondition.wait(waitLock, [&]() {
 								return (resolved || rejected);
 							});
@@ -871,6 +866,7 @@ namespace fgl {
 							}
 							return std::move(*result_ptr);
 						}
+					}
 					case State::RESOLVED:
 					case State::REJECTED:
 						return future.get();
