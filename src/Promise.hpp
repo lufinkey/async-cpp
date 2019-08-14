@@ -47,22 +47,25 @@ namespace fgl {
 				executor([=]() {
 					continuer->resolve();
 				}, [=](PromiseErrorPtr error) {
-					continuer->reject(error);
+					continuer->reject(error.ptr());
 				});
 			}
 			else {
 				executor([=](Result result) {
 					continuer->resolve(result);
 				}, [=](PromiseErrorPtr error) {
-					continuer->reject(error);
+					continuer->reject(error.ptr());
 				});
 			}
 		}
 		
+		
+		
 		Promise<void> then(DispatchQueue* queue, Then<void> onresolve, Catch<std::exception_ptr,void> onreject) {
+			FGL_ASSERT(queue != nullptr, "queue cannot be null");
 			return Promise<void>([=](auto resolve, auto reject) {
 				if constexpr(std::is_same<Result,void>::value) {
-					return this->continuer->handle(queue, [=]() {
+					auto resolveHandler = onresolve ? [=]() {
 						try {
 							onresolve();
 						} catch(...) {
@@ -70,7 +73,9 @@ namespace fgl {
 							return;
 						}
 						resolve();
-					}, [=](auto error) {
+					} : resolve;
+					auto thenQueue = onresolve ? queue : nullptr;
+					auto rejectHandler = onreject ? [=](auto error) {
 						try {
 							onreject(error);
 						} catch(...) {
@@ -78,10 +83,12 @@ namespace fgl {
 							return;
 						}
 						resolve();
-					});
+					} : reject;
+					auto catchQueue = onreject ? queue : nullptr;
+					this->continuer->handle(thenQueue, resolveHandler, catchQueue, rejectHandler);
 				}
 				else {
-					return this->continuer->handle(queue, [=](auto result) {
+					auto resolveHandler = onresolve ? [=](auto result) {
 						try {
 							onresolve(result);
 						} catch(...) {
@@ -89,7 +96,9 @@ namespace fgl {
 							return;
 						}
 						resolve();
-					}, [=](auto error) {
+					} : resolve;
+					auto thenQueue = onresolve ? queue : nullptr;
+					auto rejectHandler = onreject ? [=](auto error) {
 						try {
 							onreject(error);
 						} catch(...) {
@@ -97,7 +106,269 @@ namespace fgl {
 							return;
 						}
 						resolve();
+					} : reject;
+					auto catchQueue = onreject ? queue : nullptr;
+					this->continuer->handle(thenQueue, resolveHandler, catchQueue, rejectHandler);
+				}
+			});
+		}
+		
+		Promise<void> then(Then<void> onresolve, Catch<std::exception_ptr,void> onreject) {
+			return then(getDefaultPromiseQueue(), onresolve, onreject);
+		}
+		
+		Promise<void> then(DispatchQueue* queue, Then<void> onresolve) {
+			return then(queue, onresolve, nullptr);
+		}
+		
+		Promise<void> then(Then<void> onresolve) {
+			return then(getDefaultPromiseQueue(), onresolve, nullptr);
+		}
+		
+		template<typename NextResult>
+		Promise<NextResult> then(DispatchQueue* queue, Then<Promise<NextResult>> onresolve) {
+			FGL_ASSERT(queue != nullptr, "queue cannot be null");
+			FGL_ASSERT(onresolve != nullptr, "onresolve cannot be null");
+			return Promise<NextResult>([=](auto resolve, auto reject) {
+				if constexpr(std::is_same<Result,void>::value) {
+					this->continuer->handle(queue, [=]() {
+						std::unique_ptr<Promise<NextResult>> nextPromise;
+						try {
+							nextPromise = std::make_unique(onresolve());
+						} catch(...) {
+							reject(std::current_exception());
+							return;
+						}
+						nextPromise->continuer->handle(nullptr, resolve, nullptr, reject);
+					}, nullptr, reject);
+				}
+				else {
+					this->continuer->handle(queue, [=](auto result) {
+						std::unique_ptr<Promise<NextResult>> nextPromise;
+						try {
+							nextPromise = std::make_unique(onresolve(result));
+						} catch(...) {
+							reject(std::current_exception());
+						}
+						nextPromise->continuer->handle(nullptr, resolve, nullptr, reject);
+					}, nullptr, reject);
+				}
+			});
+		}
+		
+		
+		
+		template<typename ErrorType>
+		Promise<Result> except(DispatchQueue* queue, Catch<ErrorType,Result> onreject) {
+			FGL_ASSERT(queue != nullptr, "queue cannot be null");
+			FGL_ASSERT(onreject != nullptr, "onreject cannot be null");
+			return Promise<Result>([=](auto resolve, auto reject) {
+				this->continuer->handle(nullptr, resolve, queue, [=](auto error) {
+					if constexpr(std::is_same<Result,void>::value) {
+						if constexpr(std::is_same<ErrorType, std::exception_ptr>::value) {
+							try {
+								onreject(error);
+							} catch(...) {
+								reject(std::current_exception());
+								return;
+							}
+							resolve();
+						}
+						else {
+							try {
+								std::rethrow_exception(error);
+							} catch(ErrorType& error) {
+								try {
+									onreject(error);
+								} catch(...) {
+									reject(std::current_exception());
+									return;
+								}
+								resolve();
+							} catch(...) {
+								reject(std::current_exception());
+							}
+						}
+					}
+					else {
+						if constexpr(std::is_same<ErrorType, std::exception_ptr>::value) {
+							std::unique_ptr<Result> result;
+							try {
+								result = std::make_unique(onreject(error));
+							} catch(...) {
+								reject(std::current_exception());
+								return;
+							}
+							resolve(std::move(*result));
+						}
+						else {
+							try {
+								std::rethrow_exception(error);
+							} catch(ErrorType& error) {
+								std::unique_ptr<Result> result;
+								try {
+									result = std::make_unique(onreject(error));
+								} catch(...) {
+									reject(std::current_exception());
+									return;
+								}
+								resolve(std::move(*result));
+							} catch(...) {
+								reject(std::current_exception());
+							}
+						}
+					}
+				});
+			});
+		}
+		
+		template<typename ErrorType>
+		Promise<Result> except(Catch<ErrorType,Result> onreject) {
+			return except(getDefaultPromiseQueue(), onreject);
+		}
+		
+		template<typename ErrorType>
+		Promise<Result> except(DispatchQueue* queue, Catch<ErrorType,Promise<Result>> onreject) {
+			FGL_ASSERT(queue != nullptr, "queue cannot be null");
+			FGL_ASSERT(onreject != nullptr, "onreject cannot be null");
+			return Promise<Result>([=](auto resolve, auto reject) {
+				this->continuer->handle(nullptr, resolve, queue, [=](auto error) {
+					if constexpr(std::is_same<ErrorType, std::exception_ptr>::value) {
+						std::unique_ptr<Promise<Result>> resultPromise;
+						try {
+							resultPromise = std::make_unique(onreject(error));
+						} catch(...) {
+							reject(std::current_exception());
+							return;
+						}
+						resultPromise->continuer->handle(nullptr, resolve, nullptr, reject);
+					}
+					else {
+						try {
+							std::rethrow_exception(error);
+						} catch(ErrorType& error) {
+							std::unique_ptr<Promise<Result>> resultPromise;
+							try {
+								resultPromise = std::make_unique(onreject(error));
+							} catch(...) {
+								reject(std::current_exception());
+								return;
+							}
+							resultPromise->continuer->handle(nullptr, resolve, nullptr, reject);
+						} catch(...) {
+							reject(std::current_exception());
+						}
+					}
+				});
+			});
+		}
+		
+		template<typename ErrorType>
+		Promise<Result> except(Catch<ErrorType,Promise<Result>> onreject) {
+			return except(getDefaultPromiseQueue(), onreject);
+		}
+		
+		
+		
+		Promise<Result> finally(DispatchQueue* queue, Function<void()> onfinally) {
+			FGL_ASSERT(queue != nullptr, "queue cannot be null");
+			FGL_ASSERT(onfinally != nullptr, "onfinally cannot be null");
+			return Promise<Result>([=](auto resolve, auto reject) {
+				if constexpr(std::is_same<Result,void>::value) {
+					this->continuer->handle(queue, [=]() {
+						try {
+							onfinally();
+						} catch(...) {
+							reject(std::current_exception());
+							return;
+						}
+						resolve();
+					}, queue, [=](auto error) {
+						try {
+							onfinally();
+						} catch(...) {
+							reject(std::current_exception());
+							return;
+						}
+						reject(error);
 					});
+				}
+				else {
+					this->continuer->handle(queue, [=](auto result) {
+						try {
+							onfinally();
+						} catch(...) {
+							reject(std::current_exception());
+							return;
+						}
+						resolve(result);
+					}, queue, [=](auto error) {
+						try {
+							onfinally();
+						} catch(...) {
+							reject(std::current_exception());
+							return;
+						}
+						reject(error);
+					});
+				}
+			});
+		}
+		
+		Promise<Result> finally(Function<void()> onfinally) {
+			return finally(getDefaultPromiseQueue(), onfinally);
+		}
+		
+		
+		
+		template<typename NextResult>
+		Promise<NextResult> map(DispatchQueue* queue, Then<NextResult> transform) {
+			return Promise<NextResult>([=](auto resolve, auto reject) {
+				if constexpr(std::is_same<Result,void>::value) {
+					this->continuer->handle(queue, [=]() {
+						if constexpr(std::is_same<NextResult,void>::value) {
+							try {
+								transform();
+							} catch(...) {
+								reject(std::current_exception());
+								return;
+							}
+							resolve();
+						}
+						else {
+							std::unique_ptr<NextResult> newResult;
+							try {
+								newResult = std::make_unique(transform());
+							} catch(...) {
+								reject(std::current_exception());
+								return;
+							}
+							resolve(std::move(*newResult));
+						}
+					}, nullptr, reject);
+				}
+				else {
+					this->continuer->handle(queue, [=](auto result) {
+						if constexpr(std::is_same<NextResult,void>::value) {
+							try {
+								transform(result);
+							} catch(...) {
+								reject(std::current_exception());
+								return;
+							}
+							resolve();
+						}
+						else {
+							std::unique_ptr<NextResult> newResult;
+							try {
+								newResult = std::make_unique(transform(result));
+							} catch(...) {
+								reject(std::current_exception());
+								return;
+							}
+							resolve(std::move(*newResult));
+						}
+					}, nullptr, reject);
 				}
 			});
 		}
@@ -156,11 +427,11 @@ namespace fgl {
 			}
 			
 			// send promise error
-			void reject(PromiseErrorPtr error) {
+			void reject(std::exception_ptr error) {
 				std::unique_lock<std::mutex> lock(mutex);
 				FGL_ASSERT(state == State::EXECUTING, "Cannot resolve a promise multiple times");
 				// set new state
-				promise.set_exception(error.ptr());
+				promise.set_exception(error);
 				state = State::REJECTED;
 				// copy callbacks and clear
 				std::list<Rejecter> callbacks;
@@ -174,31 +445,43 @@ namespace fgl {
 				}
 			}
 			
-			void handle(DispatchQueue* queue, Then<void> onresolve, Catch<std::exception_ptr,void> onreject) {
+			void handle(DispatchQueue* thenQueue, Then<void> onresolve, DispatchQueue* catchQueue, Catch<std::exception_ptr,void> onreject) {
 				std::unique_lock<std::mutex> lock(mutex);
 				switch(state) {
 					case State::EXECUTING: {
 						if(onresolve) {
 							if constexpr(std::is_same<Result,void>::value) {
 								resolvers.push_back([=]() {
-									queue->async([=]() {
+									if(thenQueue != nullptr) {
+										thenQueue->async([=]() {
+											onresolve();
+										});
+									} else {
 										onresolve();
-									});
+									}
 								});
 							}
 							else {
 								resolvers.push_back([=](auto result) {
-									queue->async([=]() {
+									if(thenQueue != nullptr) {
+										thenQueue->async([=]() {
+											onresolve(result);
+										});
+									} else {
 										onresolve(result);
-									});
+									}
 								});
 							}
 						}
 						if(onreject) {
-							rejecters.push_back([=](auto exceptionPtr) {
-								queue->async([=]() {
-									onreject(exceptionPtr.ptr());
-								});
+							rejecters.push_back([=](auto error) {
+								if(catchQueue != nullptr) {
+									catchQueue->async([=]() {
+										onreject(error);
+									});
+								} else {
+									onreject(error);
+								}
 							});
 						}
 					}
@@ -207,7 +490,17 @@ namespace fgl {
 					case State::RESOLVED: {
 						lock.unlock();
 						if(onresolve) {
-							queue->async([=]() {
+							if(thenQueue != nullptr) {
+								thenQueue->async([=]() {
+									if constexpr(std::is_same<Result,void>::value) {
+										future.get();
+										onresolve();
+									}
+									else {
+										onresolve(future.get());
+									}
+								});
+							} else {
 								if constexpr(std::is_same<Result,void>::value) {
 									future.get();
 									onresolve();
@@ -215,7 +508,7 @@ namespace fgl {
 								else {
 									onresolve(future.get());
 								}
-							});
+							}
 						}
 					}
 					break;
@@ -223,24 +516,91 @@ namespace fgl {
 					case State::REJECTED: {
 						lock.unlock();
 						if(onreject) {
-							queue->async([=]() {
+							if(catchQueue != nullptr) {
+								catchQueue->async([=]() {
+									try {
+										future.get();
+									} catch(...) {
+										onreject(std::current_exception());
+									}
+								});
+							} else {
 								try {
 									future.get();
 								} catch(...) {
 									onreject(std::current_exception());
 								}
-							});
+							}
 						}
 					}
 					break;
 				}
 			}
 			
+			Result await() {
+				std::mutex waitMutex;
+				std::unique_lock<std::mutex> waitLock(waitMutex);
+				std::condition_variable waitCondition;
+				std::unique_lock<std::mutex> lock(mutex);
+				switch(state) {
+					case State::EXECUTING:
+						if constexpr(std::is_same<Result,void>::value) {
+							std::exception_ptr error_ptr;
+							bool rejected = false;
+							bool resolved = false;
+							resolvers.push_back([&]() {
+								resolved = true;
+								waitCondition.notify_one();
+							});
+							rejecters.push_back([&](auto error) {
+								rejected = true;
+								error_ptr = error;
+								waitCondition.notify_one();
+							});
+							lock.unlock();
+							waitCondition.wait(waitLock, [&]() {
+								return (resolved || rejected);
+							});
+							if(rejected) {
+								std::rethrow_exception(error_ptr);
+							}
+							return;
+						}
+						else {
+							std::unique_ptr<Result> result_ptr;
+							std::exception_ptr error_ptr;
+							bool rejected = false;
+							bool resolved = false;
+							resolvers.push_back([&](auto result) {
+								resolved = true;
+								result_ptr = std::make_unique(result);
+								waitCondition.notify_one();
+							});
+							rejecters.push_back([&](auto error) {
+								rejected = true;
+								error_ptr = error;
+								waitCondition.notify_one();
+							});
+							lock.unlock();
+							waitCondition.wait(waitLock, [&]() {
+								return (resolved || rejected);
+							});
+							if(rejected) {
+								std::rethrow_exception(error_ptr);
+							}
+							return std::move(*result_ptr);
+						}
+					case State::RESOLVED:
+					case State::REJECTED:
+						return future.get();
+				}
+			}
+			
 		private:
 			std::promise<Result> promise;
 			std::shared_future<Result> future;
-			LinkedList<Resolver> resolvers;
-			LinkedList<Rejecter> rejecters;
+			std::list<Then<void>> resolvers;
+			std::list<Catch<std::exception_ptr,void>> rejecters;
 			std::mutex mutex;
 			State state;
 		};
