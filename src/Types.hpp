@@ -8,15 +8,20 @@
 
 #pragma once
 
+#include <any>
 #include <chrono>
 #include <functional>
 #include <list>
 #include <string>
+#include <vector>
 
 namespace fgl {
 	template<typename T>
 	using Function = std::function<T>;
 	template<typename T>
+	using ArrayList = std::vector<T>;
+	template<typename T>
 	using LinkedList = std::list<T>;
 	using String = std::string;
+	using Any = std::any;
 }
