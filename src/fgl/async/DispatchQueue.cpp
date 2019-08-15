@@ -10,6 +10,7 @@
 
 namespace fgl {
 	DispatchQueue* DispatchQueue::mainQueue = nullptr;
+	bool DispatchQueue::mainQueueRunning = false;
 	
 	DispatchQueue::DispatchQueue(String label)
 	: label(label), type(Type::BACKGROUND), alive(true), stopped(true) {

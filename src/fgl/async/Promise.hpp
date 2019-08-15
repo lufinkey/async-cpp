@@ -10,6 +10,7 @@
 
 #include <future>
 #include <list>
+#include <memory>
 #include <mutex>
 #include <thread>
 #include <type_traits>
@@ -25,8 +26,27 @@ namespace fgl {
 	DispatchQueue* getDefaultPromiseQueue();
 	
 	template<typename Result>
+	class Promise;
+	
+	template<typename PromiseType, typename ResultType = typename PromiseType::ResultType,
+		bool Test = std::is_same<PromiseType, Promise<ResultType>>::value>
+	struct is_promise {
+		static constexpr bool value = false;
+	};
+	
+	template<typename PromiseType, typename ResultType>
+	struct is_promise<PromiseType, ResultType, true> {
+		static constexpr bool value = true;
+		typedef ResultType result_type;
+		typedef Promise<ResultType> promise_type;
+		typedef std::nullptr_t null_type;
+	};
+	
+	template<typename Result>
 	class Promise {
 	public:
+		typedef Result ResultType;
+		
 		template<typename Arg, typename Return>
 		struct _block {
 			using type = Function<Return(Arg)>;
@@ -51,6 +71,8 @@ namespace fgl {
 		Promise<void> then(Then<void> onresolve);
 		template<typename NextResult>
 		Promise<NextResult> then(DispatchQueue* queue, Then<Promise<NextResult>> onresolve);
+		template<typename NextResult>
+		Promise<NextResult> then(Then<Promise<NextResult>> onresolve);
 		
 		template<typename ErrorType>
 		Promise<Result> except(DispatchQueue* queue, Catch<ErrorType,Result> onreject);
@@ -141,7 +163,7 @@ namespace fgl {
 	};
 	
 	template<typename Result>
-	Promise<Result> async(DispatchQueue* queue, Function<Result()> executor);
+	Promise<Result> async(Function<Result()> executor);
 	template<typename Result>
 	Result await(Promise<Result> promise);
 	
@@ -151,21 +173,22 @@ namespace fgl {
 #pragma mark Promise implementation
 	
 	template<typename Result>
-	Promise<Result>::Promise(const Function<void(Resolver,Rejecter)>& executor) {
+	Promise<Result>::Promise(const Function<void(Resolver,Rejecter)>& executor)
+	: continuer(std::make_shared<Continuer>()) {
 		FGL_ASSERT(executor != nullptr, "promise executor cannot be null");
-		auto continuer = this->continuer;
+		auto _continuer = this->continuer;
 		if constexpr(std::is_same<Result,void>::value) {
 			executor([=]() {
-				continuer->resolve();
+				_continuer->resolve();
 			}, [=](PromiseErrorPtr error) {
-				continuer->reject(error.ptr());
+				_continuer->reject(error.ptr());
 			});
 		}
 		else {
 			executor([=](Result result) {
-				continuer->resolve(result);
+				_continuer->resolve(result);
 			}, [=](PromiseErrorPtr error) {
-				continuer->reject(error.ptr());
+				_continuer->reject(error.ptr());
 			});
 		}
 	}
@@ -187,7 +210,7 @@ namespace fgl {
 					resolve();
 				} : resolve;
 				auto thenQueue = onresolve ? queue : nullptr;
-				auto rejectHandler = onreject ? [=](auto error) {
+				auto rejectHandler = (onreject != nullptr) ? [=](std::exception_ptr error) {
 					try {
 						onreject(error);
 					} catch(...) {
@@ -200,7 +223,7 @@ namespace fgl {
 				this->continuer->handle(thenQueue, resolveHandler, catchQueue, rejectHandler);
 			}
 			else {
-				auto resolveHandler = onresolve ? [=](auto result) {
+				auto resolveHandler = onresolve ? Function<void(Result)>([=](Result result) {
 					try {
 						onresolve(result);
 					} catch(...) {
@@ -208,9 +231,9 @@ namespace fgl {
 						return;
 					}
 					resolve();
-				} : resolve;
+				}) : [=](Result result) { resolve(); };
 				auto thenQueue = onresolve ? queue : nullptr;
-				auto rejectHandler = onreject ? [=](auto error) {
+				auto rejectHandler = onreject ? [=](std::exception_ptr error) {
 					try {
 						onreject(error);
 					} catch(...) {
@@ -250,7 +273,7 @@ namespace fgl {
 				this->continuer->handle(queue, [=]() {
 					std::unique_ptr<Promise<NextResult>> nextPromise;
 					try {
-						nextPromise = std::make_unique(onresolve());
+						nextPromise = std::make_unique<Promise<NextResult>>(onresolve());
 					} catch(...) {
 						reject(std::current_exception());
 						return;
@@ -262,7 +285,7 @@ namespace fgl {
 				this->continuer->handle(queue, [=](auto result) {
 					std::unique_ptr<Promise<NextResult>> nextPromise;
 					try {
-						nextPromise = std::make_unique(onresolve(result));
+						nextPromise = std::make_unique<Promise<NextResult>>(onresolve(result));
 					} catch(...) {
 						reject(std::current_exception());
 					}
@@ -270,6 +293,12 @@ namespace fgl {
 				}, nullptr, reject);
 			}
 		});
+	}
+	
+	template<typename Result>
+	template<typename NextResult>
+	Promise<NextResult> Promise<Result>::then(Then<Promise<NextResult>> onresolve) {
+		return then(getDefaultPromiseQueue(), onresolve);
 	}
 	
 	
@@ -311,7 +340,7 @@ namespace fgl {
 					if constexpr(std::is_same<ErrorType, std::exception_ptr>::value) {
 						std::unique_ptr<Result> result;
 						try {
-							result = std::make_unique(onreject(error));
+							result = std::make_unique<Result>(onreject(error));
 						} catch(...) {
 							reject(std::current_exception());
 							return;
@@ -324,7 +353,7 @@ namespace fgl {
 						} catch(ErrorType& error) {
 							std::unique_ptr<Result> result;
 							try {
-								result = std::make_unique(onreject(error));
+								result = std::make_unique<Result>(onreject(error));
 							} catch(...) {
 								reject(std::current_exception());
 								return;
@@ -355,7 +384,7 @@ namespace fgl {
 				if constexpr(std::is_same<ErrorType, std::exception_ptr>::value) {
 					std::unique_ptr<Promise<Result>> resultPromise;
 					try {
-						resultPromise = std::make_unique(onreject(error));
+						resultPromise = std::make_unique<Promise<Result>>(onreject(error));
 					} catch(...) {
 						reject(std::current_exception());
 						return;
@@ -368,7 +397,7 @@ namespace fgl {
 					} catch(ErrorType& error) {
 						std::unique_ptr<Promise<Result>> resultPromise;
 						try {
-							resultPromise = std::make_unique(onreject(error));
+							resultPromise = std::make_unique<Promise<Result>>(onreject(error));
 						} catch(...) {
 							reject(std::current_exception());
 							return;
@@ -461,7 +490,7 @@ namespace fgl {
 					else {
 						std::unique_ptr<NextResult> newResult;
 						try {
-							newResult = std::make_unique(transform());
+							newResult = std::make_unique<NextResult>(transform());
 						} catch(...) {
 							reject(std::current_exception());
 							return;
@@ -484,7 +513,7 @@ namespace fgl {
 					else {
 						std::unique_ptr<NextResult> newResult;
 						try {
-							newResult = std::make_unique(transform(result));
+							newResult = std::make_unique<NextResult>(transform(result));
 						} catch(...) {
 							reject(std::current_exception());
 							return;
@@ -827,7 +856,7 @@ namespace fgl {
 		promise.set_value();
 		state = State::RESOLVED;
 		// copy callbacks and clear
-		std::list<Resolver> callbacks;
+		std::list<Then<void>> callbacks;
 		callbacks.swap(resolvers);
 		resolvers.clear();
 		rejecters.clear();
@@ -846,7 +875,7 @@ namespace fgl {
 		promise.set_exception(error);
 		state = State::REJECTED;
 		// copy callbacks and clear
-		std::list<Rejecter> callbacks;
+		std::list<Catch<std::exception_ptr,void>> callbacks;
 		callbacks.swap(rejecters);
 		resolvers.clear();
 		rejecters.clear();
@@ -1010,8 +1039,8 @@ namespace fgl {
 	
 	
 	template<typename Result>
-	Promise<Result> async(DispatchQueue* queue, Function<Result()> executor) {
-		return Promise<Result>([&](auto resolve, auto reject) {
+	Promise<Result> async(Function<Result()> executor) {
+		return Promise<Result>([=](auto resolve, auto reject) {
 			std::thread([=]() {
 				if constexpr(std::is_same<Result,void>::value) {
 					try {
@@ -1025,14 +1054,14 @@ namespace fgl {
 				else {
 					std::unique_ptr<Result> result;
 					try {
-						result = std::make_unique(executor());
+						result = std::make_unique<Result>(executor());
 					} catch(...) {
 						reject(std::current_exception());
 						return;
 					}
 					resolve(std::move(*result));
 				}
-			});
+			}).detach();
 		});
 	}
 	
