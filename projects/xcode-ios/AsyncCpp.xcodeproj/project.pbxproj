@@ -7,32 +7,52 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A53E4E5C23048B19000BB7D8 /* DispatchQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A53E4E512304892D000BB7D8 /* DispatchQueue.cpp */; };
-		A53E4E5D23048B1C000BB7D8 /* DispatchWorkItem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A53E4E522304892D000BB7D8 /* DispatchWorkItem.cpp */; };
-		A53E4E5E23048B1E000BB7D8 /* Promise.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A53E4E542304892D000BB7D8 /* Promise.cpp */; };
-		A53E4E6023048BE6000BB7D8 /* Common.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4E532304892D000BB7D8 /* Common.hpp */; };
-		A53E4E6123048BE6000BB7D8 /* DispatchQueue.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4E4F2304892D000BB7D8 /* DispatchQueue.hpp */; };
-		A53E4E6223048BE6000BB7D8 /* DispatchTimeoutResult.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4E4E2304892D000BB7D8 /* DispatchTimeoutResult.hpp */; };
-		A53E4E6323048BE6000BB7D8 /* DispatchWorkItem.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4E502304892D000BB7D8 /* DispatchWorkItem.hpp */; };
-		A53E4E6423048BE6000BB7D8 /* PromiseErrorPtr.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4E4B2304892D000BB7D8 /* PromiseErrorPtr.hpp */; };
-		A53E4E6523048BE6000BB7D8 /* Promise.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4E4C2304892D000BB7D8 /* Promise.hpp */; };
+		A53E4E7F2304D1C8000BB7D8 /* Common.hpp in Headers */ = {isa = PBXBuildFile; fileRef = A53E4E532304892D000BB7D8 /* Common.hpp */; settings = {ATTRIBUTES = (Public, ); }; };
+		A53E4E802304D1C8000BB7D8 /* DispatchQueue.hpp in Headers */ = {isa = PBXBuildFile; fileRef = A53E4E4F2304892D000BB7D8 /* DispatchQueue.hpp */; settings = {ATTRIBUTES = (Public, ); }; };
+		A53E4E812304D1C8000BB7D8 /* DispatchQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A53E4E512304892D000BB7D8 /* DispatchQueue.cpp */; };
+		A53E4E822304D1C8000BB7D8 /* DispatchTimeoutResult.hpp in Headers */ = {isa = PBXBuildFile; fileRef = A53E4E4E2304892D000BB7D8 /* DispatchTimeoutResult.hpp */; settings = {ATTRIBUTES = (Public, ); }; };
+		A53E4E832304D1C8000BB7D8 /* DispatchWorkItem.hpp in Headers */ = {isa = PBXBuildFile; fileRef = A53E4E502304892D000BB7D8 /* DispatchWorkItem.hpp */; settings = {ATTRIBUTES = (Public, ); }; };
+		A53E4E842304D1C8000BB7D8 /* DispatchWorkItem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A53E4E522304892D000BB7D8 /* DispatchWorkItem.cpp */; };
+		A53E4E852304D1C8000BB7D8 /* PromiseErrorPtr.hpp in Headers */ = {isa = PBXBuildFile; fileRef = A53E4E4B2304892D000BB7D8 /* PromiseErrorPtr.hpp */; settings = {ATTRIBUTES = (Public, ); }; };
+		A53E4E862304D1C8000BB7D8 /* Promise.hpp in Headers */ = {isa = PBXBuildFile; fileRef = A53E4E4C2304892D000BB7D8 /* Promise.hpp */; settings = {ATTRIBUTES = (Public, ); }; };
+		A53E4E872304D1C8000BB7D8 /* Promise.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A53E4E542304892D000BB7D8 /* Promise.cpp */; };
+		A53E4E952304D261000BB7D8 /* DispatchQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A53E4E512304892D000BB7D8 /* DispatchQueue.cpp */; };
+		A53E4E962304D261000BB7D8 /* DispatchWorkItem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A53E4E522304892D000BB7D8 /* DispatchWorkItem.cpp */; };
+		A53E4E972304D261000BB7D8 /* Promise.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A53E4E542304892D000BB7D8 /* Promise.cpp */; };
+		A53E4E982304D27C000BB7D8 /* Common.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4E532304892D000BB7D8 /* Common.hpp */; };
+		A53E4E992304D27C000BB7D8 /* DispatchQueue.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4E4F2304892D000BB7D8 /* DispatchQueue.hpp */; };
+		A53E4E9A2304D27C000BB7D8 /* DispatchTimeoutResult.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4E4E2304892D000BB7D8 /* DispatchTimeoutResult.hpp */; };
+		A53E4E9B2304D27C000BB7D8 /* DispatchWorkItem.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4E502304892D000BB7D8 /* DispatchWorkItem.hpp */; };
+		A53E4E9C2304D27C000BB7D8 /* PromiseErrorPtr.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4E4B2304892D000BB7D8 /* PromiseErrorPtr.hpp */; };
+		A53E4E9D2304D27C000BB7D8 /* Promise.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4E4C2304892D000BB7D8 /* Promise.hpp */; };
+		A53E4EA62304D2E1000BB7D8 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A53E4EA52304D2E1000BB7D8 /* main.cpp */; };
+		A53E4EAB23050152000BB7D8 /* libAsyncCpp-macOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A53E4E7B2304D166000BB7D8 /* libAsyncCpp-macOS.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		A578650C23006DA200CDC3E8 /* CopyFiles */ = {
+		A53E4E8A2304D250000BB7D8 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "include/$(PRODUCT_NAME)";
 			dstSubfolderSpec = 16;
 			files = (
-				A53E4E6023048BE6000BB7D8 /* Common.hpp in CopyFiles */,
-				A53E4E6123048BE6000BB7D8 /* DispatchQueue.hpp in CopyFiles */,
-				A53E4E6223048BE6000BB7D8 /* DispatchTimeoutResult.hpp in CopyFiles */,
-				A53E4E6323048BE6000BB7D8 /* DispatchWorkItem.hpp in CopyFiles */,
-				A53E4E6423048BE6000BB7D8 /* PromiseErrorPtr.hpp in CopyFiles */,
-				A53E4E6523048BE6000BB7D8 /* Promise.hpp in CopyFiles */,
+				A53E4E982304D27C000BB7D8 /* Common.hpp in CopyFiles */,
+				A53E4E992304D27C000BB7D8 /* DispatchQueue.hpp in CopyFiles */,
+				A53E4E9A2304D27C000BB7D8 /* DispatchTimeoutResult.hpp in CopyFiles */,
+				A53E4E9B2304D27C000BB7D8 /* DispatchWorkItem.hpp in CopyFiles */,
+				A53E4E9C2304D27C000BB7D8 /* PromiseErrorPtr.hpp in CopyFiles */,
+				A53E4E9D2304D27C000BB7D8 /* Promise.hpp in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A53E4EA12304D2E1000BB7D8 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
 		};
 /* End PBXCopyFilesBuildPhase section */
 
@@ -46,14 +66,33 @@
 		A53E4E522304892D000BB7D8 /* DispatchWorkItem.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DispatchWorkItem.cpp; sourceTree = "<group>"; };
 		A53E4E532304892D000BB7D8 /* Common.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Common.hpp; sourceTree = "<group>"; };
 		A53E4E542304892D000BB7D8 /* Promise.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Promise.cpp; sourceTree = "<group>"; };
-		A578650E23006DA200CDC3E8 /* libAsyncCpp.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libAsyncCpp.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		A53E4E7B2304D166000BB7D8 /* libAsyncCpp-macOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libAsyncCpp-macOS.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A53E4E8C2304D250000BB7D8 /* libAsyncCpp-iOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libAsyncCpp-iOS.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A53E4EA32304D2E1000BB7D8 /* AsyncCppTest-macOS */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "AsyncCppTest-macOS"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A53E4EA52304D2E1000BB7D8 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		A53E4EAD23062B08000BB7D8 /* LambdaTraits.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = LambdaTraits.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		A578650B23006DA200CDC3E8 /* Frameworks */ = {
+		A53E4E792304D166000BB7D8 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A53E4E892304D250000BB7D8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A53E4EA02304D2E1000BB7D8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A53E4EAB23050152000BB7D8 /* libAsyncCpp-macOS.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -77,6 +116,7 @@
 				A53E4E4E2304892D000BB7D8 /* DispatchTimeoutResult.hpp */,
 				A53E4E502304892D000BB7D8 /* DispatchWorkItem.hpp */,
 				A53E4E522304892D000BB7D8 /* DispatchWorkItem.cpp */,
+				A53E4EAD23062B08000BB7D8 /* LambdaTraits.hpp */,
 				A53E4E4B2304892D000BB7D8 /* PromiseErrorPtr.hpp */,
 				A53E4E4C2304892D000BB7D8 /* Promise.hpp */,
 				A53E4E542304892D000BB7D8 /* Promise.cpp */,
@@ -84,18 +124,36 @@
 			path = async;
 			sourceTree = "<group>";
 		};
+		A53E4E9E2304D2BF000BB7D8 /* test */ = {
+			isa = PBXGroup;
+			children = (
+				A53E4EA52304D2E1000BB7D8 /* main.cpp */,
+			);
+			path = test;
+			sourceTree = "<group>";
+		};
+		A53E4EAA23050152000BB7D8 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		A578650523006DA200CDC3E8 = {
 			isa = PBXGroup;
 			children = (
 				A578651A23006EAB00CDC3E8 /* src */,
 				A578650F23006DA200CDC3E8 /* Products */,
+				A53E4EAA23050152000BB7D8 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
 		A578650F23006DA200CDC3E8 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				A578650E23006DA200CDC3E8 /* libAsyncCpp.a */,
+				A53E4E7B2304D166000BB7D8 /* libAsyncCpp-macOS.a */,
+				A53E4E8C2304D250000BB7D8 /* libAsyncCpp-iOS.a */,
+				A53E4EA32304D2E1000BB7D8 /* AsyncCppTest-macOS */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -104,6 +162,7 @@
 			isa = PBXGroup;
 			children = (
 				A53E4E492304892D000BB7D8 /* fgl */,
+				A53E4E9E2304D2BF000BB7D8 /* test */,
 			);
 			name = src;
 			path = ../../src;
@@ -111,23 +170,73 @@
 		};
 /* End PBXGroup section */
 
+/* Begin PBXHeadersBuildPhase section */
+		A53E4E772304D166000BB7D8 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A53E4E862304D1C8000BB7D8 /* Promise.hpp in Headers */,
+				A53E4E852304D1C8000BB7D8 /* PromiseErrorPtr.hpp in Headers */,
+				A53E4E832304D1C8000BB7D8 /* DispatchWorkItem.hpp in Headers */,
+				A53E4E802304D1C8000BB7D8 /* DispatchQueue.hpp in Headers */,
+				A53E4E7F2304D1C8000BB7D8 /* Common.hpp in Headers */,
+				A53E4E822304D1C8000BB7D8 /* DispatchTimeoutResult.hpp in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
 /* Begin PBXNativeTarget section */
-		A578650D23006DA200CDC3E8 /* AsyncCpp */ = {
+		A53E4E7A2304D166000BB7D8 /* AsyncCpp-macOS */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = A578651723006DA200CDC3E8 /* Build configuration list for PBXNativeTarget "AsyncCpp" */;
+			buildConfigurationList = A53E4E7E2304D166000BB7D8 /* Build configuration list for PBXNativeTarget "AsyncCpp-macOS" */;
 			buildPhases = (
-				A578650A23006DA200CDC3E8 /* Sources */,
-				A578650B23006DA200CDC3E8 /* Frameworks */,
-				A578650C23006DA200CDC3E8 /* CopyFiles */,
+				A53E4E772304D166000BB7D8 /* Headers */,
+				A53E4E782304D166000BB7D8 /* Sources */,
+				A53E4E792304D166000BB7D8 /* Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
-			name = AsyncCpp;
-			productName = AsyncCpp;
-			productReference = A578650E23006DA200CDC3E8 /* libAsyncCpp.a */;
+			name = "AsyncCpp-macOS";
+			productName = "AsyncCpp-macOS";
+			productReference = A53E4E7B2304D166000BB7D8 /* libAsyncCpp-macOS.a */;
 			productType = "com.apple.product-type.library.static";
+		};
+		A53E4E8B2304D250000BB7D8 /* AsyncCpp-iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A53E4E922304D250000BB7D8 /* Build configuration list for PBXNativeTarget "AsyncCpp-iOS" */;
+			buildPhases = (
+				A53E4E882304D250000BB7D8 /* Sources */,
+				A53E4E892304D250000BB7D8 /* Frameworks */,
+				A53E4E8A2304D250000BB7D8 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "AsyncCpp-iOS";
+			productName = "AsyncCpp-iOS";
+			productReference = A53E4E8C2304D250000BB7D8 /* libAsyncCpp-iOS.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+		A53E4EA22304D2E1000BB7D8 /* AsyncCppTest-macOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A53E4EA72304D2E1000BB7D8 /* Build configuration list for PBXNativeTarget "AsyncCppTest-macOS" */;
+			buildPhases = (
+				A53E4E9F2304D2E1000BB7D8 /* Sources */,
+				A53E4EA02304D2E1000BB7D8 /* Frameworks */,
+				A53E4EA12304D2E1000BB7D8 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "AsyncCppTest-macOS";
+			productName = "AsyncCppTest-macOS";
+			productReference = A53E4EA32304D2E1000BB7D8 /* AsyncCppTest-macOS */;
+			productType = "com.apple.product-type.tool";
 		};
 /* End PBXNativeTarget section */
 
@@ -138,8 +247,14 @@
 				LastUpgradeCheck = 1020;
 				ORGANIZATIONNAME = "Luis Finke";
 				TargetAttributes = {
-					A578650D23006DA200CDC3E8 = {
-						CreatedOnToolsVersion = 10.2.1;
+					A53E4E7A2304D166000BB7D8 = {
+						CreatedOnToolsVersion = 10.3;
+					};
+					A53E4E8B2304D250000BB7D8 = {
+						CreatedOnToolsVersion = 10.3;
+					};
+					A53E4EA22304D2E1000BB7D8 = {
+						CreatedOnToolsVersion = 10.3;
 					};
 				};
 			};
@@ -155,25 +270,123 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				A578650D23006DA200CDC3E8 /* AsyncCpp */,
+				A53E4E7A2304D166000BB7D8 /* AsyncCpp-macOS */,
+				A53E4E8B2304D250000BB7D8 /* AsyncCpp-iOS */,
+				A53E4EA22304D2E1000BB7D8 /* AsyncCppTest-macOS */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
-		A578650A23006DA200CDC3E8 /* Sources */ = {
+		A53E4E782304D166000BB7D8 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A53E4E5E23048B1E000BB7D8 /* Promise.cpp in Sources */,
-				A53E4E5C23048B19000BB7D8 /* DispatchQueue.cpp in Sources */,
-				A53E4E5D23048B1C000BB7D8 /* DispatchWorkItem.cpp in Sources */,
+				A53E4E872304D1C8000BB7D8 /* Promise.cpp in Sources */,
+				A53E4E812304D1C8000BB7D8 /* DispatchQueue.cpp in Sources */,
+				A53E4E842304D1C8000BB7D8 /* DispatchWorkItem.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A53E4E882304D250000BB7D8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A53E4E952304D261000BB7D8 /* DispatchQueue.cpp in Sources */,
+				A53E4E962304D261000BB7D8 /* DispatchWorkItem.cpp in Sources */,
+				A53E4E972304D261000BB7D8 /* Promise.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A53E4E9F2304D2E1000BB7D8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A53E4EA62304D2E1000BB7D8 /* main.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
+		A53E4E7C2304D166000BB7D8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				EXECUTABLE_PREFIX = lib;
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		A53E4E7D2304D166000BB7D8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				EXECUTABLE_PREFIX = lib;
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+		A53E4E932304D250000BB7D8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CODE_SIGN_STYLE = Automatic;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.4;
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A53E4E942304D250000BB7D8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CODE_SIGN_STYLE = Automatic;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.4;
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		A53E4EA82304D2E1000BB7D8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		A53E4EA92304D2E1000BB7D8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
 		A578651523006DA200CDC3E8 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -286,47 +499,41 @@
 			};
 			name = Release;
 		};
-		A578651823006DA200CDC3E8 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
-				CODE_SIGN_STYLE = Automatic;
-				OTHER_LDFLAGS = "-ObjC";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		A578651923006DA200CDC3E8 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
-				CODE_SIGN_STYLE = Automatic;
-				OTHER_LDFLAGS = "-ObjC";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		A53E4E7E2304D166000BB7D8 /* Build configuration list for PBXNativeTarget "AsyncCpp-macOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A53E4E7C2304D166000BB7D8 /* Debug */,
+				A53E4E7D2304D166000BB7D8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A53E4E922304D250000BB7D8 /* Build configuration list for PBXNativeTarget "AsyncCpp-iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A53E4E932304D250000BB7D8 /* Debug */,
+				A53E4E942304D250000BB7D8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A53E4EA72304D2E1000BB7D8 /* Build configuration list for PBXNativeTarget "AsyncCppTest-macOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A53E4EA82304D2E1000BB7D8 /* Debug */,
+				A53E4EA92304D2E1000BB7D8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		A578650923006DA200CDC3E8 /* Build configuration list for PBXProject "AsyncCpp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A578651523006DA200CDC3E8 /* Debug */,
 				A578651623006DA200CDC3E8 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		A578651723006DA200CDC3E8 /* Build configuration list for PBXNativeTarget "AsyncCpp" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				A578651823006DA200CDC3E8 /* Debug */,
-				A578651923006DA200CDC3E8 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
