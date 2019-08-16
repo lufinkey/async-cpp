@@ -17,6 +17,7 @@
 #include <utility>
 #include "Common.hpp"
 #include "DispatchQueue.hpp"
+#include "LambdaTraits.hpp"
 #include "PromiseErrorPtr.hpp"
 
 
@@ -67,21 +68,45 @@ namespace fgl {
 		
 		Promise<void> then(DispatchQueue* queue, Then<void> onresolve, Catch<std::exception_ptr,void> onreject);
 		Promise<void> then(Then<void> onresolve, Catch<std::exception_ptr,void> onreject);
-		Promise<void> then(DispatchQueue* queue, Then<void> onresolve);
-		Promise<void> then(Then<void> onresolve);
-		template<typename NextResult>
-		Promise<NextResult> then(DispatchQueue* queue, Then<Promise<NextResult>> onresolve);
-		template<typename NextResult>
-		Promise<NextResult> then(Then<Promise<NextResult>> onresolve);
+		template<typename OnResolve,
+			typename Return = typename lambda_traits<OnResolve>::return_type,
+			typename std::enable_if<std::is_same<Return,void>::value, std::nullptr_t>::type = nullptr>
+		Promise<void> then(DispatchQueue* queue, OnResolve onresolve);
+		template<typename OnResolve,
+			typename Return = typename lambda_traits<OnResolve>::return_type,
+			typename std::enable_if<std::is_same<Return,void>::value, std::nullptr_t>::type = nullptr>
+		Promise<void> then(OnResolve onresolve);
+		template<typename OnResolve,
+			typename Return = typename lambda_traits<OnResolve>::return_type,
+			typename NextResult = typename is_promise<Return>::result_type,
+			typename std::enable_if<(is_promise<Return>::value && std::is_same<Return,Promise<NextResult>>::value), std::nullptr_t>::type = nullptr>
+		Promise<NextResult> then(DispatchQueue* queue, OnResolve onresolve);
+		template<typename OnResolve,
+			typename Return = typename lambda_traits<OnResolve>::return_type,
+			typename NextResult = typename is_promise<Return>::result_type,
+			typename std::enable_if<(is_promise<Return>::value && std::is_same<Return,Promise<NextResult>>::value), std::nullptr_t>::type = nullptr>
+		Promise<NextResult> then(OnResolve onresolve);
 		
-		template<typename ErrorType>
-		Promise<Result> except(DispatchQueue* queue, Catch<ErrorType,Result> onreject);
-		template<typename ErrorType>
-		Promise<Result> except(Catch<ErrorType,Result> onreject);
-		template<typename ErrorType>
-		Promise<Result> except(DispatchQueue* queue, Catch<ErrorType,Promise<Result>> onreject);
-		template<typename ErrorType>
-		Promise<Result> except(Catch<ErrorType,Promise<Result>> onreject);
+		template<typename OnReject,
+			typename ErrorType = typename std::remove_reference<typename std::remove_cv<typename lambda_traits<OnReject>::template arg<0>::type>::type>::type,
+			typename Return = typename lambda_traits<OnReject>::return_type,
+			typename std::enable_if<std::is_same<Return,Result>::value,std::nullptr_t>::type = nullptr>
+		Promise<Result> except(DispatchQueue* queue, OnReject onreject);
+		template<typename OnReject,
+			typename ErrorType = typename std::remove_reference<typename std::remove_cv<typename lambda_traits<OnReject>::template arg<0>::type>::type>::type,
+			typename Return = typename lambda_traits<OnReject>::return_type,
+			typename std::enable_if<std::is_same<Return,Result>::value,std::nullptr_t>::type = nullptr>
+		Promise<Result> except(OnReject onreject);
+		template<typename OnReject,
+			typename ErrorType = typename std::remove_reference<typename std::remove_cv<typename lambda_traits<OnReject>::template arg<0>::type>::type>::type,
+			typename Return = typename lambda_traits<OnReject>::return_type,
+			typename std::enable_if<std::is_same<Return,Promise<Result>>::value,std::nullptr_t>::type = nullptr>
+		Promise<Result> except(DispatchQueue* queue, OnReject onreject);
+		template<typename OnReject,
+			typename ErrorType = typename std::remove_reference<typename std::remove_cv<typename lambda_traits<OnReject>::template arg<0>::type>::type>::type,
+			typename Return = typename lambda_traits<OnReject>::return_type,
+			typename std::enable_if<std::is_same<Return,Promise<Result>>::value,std::nullptr_t>::type = nullptr>
+		Promise<Result> except(OnReject onreject);
 		
 		Promise<Result> finally(DispatchQueue* queue, Function<void()> onfinally);
 		Promise<Result> finally(Function<void()> onfinally);
@@ -253,19 +278,30 @@ namespace fgl {
 		return then(getDefaultPromiseQueue(), onresolve, onreject);
 	}
 	
+	
+	
 	template<typename Result>
-	Promise<void> Promise<Result>::then(DispatchQueue* queue, Then<void> onresolve) {
+	template<typename OnResolve,
+		typename Return,
+		typename std::enable_if<std::is_same<Return,void>::value, std::nullptr_t>::type>
+	Promise<void> Promise<Result>::then(DispatchQueue* queue, OnResolve onresolve) {
 		return then(queue, onresolve, nullptr);
 	}
 	
 	template<typename Result>
-	Promise<void> Promise<Result>::then(Then<void> onresolve) {
+	template<typename OnResolve,
+		typename Return,
+		typename std::enable_if<std::is_same<Return,void>::value, std::nullptr_t>::type>
+	Promise<void> Promise<Result>::then(OnResolve onresolve) {
 		return then(getDefaultPromiseQueue(), onresolve, nullptr);
 	}
 	
 	template<typename Result>
-	template<typename NextResult>
-	Promise<NextResult> Promise<Result>::then(DispatchQueue* queue, Then<Promise<NextResult>> onresolve) {
+	template<typename OnResolve,
+		typename Return,
+		typename NextResult,
+		typename std::enable_if<(is_promise<Return>::value && std::is_same<Return,Promise<NextResult>>::value), std::nullptr_t>::type>
+	Promise<NextResult> Promise<Result>::then(DispatchQueue* queue, OnResolve onresolve) {
 		FGL_ASSERT(queue != nullptr, "queue cannot be null");
 		FGL_ASSERT(onresolve != nullptr, "onresolve cannot be null");
 		return Promise<NextResult>([=](auto resolve, auto reject) {
@@ -296,16 +332,22 @@ namespace fgl {
 	}
 	
 	template<typename Result>
-	template<typename NextResult>
-	Promise<NextResult> Promise<Result>::then(Then<Promise<NextResult>> onresolve) {
+	template<typename OnResolve,
+		typename Return,
+		typename NextResult,
+		typename std::enable_if<(is_promise<Return>::value && std::is_same<Return,Promise<NextResult>>::value), std::nullptr_t>::type>
+	Promise<NextResult> Promise<Result>::then(OnResolve onresolve) {
 		return then(getDefaultPromiseQueue(), onresolve);
 	}
 	
 	
 	
 	template<typename Result>
-	template<typename ErrorType>
-	Promise<Result> Promise<Result>::except(DispatchQueue* queue, Catch<ErrorType,Result> onreject) {
+	template<typename OnReject,
+		typename ErrorType,
+		typename Return,
+		typename std::enable_if<std::is_same<Return,Result>::value,std::nullptr_t>::type>
+	Promise<Result> Promise<Result>::except(DispatchQueue* queue, OnReject onreject) {
 		FGL_ASSERT(queue != nullptr, "queue cannot be null");
 		FGL_ASSERT(onreject != nullptr, "onreject cannot be null");
 		return Promise<Result>([=](auto resolve, auto reject) {
@@ -369,14 +411,20 @@ namespace fgl {
 	}
 	
 	template<typename Result>
-	template<typename ErrorType>
-	Promise<Result> Promise<Result>::except(Catch<ErrorType,Result> onreject) {
+	template<typename OnReject,
+		typename ErrorType,
+		typename Return,
+		typename std::enable_if<std::is_same<Return,Result>::value,std::nullptr_t>::type>
+	Promise<Result> Promise<Result>::except(OnReject onreject) {
 		return except(getDefaultPromiseQueue(), onreject);
 	}
 	
 	template<typename Result>
-	template<typename ErrorType>
-	Promise<Result> Promise<Result>::except(DispatchQueue* queue, Catch<ErrorType,Promise<Result>> onreject) {
+	template<typename OnReject,
+		typename ErrorType,
+		typename Return,
+		typename std::enable_if<std::is_same<Return,Promise<Result>>::value,std::nullptr_t>::type>
+	Promise<Result> Promise<Result>::except(DispatchQueue* queue, OnReject onreject) {
 		FGL_ASSERT(queue != nullptr, "queue cannot be null");
 		FGL_ASSERT(onreject != nullptr, "onreject cannot be null");
 		return Promise<Result>([=](auto resolve, auto reject) {
@@ -412,8 +460,11 @@ namespace fgl {
 	}
 	
 	template<typename Result>
-	template<typename ErrorType>
-	Promise<Result> Promise<Result>::except(Catch<ErrorType,Promise<Result>> onreject) {
+	template<typename OnReject,
+		typename ErrorType,
+		typename Return,
+		typename std::enable_if<std::is_same<Return,Promise<Result>>::value,std::nullptr_t>::type>
+	Promise<Result> Promise<Result>::except(OnReject onreject) {
 		return except(getDefaultPromiseQueue(), onreject);
 	}
 	
@@ -1011,9 +1062,9 @@ namespace fgl {
 					std::exception_ptr error_ptr;
 					bool rejected = false;
 					bool resolved = false;
-					this->handle(nullptr, [&](auto result) {
+					this->handle(nullptr, [&](Result result) {
 						resolved = true;
-						result_ptr = std::make_unique(result);
+						result_ptr = std::make_unique<Result>(result);
 						waitCondition.notify_one();
 					}, nullptr, [&](auto error) {
 						rejected = true;
