@@ -113,6 +113,8 @@ namespace fgl {
 		
 		template<typename NextResult>
 		Promise<NextResult> map(DispatchQueue* queue, Then<NextResult> transform);
+		template<typename NextResult>
+		Promise<NextResult> map(Then<NextResult> transform);
 		Promise<Any> toAny(DispatchQueue* queue);
 		Promise<Any> toAny();
 		Promise<void> toVoid(DispatchQueue* queue);
@@ -574,6 +576,12 @@ namespace fgl {
 				}, nullptr, reject);
 			}
 		});
+	}
+	
+	template<typename Result>
+	template<typename NextResult>
+	Promise<NextResult> Promise<Result>::map(Then<NextResult> transform) {
+		return map(getDefaultPromiseQueue(), transform);
 	}
 	
 	template<typename Result>
