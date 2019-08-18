@@ -71,6 +71,7 @@
 		A53E4EA32304D2E1000BB7D8 /* AsyncCppTest-macOS */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "AsyncCppTest-macOS"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A53E4EA52304D2E1000BB7D8 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		A53E4EAD23062B08000BB7D8 /* LambdaTraits.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = LambdaTraits.hpp; sourceTree = "<group>"; };
+		A564DF942309082B0018787F /* async.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = async.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -102,6 +103,7 @@
 		A53E4E492304892D000BB7D8 /* fgl */ = {
 			isa = PBXGroup;
 			children = (
+				A564DF942309082B0018787F /* async.hpp */,
 				A53E4E4A2304892D000BB7D8 /* async */,
 			);
 			path = fgl;
