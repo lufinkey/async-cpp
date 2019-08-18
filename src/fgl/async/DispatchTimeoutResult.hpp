@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "Common.hpp"
+#include <fgl/async/Common.hpp>
 
 namespace fgl {
 	enum class DispatchTimeoutResult {

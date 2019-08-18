@@ -11,8 +11,8 @@
 #include <condition_variable>
 #include <list>
 #include <mutex>
-#include "Common.hpp"
-#include "DispatchTimeoutResult.hpp"
+#include <fgl/async/Common.hpp>
+#include <fgl/async/DispatchTimeoutResult.hpp>
 
 namespace fgl {
 	class DispatchQueue;

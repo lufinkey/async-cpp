@@ -11,8 +11,7 @@
 #include <thread>
 #include <type_traits>
 #include <cxxabi.h>
-#include "DispatchQueue.hpp"
-#include "Promise.hpp"
+#include <fgl/async.hpp>
 
 using namespace fgl;
 

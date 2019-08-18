@@ -13,8 +13,8 @@
 #include <memory>
 #include <mutex>
 #include <thread>
-#include "Common.hpp"
-#include "DispatchWorkItem.hpp"
+#include <fgl/async/Common.hpp>
+#include <fgl/async/DispatchWorkItem.hpp>
 
 namespace fgl {
 	class DispatchQueue {

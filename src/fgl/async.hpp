@@ -6,8 +6,7 @@
 //  Copyright © 2019 Luis Finke. All rights reserved.
 //
 
-#include "async/Common.hpp"
-#include "async/DispatchQueue.hpp"
-#include "async/DispatchTimeoutResult.hpp"
-#include "async/DispatchWorkItem.hpp"
-#include "async/Promise.hpp"
+#include <fgl/async/DispatchQueue.hpp>
+#include <fgl/async/DispatchTimeoutResult.hpp>
+#include <fgl/async/DispatchWorkItem.hpp>
+#include <fgl/async/Promise.hpp>

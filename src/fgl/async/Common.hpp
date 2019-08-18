@@ -8,24 +8,30 @@
 
 #pragma once
 
-#include <any>
-#include <chrono>
 #include <exception>
-#include <functional>
 #include <iostream>
-#include <list>
-#include <string>
-#include <vector>
+#if __has_include(<fgl/data.hpp>)
+	#define _HAS_FGL_DATA
+	#include <fgl/data.hpp>
+#else
+	#include <any>
+	#include <functional>
+	#include <list>
+	#include <string>
+	#include <vector>
+#endif
 
 namespace fgl {
-	template<typename T>
-	using Function = std::function<T>;
-	template<typename T>
-	using ArrayList = std::vector<T>;
-	template<typename T>
-	using LinkedList = std::list<T>;
-	using String = std::string;
-	using Any = std::any;
+	#ifndef _HAS_FGL_DATA
+		template<typename T>
+		using Function = std::function<T>;
+		template<typename T>
+		using ArrayList = std::vector<T>;
+		template<typename T>
+		using LinkedList = std::list<T>;
+		using String = std::string;
+		using Any = std::any;
+	#endif
 	
 	#ifndef FGL_ASSERT
 		#ifdef NDEBUG
@@ -51,3 +57,7 @@ namespace fgl {
 		#endif
 	#endif
 }
+
+#ifdef _HAS_FGL_DATA
+	#undef _HAS_FGL_DATA
+#endif

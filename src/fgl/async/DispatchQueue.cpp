@@ -6,7 +6,7 @@
 //  Copyright © 2019 Luis Finke. All rights reserved.
 //
 
-#include "DispatchQueue.hpp"
+#include <fgl/async/DispatchQueue.hpp>
 
 namespace fgl {
 	DispatchQueue* DispatchQueue::mainQueue = nullptr;

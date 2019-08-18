@@ -6,8 +6,8 @@
 //  Copyright © 2019 Luis Finke. All rights reserved.
 //
 
-#include "DispatchWorkItem.hpp"
-#include "DispatchQueue.hpp"
+#include <fgl/async/DispatchWorkItem.hpp>
+#include <fgl/async/DispatchQueue.hpp>
 
 namespace fgl {
 	DispatchWorkItem::DispatchWorkItem(Function<void()> work)

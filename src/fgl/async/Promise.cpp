@@ -6,7 +6,7 @@
 //  Copyright © 2019 Luis Finke. All rights reserved.
 //
 
-#include "Promise.hpp"
+#include <fgl/async/Promise.hpp>
 
 namespace fgl {
 	static DispatchQueue* defaultPromiseQueue = nullptr;

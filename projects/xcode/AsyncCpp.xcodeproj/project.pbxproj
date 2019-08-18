@@ -27,7 +27,33 @@
 		A53E4E9D2304D27C000BB7D8 /* Promise.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4E4C2304892D000BB7D8 /* Promise.hpp */; };
 		A53E4EA62304D2E1000BB7D8 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A53E4EA52304D2E1000BB7D8 /* main.cpp */; };
 		A53E4EAB23050152000BB7D8 /* libAsyncCpp-macOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A53E4E7B2304D166000BB7D8 /* libAsyncCpp-macOS.a */; };
+		A564E02C23092DFC0018787F /* libDataCpp-macOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A564E02923092DF10018787F /* libDataCpp-macOS.a */; };
+		A564E02F230935970018787F /* async.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A564DF942309082B0018787F /* async.hpp */; };
+		A564E030230935970018787F /* Common.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4E532304892D000BB7D8 /* Common.hpp */; };
+		A564E031230935970018787F /* DispatchQueue.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4E4F2304892D000BB7D8 /* DispatchQueue.hpp */; };
+		A564E032230935970018787F /* DispatchTimeoutResult.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4E4E2304892D000BB7D8 /* DispatchTimeoutResult.hpp */; };
+		A564E033230935970018787F /* DispatchWorkItem.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4E502304892D000BB7D8 /* DispatchWorkItem.hpp */; };
+		A564E034230935970018787F /* LambdaTraits.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4EAD23062B08000BB7D8 /* LambdaTraits.hpp */; };
+		A564E035230935970018787F /* PromiseErrorPtr.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4E4B2304892D000BB7D8 /* PromiseErrorPtr.hpp */; };
+		A564E036230935970018787F /* Promise.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4E4C2304892D000BB7D8 /* Promise.hpp */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A564E02823092DF10018787F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A564E02323092DF10018787F /* DataCpp.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = A53E4EB223063BFC000BB7D8;
+			remoteInfo = "DataCpp-macOS";
+		};
+		A564E02A23092DF10018787F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A564E02323092DF10018787F /* DataCpp.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = A53E4EC22306411F000BB7D8;
+			remoteInfo = "DataCppTest-macOS";
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		A53E4E8A2304D250000BB7D8 /* CopyFiles */ = {
@@ -51,6 +77,14 @@
 			dstPath = /usr/share/man/man1/;
 			dstSubfolderSpec = 0;
 			files = (
+				A564E02F230935970018787F /* async.hpp in CopyFiles */,
+				A564E030230935970018787F /* Common.hpp in CopyFiles */,
+				A564E031230935970018787F /* DispatchQueue.hpp in CopyFiles */,
+				A564E032230935970018787F /* DispatchTimeoutResult.hpp in CopyFiles */,
+				A564E033230935970018787F /* DispatchWorkItem.hpp in CopyFiles */,
+				A564E034230935970018787F /* LambdaTraits.hpp in CopyFiles */,
+				A564E035230935970018787F /* PromiseErrorPtr.hpp in CopyFiles */,
+				A564E036230935970018787F /* Promise.hpp in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
@@ -72,6 +106,7 @@
 		A53E4EA52304D2E1000BB7D8 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		A53E4EAD23062B08000BB7D8 /* LambdaTraits.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = LambdaTraits.hpp; sourceTree = "<group>"; };
 		A564DF942309082B0018787F /* async.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = async.hpp; sourceTree = "<group>"; };
+		A564E02323092DF10018787F /* DataCpp.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = DataCpp.xcodeproj; path = "../../../../data-cpp/projects/xcode/DataCpp.xcodeproj"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -93,6 +128,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A564E02C23092DFC0018787F /* libDataCpp-macOS.a in Frameworks */,
 				A53E4EAB23050152000BB7D8 /* libAsyncCpp-macOS.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -141,9 +177,27 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		A564E02223092DDF0018787F /* external */ = {
+			isa = PBXGroup;
+			children = (
+				A564E02323092DF10018787F /* DataCpp.xcodeproj */,
+			);
+			path = external;
+			sourceTree = "<group>";
+		};
+		A564E02423092DF10018787F /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A564E02923092DF10018787F /* libDataCpp-macOS.a */,
+				A564E02B23092DF10018787F /* DataCppTest-macOS */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 		A578650523006DA200CDC3E8 = {
 			isa = PBXGroup;
 			children = (
+				A564E02223092DDF0018787F /* external */,
 				A578651A23006EAB00CDC3E8 /* src */,
 				A578650F23006DA200CDC3E8 /* Products */,
 				A53E4EAA23050152000BB7D8 /* Frameworks */,
@@ -270,6 +324,12 @@
 			mainGroup = A578650523006DA200CDC3E8;
 			productRefGroup = A578650F23006DA200CDC3E8 /* Products */;
 			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = A564E02423092DF10018787F /* Products */;
+					ProjectRef = A564E02323092DF10018787F /* DataCpp.xcodeproj */;
+				},
+			);
 			projectRoot = "";
 			targets = (
 				A53E4E7A2304D166000BB7D8 /* AsyncCpp-macOS */,
@@ -278,6 +338,23 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXReferenceProxy section */
+		A564E02923092DF10018787F /* libDataCpp-macOS.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = "libDataCpp-macOS.a";
+			remoteRef = A564E02823092DF10018787F /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		A564E02B23092DF10018787F /* DataCppTest-macOS */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = "DataCppTest-macOS";
+			remoteRef = A564E02A23092DF10018787F /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+/* End PBXReferenceProxy section */
 
 /* Begin PBXSourcesBuildPhase section */
 		A53E4E782304D166000BB7D8 /* Sources */ = {
@@ -318,6 +395,10 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				EXECUTABLE_PREFIX = lib;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../src",
+					"$(PROJECT_DIR)/../../../data-cpp/src",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -332,6 +413,10 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				EXECUTABLE_PREFIX = lib;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../src",
+					"$(PROJECT_DIR)/../../../data-cpp/src",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -344,6 +429,10 @@
 			buildSettings = {
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
 				CODE_SIGN_STYLE = Automatic;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../src",
+					"$(PROJECT_DIR)/../../../data-cpp/src",
+				);
 				IPHONEOS_DEPLOYMENT_TARGET = 12.4;
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -357,6 +446,10 @@
 			buildSettings = {
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
 				CODE_SIGN_STYLE = Automatic;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../src",
+					"$(PROJECT_DIR)/../../../data-cpp/src",
+				);
 				IPHONEOS_DEPLOYMENT_TARGET = 12.4;
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -371,6 +464,10 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../src",
+					"$(PROJECT_DIR)/../../../data-cpp/src",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -383,6 +480,10 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../src",
+					"$(PROJECT_DIR)/../../../data-cpp/src",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;

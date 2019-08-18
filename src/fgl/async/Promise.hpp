@@ -15,10 +15,10 @@
 #include <thread>
 #include <type_traits>
 #include <utility>
-#include "Common.hpp"
-#include "DispatchQueue.hpp"
-#include "LambdaTraits.hpp"
-#include "PromiseErrorPtr.hpp"
+#include <fgl/async/Common.hpp>
+#include <fgl/async/DispatchQueue.hpp>
+#include <fgl/async/LambdaTraits.hpp>
+#include <fgl/async/PromiseErrorPtr.hpp>
 
 
 namespace fgl {
