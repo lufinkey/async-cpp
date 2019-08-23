@@ -36,6 +36,7 @@
 		A564E034230935970018787F /* LambdaTraits.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4EAD23062B08000BB7D8 /* LambdaTraits.hpp */; };
 		A564E035230935970018787F /* PromiseErrorPtr.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4E4B2304892D000BB7D8 /* PromiseErrorPtr.hpp */; };
 		A564E036230935970018787F /* Promise.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4E4C2304892D000BB7D8 /* Promise.hpp */; };
+		A58B32C42310B33200E80ECB /* async.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A564DF942309082B0018787F /* async.hpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -53,6 +54,13 @@
 			remoteGlobalIDString = A53E4EC22306411F000BB7D8;
 			remoteInfo = "DataCppTest-macOS";
 		};
+		A58B32C22310B32900E80ECB /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A564E02323092DF10018787F /* DataCpp.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = A58B32802310B0DF00E80ECB;
+			remoteInfo = "DataCpp-iOS";
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -62,6 +70,7 @@
 			dstPath = "include/$(PRODUCT_NAME)";
 			dstSubfolderSpec = 16;
 			files = (
+				A58B32C42310B33200E80ECB /* async.hpp in CopyFiles */,
 				A53E4E982304D27C000BB7D8 /* Common.hpp in CopyFiles */,
 				A53E4E992304D27C000BB7D8 /* DispatchQueue.hpp in CopyFiles */,
 				A53E4E9A2304D27C000BB7D8 /* DispatchTimeoutResult.hpp in CopyFiles */,
@@ -190,6 +199,7 @@
 			children = (
 				A564E02923092DF10018787F /* libDataCpp-macOS.a */,
 				A564E02B23092DF10018787F /* DataCppTest-macOS */,
+				A58B32C32310B32900E80ECB /* libDataCpp-iOS.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -352,6 +362,13 @@
 			fileType = "compiled.mach-o.executable";
 			path = "DataCppTest-macOS";
 			remoteRef = A564E02A23092DF10018787F /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		A58B32C32310B32900E80ECB /* libDataCpp-iOS.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = "libDataCpp-iOS.a";
+			remoteRef = A58B32C22310B32900E80ECB /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 /* End PBXReferenceProxy section */
