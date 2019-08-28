@@ -30,6 +30,7 @@ namespace fgl {
 	DispatchQueue::~DispatchQueue() {
 		FGL_ASSERT((itemQueue.size() == 0 || scheduledItemQueue.size() == 0), "Trying to destroy DispatchQueue \""+label+"\" while unfinished items remain");
 		alive = false;
+		queueWaitCondition.notify_one();
 		if(thread.joinable()) {
 			thread.join();
 		}
