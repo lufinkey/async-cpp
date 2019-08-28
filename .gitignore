@@ -18,6 +18,7 @@
 #Xcode
 .DS_Store
 /**/*.xcodeproj/*.xcworkspace
+/**/*.xcodeproj/xcshareddata
 /**/*.xcodeproj/xcuserdata
 /**/*.xcworkspace/xcshareddata
 /**/*.xcworkspace/xcuserdata
