@@ -17,12 +17,13 @@
 
 #Xcode
 .DS_Store
-/projects/xcode*/*.xcodeproj/*.xcworkspace
-/projects/xcode*/*.xcodeproj/xcuserdata
-/projects/xcode*/*.xcworkspace/xcshareddata
-/projects/xcode*/*.xcworkspace/xcuserdata
+/**/*.xcodeproj/*.xcworkspace
+/**/*.xcodeproj/xcuserdata
+/**/*.xcworkspace/xcshareddata
+/**/*.xcworkspace/xcuserdata
 /projects/xcode*/Build
 /projects/xcode*/DerivedData
+/projects/xcode*/Pods
 
 #Code::Blocks
 /projects/codeblocks/*.layout
