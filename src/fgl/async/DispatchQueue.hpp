@@ -19,10 +19,14 @@
 namespace fgl {
 	class DispatchQueue {
 	public:
+		struct Options {
+			bool keepThreadAlive = false;
+		}
+		
 		DispatchQueue(const DispatchQueue&) = delete;
 		DispatchQueue& operator=(const DispatchQueue&) = delete;
 		
-		DispatchQueue(String label);
+		DispatchQueue(String label, Options options = {});
 		~DispatchQueue();
 		
 		void async(Function<void()> work);
@@ -57,6 +61,7 @@ namespace fgl {
 			MAIN
 		};
 		static String labelForSystemType(SystemType);
+		static Options optionsForSystemType(SystemType);
 		static Type typeForSysemType(SystemType);
 		
 		DispatchQueue(SystemType);
@@ -95,6 +100,7 @@ namespace fgl {
 		};
 		
 		String label;
+		Options options;
 		std::thread thread;
 		std::mutex mutex;
 		

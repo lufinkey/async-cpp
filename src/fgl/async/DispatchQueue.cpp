@@ -12,8 +12,8 @@ namespace fgl {
 	DispatchQueue* DispatchQueue::mainQueue = nullptr;
 	bool DispatchQueue::mainQueueRunning = false;
 	
-	DispatchQueue::DispatchQueue(String label)
-	: label(label), type(Type::BACKGROUND), alive(true), stopped(true) {
+	DispatchQueue::DispatchQueue(String label, Options options)
+	: label(label), options(options), type(Type::BACKGROUND), alive(true), stopped(true) {
 		//
 	}
 	
@@ -36,6 +36,17 @@ namespace fgl {
 		switch(type) {
 			case SystemType::MAIN:
 				return "Main";
+			default:
+				FGL_ASSERT(false, "Unknown DispatchQueue::SystemType");
+		}
+	}
+	
+	DispatchQueue::Options DispatchQueue::optionsForSystemType(SystemType type) {
+		switch(type) {
+			case SystemType::MAIN:
+				return Options{
+					.keepThreadAlive = true
+				};
 			default:
 				FGL_ASSERT(false, "Unknown DispatchQueue::SystemType");
 		}
@@ -103,7 +114,7 @@ namespace fgl {
 					lock.unlock();
 					nextItem->wait(queueWaitCondition, [&]() { return shouldWake(); });
 				}
-				else if(type == Type::MAIN) {
+				else if(options.keepThreadAlive) {
 					// wait for any item
 					std::mutex waitMutex;
 					std::unique_lock<std::mutex> waitLock(waitMutex);
