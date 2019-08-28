@@ -21,12 +21,13 @@ namespace fgl {
 	public:
 		struct Options {
 			bool keepThreadAlive = false;
-		}
+		};
 		
 		DispatchQueue(const DispatchQueue&) = delete;
 		DispatchQueue& operator=(const DispatchQueue&) = delete;
 		
-		DispatchQueue(String label, Options options = {});
+		DispatchQueue(String label);
+		DispatchQueue(String label, Options options);
 		~DispatchQueue();
 		
 		void async(Function<void()> work);
