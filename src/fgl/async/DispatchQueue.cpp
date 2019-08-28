@@ -11,6 +11,7 @@
 namespace fgl {
 	DispatchQueue* DispatchQueue::mainQueue = nullptr;
 	bool DispatchQueue::mainQueueRunning = false;
+	thread_local DispatchQueue* localDispatchQueue = nullptr;
 	
 	DispatchQueue::DispatchQueue(String label)
 	: DispatchQueue(label, Options()) {
@@ -84,6 +85,7 @@ namespace fgl {
 	}
 	
 	void DispatchQueue::run() {
+		localDispatchQueue = this;
 		stopped = false;
 		while(alive) {
 			std::unique_lock<std::mutex> lock(mutex);
@@ -204,5 +206,9 @@ namespace fgl {
 			mainQueue = new DispatchQueue(SystemType::MAIN);
 		}
 		return mainQueue;
+	}
+	
+	DispatchQueue* DispatchQueue::getLocalQueue() {
+		return localDispatchQueue;
 	}
 }

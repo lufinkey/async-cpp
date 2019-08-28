@@ -53,6 +53,8 @@ namespace fgl {
 			#endif
 		}
 		
+		static DispatchQueue* getLocalQueue();
+		
 	private:
 		enum class Type {
 			MAIN,
