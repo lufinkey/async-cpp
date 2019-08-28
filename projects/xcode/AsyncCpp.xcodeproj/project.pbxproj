@@ -22,14 +22,6 @@
 		A53E4EA62304D2E1000BB7D8 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A53E4EA52304D2E1000BB7D8 /* main.cpp */; };
 		A53E4EAB23050152000BB7D8 /* libAsyncCpp-macOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A53E4E7B2304D166000BB7D8 /* libAsyncCpp-macOS.a */; };
 		A564E02C23092DFC0018787F /* libDataCpp-macOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A564E02923092DF10018787F /* libDataCpp-macOS.a */; };
-		A564E02F230935970018787F /* async.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A564DF942309082B0018787F /* async.hpp */; };
-		A564E030230935970018787F /* Common.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4E532304892D000BB7D8 /* Common.hpp */; };
-		A564E031230935970018787F /* DispatchQueue.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4E4F2304892D000BB7D8 /* DispatchQueue.hpp */; };
-		A564E032230935970018787F /* DispatchTimeoutResult.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4E4E2304892D000BB7D8 /* DispatchTimeoutResult.hpp */; };
-		A564E033230935970018787F /* DispatchWorkItem.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4E502304892D000BB7D8 /* DispatchWorkItem.hpp */; };
-		A564E034230935970018787F /* LambdaTraits.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4EAD23062B08000BB7D8 /* LambdaTraits.hpp */; };
-		A564E035230935970018787F /* PromiseErrorPtr.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4E4B2304892D000BB7D8 /* PromiseErrorPtr.hpp */; };
-		A564E036230935970018787F /* Promise.hpp in CopyFiles */ = {isa = PBXBuildFile; fileRef = A53E4E4C2304892D000BB7D8 /* Promise.hpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -72,14 +64,6 @@
 			dstPath = /usr/share/man/man1/;
 			dstSubfolderSpec = 0;
 			files = (
-				A564E02F230935970018787F /* async.hpp in CopyFiles */,
-				A564E030230935970018787F /* Common.hpp in CopyFiles */,
-				A564E031230935970018787F /* DispatchQueue.hpp in CopyFiles */,
-				A564E032230935970018787F /* DispatchTimeoutResult.hpp in CopyFiles */,
-				A564E033230935970018787F /* DispatchWorkItem.hpp in CopyFiles */,
-				A564E034230935970018787F /* LambdaTraits.hpp in CopyFiles */,
-				A564E035230935970018787F /* PromiseErrorPtr.hpp in CopyFiles */,
-				A564E036230935970018787F /* Promise.hpp in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
