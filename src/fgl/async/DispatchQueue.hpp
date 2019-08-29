@@ -44,7 +44,7 @@ namespace fgl {
 		
 		[[noreturn]]
 		static void dispatchMain();
-		static DispatchQueue* getMainQueue();
+		static DispatchQueue* getMain();
 		static bool usesMainQueue() {
 			#ifdef FGL_DISPATCH_USES_MAIN
 				return true;
@@ -53,7 +53,7 @@ namespace fgl {
 			#endif
 		}
 		
-		static DispatchQueue* getLocalQueue();
+		static DispatchQueue* getLocal();
 		
 	private:
 		enum class Type {

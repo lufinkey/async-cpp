@@ -201,14 +201,14 @@ namespace fgl {
 		exit(0);
 	}
 	
-	DispatchQueue* DispatchQueue::getMainQueue() {
+	DispatchQueue* DispatchQueue::getMain() {
 		if(mainQueue == nullptr && usesMainQueue()) {
 			mainQueue = new DispatchQueue(SystemType::MAIN);
 		}
 		return mainQueue;
 	}
 	
-	DispatchQueue* DispatchQueue::getLocalQueue() {
+	DispatchQueue* DispatchQueue::getLocal() {
 		return localDispatchQueue;
 	}
 }

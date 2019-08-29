@@ -14,7 +14,7 @@ namespace fgl {
 	DispatchQueue* getDefaultPromiseQueue() {
 		if(defaultPromiseQueue == nullptr) {
 			if(DispatchQueue::usesMainQueue()) {
-				defaultPromiseQueue = DispatchQueue::getMainQueue();
+				defaultPromiseQueue = DispatchQueue::getMain();
 			}
 			else {
 				defaultPromiseQueue = new DispatchQueue("Promise Main");

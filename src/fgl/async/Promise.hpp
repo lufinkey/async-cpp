@@ -120,7 +120,7 @@ namespace fgl {
 		Promise<void> toVoid(DispatchQueue* queue);
 		Promise<void> toVoid();
 		
-		Result await();
+		Result get();
 		
 		template<typename _Result=Result,
 			typename std::enable_if<std::is_same<_Result,Result>::value, std::nullptr_t>::type = nullptr,
@@ -175,7 +175,7 @@ namespace fgl {
 			
 			void handle(DispatchQueue* thenQueue, Then<void> onresolve, DispatchQueue* catchQueue, Catch<std::exception_ptr,void> onreject);
 			
-			Result await();
+			Result get();
 			
 		private:
 			std::promise<Result> promise;
@@ -615,8 +615,8 @@ namespace fgl {
 	
 	
 	template<typename Result>
-	Result Promise<Result>::await() {
-		return this->continuer->await();
+	Result Promise<Result>::get() {
+		return this->continuer->get();
 	}
 	
 	
@@ -1039,7 +1039,7 @@ namespace fgl {
 	}
 	
 	template<typename Result>
-	Result Promise<Result>::Continuer::await() {
+	Result Promise<Result>::Continuer::get() {
 		switch(state) {
 			case State::EXECUTING: {
 				std::mutex waitMutex;
@@ -1126,6 +1126,6 @@ namespace fgl {
 	
 	template<typename Result>
 	Result await(Promise<Result> promise) {
-		return promise.await();
+		return promise.get();
 	}
 }
