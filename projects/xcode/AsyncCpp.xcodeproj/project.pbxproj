@@ -7,14 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A53E4E7F2304D1C8000BB7D8 /* Common.hpp in Headers */ = {isa = PBXBuildFile; fileRef = A53E4E532304892D000BB7D8 /* Common.hpp */; settings = {ATTRIBUTES = (Public, ); }; };
-		A53E4E802304D1C8000BB7D8 /* DispatchQueue.hpp in Headers */ = {isa = PBXBuildFile; fileRef = A53E4E4F2304892D000BB7D8 /* DispatchQueue.hpp */; settings = {ATTRIBUTES = (Public, ); }; };
+		A53E4E7F2304D1C8000BB7D8 /* Common.hpp in Headers */ = {isa = PBXBuildFile; fileRef = A53E4E532304892D000BB7D8 /* Common.hpp */; };
+		A53E4E802304D1C8000BB7D8 /* DispatchQueue.hpp in Headers */ = {isa = PBXBuildFile; fileRef = A53E4E4F2304892D000BB7D8 /* DispatchQueue.hpp */; };
 		A53E4E812304D1C8000BB7D8 /* DispatchQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A53E4E512304892D000BB7D8 /* DispatchQueue.cpp */; };
-		A53E4E822304D1C8000BB7D8 /* DispatchTimeoutResult.hpp in Headers */ = {isa = PBXBuildFile; fileRef = A53E4E4E2304892D000BB7D8 /* DispatchTimeoutResult.hpp */; settings = {ATTRIBUTES = (Public, ); }; };
-		A53E4E832304D1C8000BB7D8 /* DispatchWorkItem.hpp in Headers */ = {isa = PBXBuildFile; fileRef = A53E4E502304892D000BB7D8 /* DispatchWorkItem.hpp */; settings = {ATTRIBUTES = (Public, ); }; };
+		A53E4E822304D1C8000BB7D8 /* DispatchTimeoutResult.hpp in Headers */ = {isa = PBXBuildFile; fileRef = A53E4E4E2304892D000BB7D8 /* DispatchTimeoutResult.hpp */; };
+		A53E4E832304D1C8000BB7D8 /* DispatchWorkItem.hpp in Headers */ = {isa = PBXBuildFile; fileRef = A53E4E502304892D000BB7D8 /* DispatchWorkItem.hpp */; };
 		A53E4E842304D1C8000BB7D8 /* DispatchWorkItem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A53E4E522304892D000BB7D8 /* DispatchWorkItem.cpp */; };
-		A53E4E852304D1C8000BB7D8 /* PromiseErrorPtr.hpp in Headers */ = {isa = PBXBuildFile; fileRef = A53E4E4B2304892D000BB7D8 /* PromiseErrorPtr.hpp */; settings = {ATTRIBUTES = (Public, ); }; };
-		A53E4E862304D1C8000BB7D8 /* Promise.hpp in Headers */ = {isa = PBXBuildFile; fileRef = A53E4E4C2304892D000BB7D8 /* Promise.hpp */; settings = {ATTRIBUTES = (Public, ); }; };
+		A53E4E852304D1C8000BB7D8 /* PromiseErrorPtr.hpp in Headers */ = {isa = PBXBuildFile; fileRef = A53E4E4B2304892D000BB7D8 /* PromiseErrorPtr.hpp */; };
+		A53E4E862304D1C8000BB7D8 /* Promise.hpp in Headers */ = {isa = PBXBuildFile; fileRef = A53E4E4C2304892D000BB7D8 /* Promise.hpp */; };
 		A53E4E872304D1C8000BB7D8 /* Promise.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A53E4E542304892D000BB7D8 /* Promise.cpp */; };
 		A53E4E952304D261000BB7D8 /* DispatchQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A53E4E512304892D000BB7D8 /* DispatchQueue.cpp */; };
 		A53E4E962304D261000BB7D8 /* DispatchWorkItem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A53E4E522304892D000BB7D8 /* DispatchWorkItem.cpp */; };
