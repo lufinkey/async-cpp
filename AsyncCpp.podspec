@@ -26,7 +26,7 @@ Pod::Spec.new do |s|
 	# s.license          = { :type => 'MIT', :file => 'LICENSE' }
 	s.author           = { 'Luis Finke' => 'luisfinke@gmail.com' }
 	s.source           = { :git => 'https://github.com/lufinkey/async-cpp.git', :tag => s.version.to_s }
-	# s.social_media_url = 'https://twitter.com/lufinkey'
+	s.social_media_url = 'https://twitter.com/lufinkey'
 
 	s.ios.deployment_target = '9.0'
 	s.osx.deployment_target = '10.14'
