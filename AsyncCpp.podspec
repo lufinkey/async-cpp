@@ -44,5 +44,5 @@ Pod::Spec.new do |s|
 		'CLANG_CXX_LANGUAGE_STANDARD' => 'gnu++17'
 	}
 	# s.frameworks = 'UIKit', 'MapKit'
-	s.dependency 'DataCpp', 'git@github.com:lufinkey/data-cpp.git'
+	s.dependency 'DataCpp', :git => 'git@github.com:lufinkey/data-cpp.git'
 end
