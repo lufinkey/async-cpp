@@ -10,19 +10,18 @@
 
 #include <exception>
 #include <iostream>
-#if __has_include(<fgl/data.hpp>)
-	#define _HAS_FGL_DATA
-	#include <fgl/data.hpp>
-#else
+#ifdef ASYNC_CPP_STANDALONE
 	#include <any>
 	#include <functional>
 	#include <list>
 	#include <string>
 	#include <vector>
+#else
+	#include <fgl/data.hpp>
 #endif
 
 namespace fgl {
-	#ifndef _HAS_FGL_DATA
+	#ifdef ASYNC_CPP_STANDALONE
 		template<typename T>
 		using Function = std::function<T>;
 		template<typename T>
@@ -54,6 +53,16 @@ namespace fgl {
 			#define FGL_WARN(message) { \
 				std::cerr << "Warning: " << (message) << std::endl; \
 			}
+		#endif
+	#endif
+	
+	#ifdef ASYNC_CPP_STANDALONE
+		#ifndef ASYNC_CPP_LIST_PUSH
+			#define ASYNC_CPP_LIST_PUSH(list, element) list.push_back(element)
+		#endif
+	#else
+		#ifndef ASYNC_CPP_LIST_PUSH
+			#define ASYNC_CPP_LIST_PUSH(list, element) list.pushBack(element)
 		#endif
 	#endif
 }

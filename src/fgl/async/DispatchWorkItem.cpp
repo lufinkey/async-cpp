@@ -33,7 +33,7 @@ namespace fgl {
 		
 		work();
 		
-		LinkedList<Function<void()>> notifyItems;
+		std::list<Function<void()>> notifyItems;
 		lock.lock();
 		notifyItems.swap(this->notifyItems);
 		lock.unlock();
