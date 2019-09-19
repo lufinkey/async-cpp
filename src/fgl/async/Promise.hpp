@@ -581,7 +581,7 @@ namespace fgl {
 	template<typename Result>
 	template<typename NextResult>
 	Promise<NextResult> Promise<Result>::map(Then<NextResult> transform) {
-		return map(getDefaultPromiseQueue(), transform);
+		return map<NextResult>(getDefaultPromiseQueue(), transform);
 	}
 	
 	template<typename Result>
