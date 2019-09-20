@@ -45,6 +45,8 @@ namespace fgl {
 	
 	template<typename Result>
 	class Promise {
+		template<typename OtherResult>
+		friend class Promise;
 	public:
 		typedef Result ResultType;
 		
