@@ -305,7 +305,7 @@ namespace fgl {
 		typename std::enable_if<(is_promise<Return>::value && std::is_same<Return,Promise<NextResult>>::value), std::nullptr_t>::type>
 	Promise<NextResult> Promise<Result>::then(DispatchQueue* queue, OnResolve onresolve) {
 		FGL_ASSERT(queue != nullptr, "queue cannot be null");
-		FGL_ASSERT(onresolve != nullptr, "onresolve cannot be null");
+		FGL_ASSERT(onresolve, "onresolve cannot be null");
 		return Promise<NextResult>([=](auto resolve, auto reject) {
 			if constexpr(std::is_same<Result,void>::value) {
 				this->continuer->handle(queue, [=]() {
@@ -351,7 +351,7 @@ namespace fgl {
 		typename std::enable_if<std::is_same<Return,Result>::value,std::nullptr_t>::type>
 	Promise<Result> Promise<Result>::except(DispatchQueue* queue, OnReject onreject) {
 		FGL_ASSERT(queue != nullptr, "queue cannot be null");
-		FGL_ASSERT(onreject != nullptr, "onreject cannot be null");
+		FGL_ASSERT(onreject, "onreject cannot be null");
 		return Promise<Result>([=](auto resolve, auto reject) {
 			this->continuer->handle(nullptr, resolve, queue, [=](auto error) {
 				if constexpr(std::is_same<Result,void>::value) {
@@ -428,7 +428,7 @@ namespace fgl {
 		typename std::enable_if<std::is_same<Return,Promise<Result>>::value,std::nullptr_t>::type>
 	Promise<Result> Promise<Result>::except(DispatchQueue* queue, OnReject onreject) {
 		FGL_ASSERT(queue != nullptr, "queue cannot be null");
-		FGL_ASSERT(onreject != nullptr, "onreject cannot be null");
+		FGL_ASSERT(onreject, "onreject cannot be null");
 		return Promise<Result>([=](auto resolve, auto reject) {
 			this->continuer->handle(nullptr, resolve, queue, [=](auto error) {
 				if constexpr(std::is_same<ErrorType, std::exception_ptr>::value) {
@@ -475,7 +475,7 @@ namespace fgl {
 	template<typename Result>
 	Promise<Result> Promise<Result>::finally(DispatchQueue* queue, Function<void()> onfinally) {
 		FGL_ASSERT(queue != nullptr, "queue cannot be null");
-		FGL_ASSERT(onfinally != nullptr, "onfinally cannot be null");
+		FGL_ASSERT(onfinally, "onfinally cannot be null");
 		return Promise<Result>([=](auto resolve, auto reject) {
 			if constexpr(std::is_same<Result,void>::value) {
 				this->continuer->handle(queue, [=]() {
