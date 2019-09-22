@@ -91,7 +91,7 @@ namespace fgl {
 		};
 		
 		template<typename Clock, typename Duration>
-		class SpecificScheduledQueueItem: ScheduledQueueItem {
+		class SpecificScheduledQueueItem: public ScheduledQueueItem {
 		public:
 			std::chrono::time_point<Clock,Duration> time;
 			
