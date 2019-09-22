@@ -99,7 +99,7 @@ namespace fgl {
 			: ScheduledQueueItem(workItem), time(time) {}
 			
 			virtual std::chrono::nanoseconds timeUntil() const override;
-			virtual void wait(std::condition_variable& cv, Function<bool()> pred) const = 0;
+			virtual void wait(std::condition_variable& cv, Function<bool()> pred) const override;
 		};
 		
 		String label;
