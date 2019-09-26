@@ -603,7 +603,11 @@ namespace fgl {
 	
 	template<typename Result>
 	Promise<void> Promise<Result>::toVoid(DispatchQueue* queue) {
-		return map<void>(queue, Then<void>([=]() -> void {}));
+		if constexpr(std::is_same<Result,void>::value) {
+			return *this;
+		} else {
+			return map<void>(queue, Then<void>([=](auto result) -> void {}));
+		}
 	}
 	
 	template<typename Result>
