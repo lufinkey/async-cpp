@@ -603,7 +603,7 @@ namespace fgl {
 	
 	template<typename Result>
 	Promise<void> Promise<Result>::toVoid(DispatchQueue* queue) {
-		return map<void>(queue, [=]() {});
+		return map<void>(queue, Function<void()>([=]() -> void {}));
 	}
 	
 	template<typename Result>
