@@ -217,7 +217,8 @@ namespace fgl {
 		if constexpr(std::is_same<Clock,std::chrono::steady_clock>::value) {
 			return timePoint;
 		} else {
-			return std::chrono::steady_clock::now() + (Clock::now() - timePoint);
+			using SteadyClock = std::chrono::steady_clock;
+			return std::chrono::time_point_cast<typename SteadyClock::duration>(SteadyClock::now() + Duration(Clock::now() - timePoint));
 		}
 	}
 	
@@ -226,7 +227,8 @@ namespace fgl {
 		if constexpr(std::is_same<Clock,std::chrono::system_clock>::value) {
 			return timePoint;
 		} else {
-			return std::chrono::system_clock::now() + (Clock::now() - timePoint);
+			using SystemClock = std::chrono::system_clock;
+			return std::chrono::time_point_cast<typename SystemClock::duration>(SystemClock::now() + Duration(Clock::now() - timePoint));
 		}
 	}
 }
