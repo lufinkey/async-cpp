@@ -23,6 +23,13 @@ namespace fgl {
 	void DispatchWorkItem::perform() {
 		std::unique_lock<std::mutex> lock(mutex);
 		if(cancelled) {
+			std::list<Function<void()>> notifyItems;
+			lock.lock();
+			notifyItems.swap(this->notifyItems);
+			lock.unlock();
+			for(auto& notifyItem : notifyItems) {
+				notifyItem();
+			}
 			if(options.deleteAfterRunning) {
 				delete this;
 			}
