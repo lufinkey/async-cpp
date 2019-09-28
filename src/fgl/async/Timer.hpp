@@ -171,12 +171,6 @@ namespace fgl {
 		run();
 	}
 	
-	Timer::~Timer() {
-		if(waiter != nullptr) {
-			delete waiter;
-		}
-	}
-	
 	
 	
 	template<typename Clock, typename Duration>

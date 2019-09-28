@@ -9,6 +9,12 @@
 #include <fgl/async/Timer.hpp>
 
 namespace fgl {
+	Timer::~Timer() {
+		if(waiter != nullptr) {
+			delete waiter;
+		}
+	}
+	
 	void Timer::invoke() {
 		auto strongSelf = self.lock();
 		if(!rescheduleWaiter) {
