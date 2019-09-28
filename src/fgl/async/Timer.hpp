@@ -25,18 +25,18 @@ namespace fgl {
 		Timer& operator=(const Timer&) = delete;
 		~Timer();
 		
-		template<typename Clock>
-		static SharedTimer withTimePoint(std::chrono::time_point<Clock> timePoint, Function<void(SharedTimer)> work);
-		template<typename Clock>
-		static SharedTimer withTimePoint(std::chrono::time_point<Clock> timePoint, DispatchQueue* queue, Function<void(SharedTimer)> work);
-		template<typename Rep>
-		static SharedTimer withTimeout(std::chrono::duration<Rep> timeout, Function<void(SharedTimer)> work);
-		template<typename Rep>
-		static SharedTimer withTimeout(std::chrono::duration<Rep> timeout, DispatchQueue* queue, Function<void(SharedTimer)> work);
-		template<typename Rep>
-		static SharedTimer withInterval(std::chrono::duration<Rep> interval, Function<void(SharedTimer)> work);
-		template<typename Rep>
-		static SharedTimer withInterval(std::chrono::duration<Rep> interval, DispatchQueue* queue, Function<void(SharedTimer)> work);
+		template<typename Clock, typename Duration>
+		static SharedTimer withTimePoint(std::chrono::time_point<Clock,Duration> timePoint, Function<void(SharedTimer)> work);
+		template<typename Clock, typename Duration>
+		static SharedTimer withTimePoint(std::chrono::time_point<Clock,Duration> timePoint, DispatchQueue* queue, Function<void(SharedTimer)> work);
+		template<typename Rep, typename Period>
+		static SharedTimer withTimeout(std::chrono::duration<Rep,Period> timeout, Function<void(SharedTimer)> work);
+		template<typename Rep, typename Period>
+		static SharedTimer withTimeout(std::chrono::duration<Rep,Period> timeout, DispatchQueue* queue, Function<void(SharedTimer)> work);
+		template<typename Rep, typename Period>
+		static SharedTimer withInterval(std::chrono::duration<Rep,Period> interval, Function<void(SharedTimer)> work);
+		template<typename Rep, typename Period>
+		static SharedTimer withInterval(std::chrono::duration<Rep,Period> interval, DispatchQueue* queue, Function<void(SharedTimer)> work);
 		
 		void invoke();
 		
@@ -95,15 +95,15 @@ namespace fgl {
 	
 #pragma mark Timer implementation
 	
-	template<typename Clock>
-	SharedTimer Timer::withTimePoint(std::chrono::time_point<Clock> timePoint, Function<void(SharedTimer)> work) {
+	template<typename Clock, typename Duration>
+	SharedTimer Timer::withTimePoint(std::chrono::time_point<Clock,Duration> timePoint, Function<void(SharedTimer)> work) {
 		std::shared_ptr<Timer> ptr;
-		new Timer(ptr, timePoint, work);
+		new Timer(ptr, std::chrono::time_point_cast<typename Clock::duration>(timePoint), work);
 		return ptr;
 	}
 	
-	template<typename Clock>
-	SharedTimer Timer::withTimePoint(std::chrono::time_point<Clock> timePoint, DispatchQueue* queue, Function<void(SharedTimer)> work) {
+	template<typename Clock, typename Duration>
+	SharedTimer Timer::withTimePoint(std::chrono::time_point<Clock,Duration> timePoint, DispatchQueue* queue, Function<void(SharedTimer)> work) {
 		return withTimePoint(timePoint, [=](SharedTimer timer) {
 			queue->async([=]() {
 				work(timer);
@@ -111,15 +111,16 @@ namespace fgl {
 		});
 	}
 	
-	template<typename Rep>
-	SharedTimer Timer::withTimeout(std::chrono::duration<Rep> timeout, Function<void(SharedTimer)> work) {
+	template<typename Rep, typename Period>
+	SharedTimer Timer::withTimeout(std::chrono::duration<Rep,Period> timeout, Function<void(SharedTimer)> work) {
 		std::shared_ptr<Timer> ptr;
-		new Timer(ptr, std::chrono::steady_clock::now() + timeout, work);
+		using Clock = std::chrono::steady_clock;
+		new Timer(ptr, std::chrono::time_point_cast<typename Clock::duration>(Clock::now() + timeout), work);
 		return ptr;
 	}
 	
-	template<typename Rep>
-	static SharedTimer withTimeout(std::chrono::duration<Rep> timeout, DispatchQueue* queue, Function<void(SharedTimer)> work) {
+	template<typename Rep, typename Period>
+	static SharedTimer withTimeout(std::chrono::duration<Rep,Period> timeout, DispatchQueue* queue, Function<void(SharedTimer)> work) {
 		return withTimeout(timeout, [=](SharedTimer timer) {
 			queue->async([=]() {
 				work(timer);
@@ -127,15 +128,15 @@ namespace fgl {
 		});
 	}
 	
-	template<typename Rep>
-	static SharedTimer withInterval(std::chrono::duration<Rep> interval, Function<void(SharedTimer)> work) {
+	template<typename Rep, typename Period>
+	static SharedTimer withInterval(std::chrono::duration<Rep,Period> interval, Function<void(SharedTimer)> work) {
 		std::shared_ptr<Timer> ptr;
-		new Timer(ptr, interval, work);
+		new Timer(ptr, std::chrono::duration_cast<std::chrono::duration<Rep>>(interval), work);
 		return ptr;
 	}
 	
-	template<typename Rep>
-	static SharedTimer withInterval(std::chrono::duration<Rep> interval, DispatchQueue* queue, Function<void(SharedTimer)> work) {
+	template<typename Rep, typename Period>
+	static SharedTimer withInterval(std::chrono::duration<Rep,Period> interval, DispatchQueue* queue, Function<void(SharedTimer)> work) {
 		return withInterval(interval, [=](SharedTimer timer) {
 			queue->async([=]() {
 				work(timer);
