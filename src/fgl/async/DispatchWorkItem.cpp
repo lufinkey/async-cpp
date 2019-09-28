@@ -23,6 +23,9 @@ namespace fgl {
 	void DispatchWorkItem::perform() {
 		std::unique_lock<std::mutex> lock(mutex);
 		if(cancelled) {
+			if(options.deleteAfterRunning) {
+				delete this;
+			}
 			return;
 		}
 		if(options.deleteAfterRunning && ranOnce) {
