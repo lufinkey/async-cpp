@@ -43,14 +43,14 @@ namespace fgl {
 		void cancel();
 		bool isValid() const;
 		
-		template<typename Clock = std::chrono::system_clock>
-		std::chrono::time_point<Clock> getInvokeTime() const;
+		template<typename Clock = std::chrono::system_clock, typename Duration = typename Clock::duration>
+		std::chrono::time_point<Clock,Duration> getInvokeTime() const;
 		
 	private:
-		template<typename Clock>
-		Timer(std::shared_ptr<Timer>& ptr, std::chrono::time_point<Clock> timePoint, Function<void(SharedTimer)> work);
-		template<typename Rep>
-		Timer(std::shared_ptr<Timer>& ptr, std::chrono::duration<Rep> timeInterval, Function<void(SharedTimer)> work);
+		template<typename Clock, typename Duration>
+		Timer(std::shared_ptr<Timer>& ptr, std::chrono::time_point<Clock,Duration> timePoint, Function<void(SharedTimer)> work);
+		template<typename Rep, typename Period>
+		Timer(std::shared_ptr<Timer>& ptr, std::chrono::duration<Rep,Period> timeInterval, Function<void(SharedTimer)> work);
 		
 		void run();
 		
@@ -64,10 +64,10 @@ namespace fgl {
 			virtual std::chrono::system_clock::time_point getSystemTimePoint() const = 0;
 		};
 		
-		template<typename Clock>
+		template<typename Clock, typename Duration>
 		class SpecialWaiter: public Waiter {
 		public:
-			SpecialWaiter(std::chrono::time_point<Clock> timePoint)
+			SpecialWaiter(std::chrono::time_point<Clock,Duration> timePoint)
 			: timePoint(timePoint), cancelled(false) {}
 			
 			virtual void wait() override;
@@ -77,7 +77,7 @@ namespace fgl {
 			virtual std::chrono::system_clock::time_point getSystemTimePoint() const override;
 			
 		private:
-			std::chrono::time_point<Clock> timePoint;
+			std::chrono::time_point<Clock,Duration> timePoint;
 			std::condition_variable cv;
 			bool cancelled;
 		};
@@ -98,7 +98,7 @@ namespace fgl {
 	template<typename Clock, typename Duration>
 	SharedTimer Timer::withTimePoint(std::chrono::time_point<Clock,Duration> timePoint, Function<void(SharedTimer)> work) {
 		std::shared_ptr<Timer> ptr;
-		new Timer(ptr, std::chrono::time_point_cast<typename Clock::duration>(timePoint), work);
+		new Timer(ptr, timePoint, work);
 		return ptr;
 	}
 	
@@ -115,7 +115,7 @@ namespace fgl {
 	SharedTimer Timer::withTimeout(std::chrono::duration<Rep,Period> timeout, Function<void(SharedTimer)> work) {
 		std::shared_ptr<Timer> ptr;
 		using Clock = std::chrono::steady_clock;
-		new Timer(ptr, std::chrono::time_point_cast<typename Clock::duration>(Clock::now() + timeout), work);
+		new Timer(ptr, (Clock::now() + timeout), work);
 		return ptr;
 	}
 	
@@ -131,7 +131,7 @@ namespace fgl {
 	template<typename Rep, typename Period>
 	static SharedTimer withInterval(std::chrono::duration<Rep,Period> interval, Function<void(SharedTimer)> work) {
 		std::shared_ptr<Timer> ptr;
-		new Timer(ptr, std::chrono::duration_cast<std::chrono::duration<Rep>>(interval), work);
+		new Timer(ptr, interval, work);
 		return ptr;
 	}
 	
@@ -146,24 +146,24 @@ namespace fgl {
 	
 	
 	
-	template<typename Clock>
-	Timer::Timer(std::shared_ptr<Timer>& ptr, std::chrono::time_point<Clock> timePoint, Function<void(SharedTimer)> work)
+	template<typename Clock, typename Duration>
+	Timer::Timer(std::shared_ptr<Timer>& ptr, std::chrono::time_point<Clock,Duration> timePoint, Function<void(SharedTimer)> work)
 	: waiter(nullptr), work(work), valid(true) {
 		ptr = SharedTimer(this);
 		self = ptr;
-		waiter = new SpecialWaiter<Clock>(timePoint);
+		waiter = new SpecialWaiter<Clock,Duration>(timePoint);
 		run();
 	}
 	
-	template<typename Rep>
-	Timer::Timer(std::shared_ptr<Timer>& ptr, std::chrono::duration<Rep> interval, Function<void(SharedTimer)> work)
+	template<typename Rep, typename Period>
+	Timer::Timer(std::shared_ptr<Timer>& ptr, std::chrono::duration<Rep,Period> interval, Function<void(SharedTimer)> work)
 	: waiter(nullptr), work(work), valid(true) {
 		ptr = SharedTimer(this);
 		self = ptr;
-		waiter = new SpecialWaiter<std::chrono::steady_clock>(std::chrono::steady_clock::now() + interval);
+		waiter = new SpecialWaiter<std::chrono::steady_clock,std::chrono::steady_clock::duration>(std::chrono::steady_clock::now() + interval);
 		rescheduleWaiter = [=]() {
 			auto oldWaiter = waiter;
-			waiter = new SpecialWaiter<std::chrono::steady_clock>(std::chrono::steady_clock::now() + interval);
+			waiter = new SpecialWaiter<std::chrono::steady_clock,std::chrono::steady_clock::duration>(std::chrono::steady_clock::now() + interval);
 			if(oldWaiter != nullptr) {
 				delete oldWaiter;
 			}
@@ -179,8 +179,8 @@ namespace fgl {
 	
 	
 	
-	template<typename Clock>
-	std::chrono::time_point<Clock> Timer::getInvokeTime() const {
+	template<typename Clock, typename Duration>
+	std::chrono::time_point<Clock,Duration> Timer::getInvokeTime() const {
 		if constexpr(std::is_same<Clock,std::chrono::steady_clock>::value) {
 			return waiter->getSteadyTimePoint();
 		} else if constexpr(std::is_same<Clock,std::chrono::system_clock>::value) {
@@ -192,8 +192,8 @@ namespace fgl {
 	
 	
 	
-	template<typename Clock>
-	void Timer::SpecialWaiter<Clock>::wait() {
+	template<typename Clock, typename Duration>
+	void Timer::SpecialWaiter<Clock,Duration>::wait() {
 		std::mutex waitMutex;
 		std::unique_lock<std::mutex> lock(waitMutex);
 		cv.wait_until(lock, timePoint, [=]() -> bool {
@@ -201,19 +201,19 @@ namespace fgl {
 		});
 	}
 	
-	template<typename Clock>
-	void Timer::SpecialWaiter<Clock>::cancel() {
+	template<typename Clock, typename Duration>
+	void Timer::SpecialWaiter<Clock,Duration>::cancel() {
 		cancelled = true;
 		cv.notify_one();
 	}
 	
-	template<typename Clock>
-	bool Timer::SpecialWaiter<Clock>::isCancelled() const {
+	template<typename Clock, typename Duration>
+	bool Timer::SpecialWaiter<Clock,Duration>::isCancelled() const {
 		return cancelled;
 	}
 	
-	template<typename Clock>
-	std::chrono::steady_clock::time_point Timer::SpecialWaiter<Clock>::getSteadyTimePoint() const {
+	template<typename Clock, typename Duration>
+	std::chrono::steady_clock::time_point Timer::SpecialWaiter<Clock,Duration>::getSteadyTimePoint() const {
 		if constexpr(std::is_same<Clock,std::chrono::steady_clock>::value) {
 			return timePoint;
 		} else {
@@ -221,8 +221,8 @@ namespace fgl {
 		}
 	}
 	
-	template<typename Clock>
-	std::chrono::system_clock::time_point Timer::SpecialWaiter<Clock>::getSystemTimePoint() const {
+	template<typename Clock, typename Duration>
+	std::chrono::system_clock::time_point Timer::SpecialWaiter<Clock,Duration>::getSystemTimePoint() const {
 		if constexpr(std::is_same<Clock,std::chrono::system_clock>::value) {
 			return timePoint;
 		} else {
