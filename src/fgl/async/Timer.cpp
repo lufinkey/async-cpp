@@ -45,7 +45,7 @@ namespace fgl {
 			promiseCallback = { resolve, reject };
 		});
 		auto strongSelf = self.lock();
-		thread = std::thread([=]() {
+		std::thread([=]() {
 			auto self = strongSelf;
 			std::unique_lock<std::recursive_mutex> lock(mutex);
 			while(valid) {
@@ -73,6 +73,6 @@ namespace fgl {
 					});
 				}
 			}
-		});
+		}).detach();
 	}
 }

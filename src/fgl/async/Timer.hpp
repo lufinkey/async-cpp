@@ -123,7 +123,6 @@ namespace fgl {
 		
 		WeakTimer self;
 		mutable std::recursive_mutex mutex;
-		std::thread thread;
 		Waiter* waiter;
 		Function<void()> rescheduleWaiter;
 		Function<void(SharedTimer)> work;
