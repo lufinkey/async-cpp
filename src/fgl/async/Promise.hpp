@@ -996,6 +996,7 @@ namespace fgl {
 				if(onresolve) {
 					if(thenQueue != nullptr) {
 						thenQueue->async([=]() {
+							auto future = this->future;
 							if constexpr(std::is_same<Result,void>::value) {
 								future.get();
 								onresolve();
@@ -1005,6 +1006,7 @@ namespace fgl {
 							}
 						});
 					} else {
+						auto future = this->future;
 						if constexpr(std::is_same<Result,void>::value) {
 							future.get();
 							onresolve();
@@ -1022,6 +1024,7 @@ namespace fgl {
 				if(onreject) {
 					if(catchQueue != nullptr) {
 						catchQueue->async([=]() {
+							auto future = this->future;
 							try {
 								future.get();
 							} catch(...) {
@@ -1029,6 +1032,7 @@ namespace fgl {
 							}
 						});
 					} else {
+						auto future = this->future;
 						try {
 							future.get();
 						} catch(...) {
@@ -1092,8 +1096,10 @@ namespace fgl {
 				}
 			}
 			case State::RESOLVED:
-			case State::REJECTED:
+			case State::REJECTED: {
+				auto future = this->future;
 				return future.get();
+			}
 		}
 	}
 	
