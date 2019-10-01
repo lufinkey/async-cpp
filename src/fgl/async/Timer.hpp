@@ -75,6 +75,10 @@ namespace fgl {
 		static SharedTimer withInterval(std::chrono::duration<Rep,Period> interval, DispatchQueue* queue, std::nullptr_t);
 		
 		
+		template<typename Rep, typename Period>
+		static Promise<void> delay(std::chrono::duration<Rep,Period> timeout);
+		
+		
 		void invoke();
 		
 		void cancel();
@@ -265,6 +269,12 @@ namespace fgl {
 	template<typename Rep, typename Period>
 	static SharedTimer withInterval(std::chrono::duration<Rep,Period> interval, DispatchQueue* queue, std::nullptr_t) {
 		return withInterval(interval, queue, Function<void(SharedTimer)>());
+	}
+
+
+	template<typename Rep, typename Period>
+	Promise<void> Timer::delay(std::chrono::duration<Rep,Period> timeout) {
+		return Timer::withTimeout(timeout, nullptr)->getPromise().toVoid();
 	}
 	
 	
