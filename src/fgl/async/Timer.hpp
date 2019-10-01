@@ -13,6 +13,7 @@
 #include <thread>
 #include <fgl/async/Common.hpp>
 #include <fgl/async/DispatchQueue.hpp>
+#include <fgl/async/Promise.hpp>
 
 namespace fgl {
 	class Timer;
@@ -42,6 +43,8 @@ namespace fgl {
 		
 		void cancel();
 		bool isValid() const;
+		
+		Promise<bool> getPromise() const;
 		
 		template<typename Clock = std::chrono::system_clock, typename Duration = typename Clock::duration>
 		std::chrono::time_point<Clock,Duration> getInvokeTime() const;
@@ -83,10 +86,13 @@ namespace fgl {
 		};
 		
 		WeakTimer self;
+		mutable std::recursive_mutex mutex;
 		std::thread thread;
 		Waiter* waiter;
 		Function<void()> rescheduleWaiter;
 		Function<void(SharedTimer)> work;
+		Promise<bool> promise;
+		std::tuple<typename Promise<bool>::Resolver, typename Promise<bool>::Rejecter> promiseCallback;
 		bool valid;
 	};
 	
@@ -162,6 +168,7 @@ namespace fgl {
 		self = ptr;
 		waiter = new SpecialWaiter<std::chrono::steady_clock,std::chrono::steady_clock::duration>(std::chrono::steady_clock::now() + interval);
 		rescheduleWaiter = [=]() {
+			std::unique_lock<std::recursive_mutex> lock(mutex);
 			auto oldWaiter = waiter;
 			waiter = new SpecialWaiter<std::chrono::steady_clock,std::chrono::steady_clock::duration>(std::chrono::steady_clock::now() + interval);
 			if(oldWaiter != nullptr) {
@@ -175,6 +182,7 @@ namespace fgl {
 	
 	template<typename Clock, typename Duration>
 	std::chrono::time_point<Clock,Duration> Timer::getInvokeTime() const {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
 		if constexpr(std::is_same<Clock,std::chrono::steady_clock>::value) {
 			return waiter->getSteadyTimePoint();
 		} else if constexpr(std::is_same<Clock,std::chrono::system_clock>::value) {

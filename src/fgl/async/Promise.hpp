@@ -66,6 +66,7 @@ namespace fgl {
 		template<typename ErrorType, typename Return>
 		using Catch = Function<Return(ErrorType)>;
 		
+		Promise();
 		explicit Promise(const Function<void(Resolver,Rejecter)>& executor);
 		
 		Promise<void> then(DispatchQueue* queue, Then<void> onresolve, Catch<std::exception_ptr,void> onreject);
@@ -203,6 +204,12 @@ namespace fgl {
 	
 	
 #pragma mark Promise implementation
+
+	template<typename Result>
+	Promise<Result>::Promise()
+	: Promise([](auto resolve, auto reject){}) {
+		//
+	}
 	
 	template<typename Result>
 	Promise<Result>::Promise(const Function<void(Resolver,Rejecter)>& executor) {
