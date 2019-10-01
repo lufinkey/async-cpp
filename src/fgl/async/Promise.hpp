@@ -162,6 +162,8 @@ namespace fgl {
 		
 		class Continuer {
 		public:
+			Continuer();
+			
 			// send promise result (non-void)
 			template<typename _Result=Result,
 				typename std::enable_if<std::is_same<_Result,Result>::value, std::nullptr_t>::type = nullptr,
@@ -886,6 +888,12 @@ namespace fgl {
 	
 	
 	template<typename Result>
+	Promise<Result>::Continuer::Continuer()
+	: future(promise.get_future().share()), state(State::EXECUTING) {
+		//
+	}
+
+	template<typename Result>
 	template<typename _Result,
 		typename std::enable_if<std::is_same<_Result,Result>::value, std::nullptr_t>::type,
 		typename std::enable_if<!std::is_same<_Result,void>::value, std::nullptr_t>::type>
@@ -1018,7 +1026,7 @@ namespace fgl {
 				}
 			}
 			break;
-				
+			
 			case State::REJECTED: {
 				lock.unlock();
 				if(onreject) {
