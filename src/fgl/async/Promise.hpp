@@ -162,7 +162,7 @@ namespace fgl {
 		
 		class Continuer {
 		public:
-			Continuer();
+			Continuer(std::shared_ptr<Continuer>& ptr);
 			
 			// send promise result (non-void)
 			template<typename _Result=Result,
@@ -182,6 +182,7 @@ namespace fgl {
 			Result get();
 			
 		private:
+			std::weak_ptr<Continuer> self;
 			std::promise<Result> promise;
 			std::shared_future<Result> future;
 			std::list<Then<void>> resolvers;
@@ -204,9 +205,9 @@ namespace fgl {
 #pragma mark Promise implementation
 	
 	template<typename Result>
-	Promise<Result>::Promise(const Function<void(Resolver,Rejecter)>& executor)
-	: continuer(std::make_shared<Continuer>()) {
+	Promise<Result>::Promise(const Function<void(Resolver,Rejecter)>& executor) {
 		FGL_ASSERT(executor != nullptr, "promise executor cannot be null");
+		new Continuer(this->continuer);
 		auto _continuer = this->continuer;
 		if constexpr(std::is_same<Result,void>::value) {
 			executor([=]() {
@@ -888,9 +889,10 @@ namespace fgl {
 	
 	
 	template<typename Result>
-	Promise<Result>::Continuer::Continuer()
+	Promise<Result>::Continuer::Continuer(std::shared_ptr<Continuer>& ptr)
 	: future(promise.get_future().share()), state(State::EXECUTING) {
-		//
+		ptr = std::shared_ptr<Continuer>(this);
+		self = ptr;
 	}
 
 	template<typename Result>
@@ -1003,8 +1005,9 @@ namespace fgl {
 				lock.unlock();
 				if(onresolve) {
 					if(thenQueue != nullptr) {
+						auto self = this->self.lock();
 						thenQueue->async([=]() {
-							auto future = this->future;
+							auto future = self->future;
 							if constexpr(std::is_same<Result,void>::value) {
 								future.get();
 								onresolve();
@@ -1031,8 +1034,9 @@ namespace fgl {
 				lock.unlock();
 				if(onreject) {
 					if(catchQueue != nullptr) {
+						auto self = this->self.lock();
 						catchQueue->async([=]() {
-							auto future = this->future;
+							auto future = self->future;
 							try {
 								future.get();
 							} catch(...) {
