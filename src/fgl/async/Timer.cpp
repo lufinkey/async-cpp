@@ -56,7 +56,9 @@ namespace fgl {
 						waiter->cancel();
 					}
 					lock.unlock();
-					work(self);
+					if(work) {
+						work(self);
+					}
 					std::get<0>(promiseCallback)(true);
 					lock.lock();
 				} else {
