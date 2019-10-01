@@ -16,7 +16,7 @@ namespace fgl {
 	}
 	
 	DispatchWorkItem::DispatchWorkItem(Options options, Function<void()> work)
-	: work(work), options(options), ranOnce(false) {
+	: work(work), options(options), ranOnce(false), cancelled(false) {
 		//
 	}
 	
@@ -24,7 +24,6 @@ namespace fgl {
 		std::unique_lock<std::mutex> lock(mutex);
 		if(cancelled) {
 			std::list<Function<void()>> notifyItems;
-			lock.lock();
 			notifyItems.swap(this->notifyItems);
 			lock.unlock();
 			for(auto& notifyItem : notifyItems) {
