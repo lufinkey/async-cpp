@@ -46,7 +46,7 @@ namespace fgl {
 		
 		Promise<bool> getPromise() const;
 		
-		template<typename Clock = std::chrono::system_clock, typename Duration = typename Clock::duration>
+		template<typename Clock = std::chrono::steady_clock, typename Duration = typename Clock::duration>
 		std::chrono::time_point<Clock,Duration> getInvokeTime() const;
 		
 	private:
