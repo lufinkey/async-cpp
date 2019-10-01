@@ -47,9 +47,11 @@ namespace fgl {
 		auto strongSelf = self.lock();
 		thread = std::thread([=]() {
 			auto self = strongSelf;
+			std::unique_lock<std::recursive_mutex> lock(mutex);
 			while(valid) {
+				lock.unlock();
 				waiter->wait();
-				std::unique_lock<std::recursive_mutex> lock(mutex);
+				lock.lock();
 				if(valid) {
 					if(!rescheduleWaiter) {
 						valid = false;
