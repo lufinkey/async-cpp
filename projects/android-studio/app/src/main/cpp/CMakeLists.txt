@@ -13,6 +13,10 @@ cmake_minimum_required(VERSION 3.4.1)
 set( ASYNCCPP_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../../../../.." )
 
 add_subdirectory(
+		"${CMAKE_CURRENT_SOURCE_DIR}/../../../../../../../data-cpp/projects/android-studio/libdatacpp/src/main/cpp"
+		"${CMAKE_CURRENT_SOURCE_DIR}/../../../build/libdatacpp")
+
+add_subdirectory(
 		"${CMAKE_CURRENT_SOURCE_DIR}/../../../../libasynccpp/src/main/cpp"
 		"${CMAKE_CURRENT_SOURCE_DIR}/../../../build/libasynccpp")
 
@@ -47,5 +51,6 @@ target_link_libraries( # Specifies the target library.
 
 		# Links the target library to the log library
 		# included in the NDK.
+		DataCpp
 		AsyncCpp
 		${log-lib})

@@ -11,10 +11,6 @@ include_directories(
 		"${ASYNCCPP_ROOT}/src"
 		"${ASYNCCPP_ROOT}/../data-cpp/src")
 
-add_subdirectory(
-		"${CMAKE_CURRENT_SOURCE_DIR}/../../../../../../../data-cpp/projects/android-studio/libdatacpp/src/main/cpp"
-		"${CMAKE_CURRENT_SOURCE_DIR}/../../../build/libdatacpp")
-
 file(GLOB_RECURSE ASYNCCPP_SOURCES ../../../../../../src/fgl/*.cpp)
 
 add_library(AsyncCpp STATIC
@@ -28,5 +24,4 @@ find_library(
 target_link_libraries(
 		AsyncCpp
 
-		DataCpp
 		${log-lib})
