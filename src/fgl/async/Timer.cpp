@@ -35,15 +35,8 @@ namespace fgl {
 	bool Timer::isValid() const {
 		return valid;
 	}
-
-	Promise<bool> Timer::getPromise() const {
-		return promise;
-	}
 	
 	void Timer::run() {
-		promise = Promise<bool>([=](auto resolve, auto reject) {
-			promiseCallback = { resolve, reject };
-		});
 		auto strongSelf = self.lock();
 		std::thread([=]() {
 			auto self = strongSelf;
@@ -61,16 +54,10 @@ namespace fgl {
 					if(work) {
 						work(self);
 					}
-					std::get<0>(promiseCallback)(true);
 					lock.lock();
-				} else {
-					std::get<0>(promiseCallback)(false);
 				}
 				if(valid && rescheduleWaiter) {
 					rescheduleWaiter();
-					promise = Promise<bool>([=](auto resolve, auto reject) {
-						promiseCallback = { resolve, reject };
-					});
 				}
 			}
 		}).detach();
