@@ -1126,7 +1126,7 @@ namespace fgl {
 		typename std::enable_if<std::is_same<_Result,Result>::value, std::nullptr_t>::type,
 		typename std::enable_if<std::is_same<_Result,void>::value, std::nullptr_t>::type>
 	Promise<void> Promise<Result>::all(String name, ArrayList<Promise<_Result>> promises) {
-		return Promise<ArrayList<Result>>(name, [&](auto resolve, auto reject) {
+		return Promise<void>(name, [&](auto resolve, auto reject) {
 			size_t promiseCount = promises.size();
 			if(promiseCount == 0) {
 				resolve({});
@@ -1266,7 +1266,7 @@ namespace fgl {
 		typename std::enable_if<std::is_same<_Result,Result>::value, std::nullptr_t>::type,
 		typename std::enable_if<std::is_same<_Result,void>::value, std::nullptr_t>::type>
 	Promise<void> Promise<Result>::race(String name, ArrayList<Promise<_Result>> promises) {
-		return Promise<Result>(name, [&](auto resolve, auto reject) {
+		return Promise<void>(name, [&](auto resolve, auto reject) {
 			size_t promiseCount = promises.size();
 			
 			struct SharedInfo {
