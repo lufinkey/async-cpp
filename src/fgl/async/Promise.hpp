@@ -337,6 +337,7 @@ namespace fgl {
 						nextPromise = std::make_unique<Promise<NextResult>>(onresolve(result));
 					} catch(...) {
 						reject(std::current_exception());
+						return;
 					}
 					nextPromise->continuer->handle(nullptr, resolve, nullptr, reject);
 				}, nullptr, reject);
