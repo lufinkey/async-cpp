@@ -71,10 +71,10 @@ namespace fgl {
 
 
 		Promise<void> then(String name, DispatchQueue* queue, Then<void> onresolve, Catch<std::exception_ptr,void> onreject);
-		Promise<void> then(DispatchQueue* queue, Then<void> onresolve, Catch<std::exception_ptr,void> onreject);
+		inline Promise<void> then(DispatchQueue* queue, Then<void> onresolve, Catch<std::exception_ptr,void> onreject);
 
 		Promise<void> then(String name, Then<void> onresolve, Catch<std::exception_ptr,void> onreject);
-		Promise<void> then(Then<void> onresolve, Catch<std::exception_ptr,void> onreject);
+		inline Promise<void> then(Then<void> onresolve, Catch<std::exception_ptr,void> onreject);
 
 		template<typename OnResolve,
 			typename Return = typename lambda_traits<OnResolve>::return_type,
@@ -83,7 +83,7 @@ namespace fgl {
 		template<typename OnResolve,
 			typename Return = typename lambda_traits<OnResolve>::return_type,
 			typename std::enable_if<std::is_same<Return,void>::value, std::nullptr_t>::type = nullptr>
-		Promise<void> then(DispatchQueue* queue, OnResolve onresolve);
+		inline Promise<void> then(DispatchQueue* queue, OnResolve onresolve);
 
 		template<typename OnResolve,
 			typename Return = typename lambda_traits<OnResolve>::return_type,
@@ -92,7 +92,7 @@ namespace fgl {
 		template<typename OnResolve,
 			typename Return = typename lambda_traits<OnResolve>::return_type,
 			typename std::enable_if<std::is_same<Return,void>::value, std::nullptr_t>::type = nullptr>
-		Promise<void> then(OnResolve onresolve);
+		inline Promise<void> then(OnResolve onresolve);
 
 		template<typename OnResolve,
 			typename Return = typename lambda_traits<OnResolve>::return_type,
@@ -103,7 +103,7 @@ namespace fgl {
 			typename Return = typename lambda_traits<OnResolve>::return_type,
 			typename NextResult = typename is_promise<Return>::result_type,
 			typename std::enable_if<(is_promise<Return>::value && std::is_same<Return,Promise<NextResult>>::value), std::nullptr_t>::type = nullptr>
-		Promise<NextResult> then(DispatchQueue* queue, OnResolve onresolve);
+		inline Promise<NextResult> then(DispatchQueue* queue, OnResolve onresolve);
 
 		template<typename OnResolve,
 				typename Return = typename lambda_traits<OnResolve>::return_type,
@@ -114,7 +114,7 @@ namespace fgl {
 			typename Return = typename lambda_traits<OnResolve>::return_type,
 			typename NextResult = typename is_promise<Return>::result_type,
 			typename std::enable_if<(is_promise<Return>::value && std::is_same<Return,Promise<NextResult>>::value), std::nullptr_t>::type = nullptr>
-		Promise<NextResult> then(OnResolve onresolve);
+		inline Promise<NextResult> then(OnResolve onresolve);
 
 
 		template<typename OnReject,
@@ -126,7 +126,7 @@ namespace fgl {
 			typename ErrorType = typename std::remove_reference<typename std::remove_cv<typename lambda_traits<OnReject>::template arg<0>::type>::type>::type,
 			typename Return = typename lambda_traits<OnReject>::return_type,
 			typename std::enable_if<std::is_same<Return,Result>::value,std::nullptr_t>::type = nullptr>
-		Promise<Result> except(DispatchQueue* queue, OnReject onreject);
+		inline Promise<Result> except(DispatchQueue* queue, OnReject onreject);
 
 		template<typename OnReject,
 			typename ErrorType = typename std::remove_reference<typename std::remove_cv<typename lambda_traits<OnReject>::template arg<0>::type>::type>::type,
@@ -137,7 +137,7 @@ namespace fgl {
 			typename ErrorType = typename std::remove_reference<typename std::remove_cv<typename lambda_traits<OnReject>::template arg<0>::type>::type>::type,
 			typename Return = typename lambda_traits<OnReject>::return_type,
 			typename std::enable_if<std::is_same<Return,Result>::value,std::nullptr_t>::type = nullptr>
-		Promise<Result> except(OnReject onreject);
+		inline Promise<Result> except(OnReject onreject);
 
 		template<typename OnReject,
 			typename ErrorType = typename std::remove_reference<typename std::remove_cv<typename lambda_traits<OnReject>::template arg<0>::type>::type>::type,
@@ -148,7 +148,7 @@ namespace fgl {
 			typename ErrorType = typename std::remove_reference<typename std::remove_cv<typename lambda_traits<OnReject>::template arg<0>::type>::type>::type,
 			typename Return = typename lambda_traits<OnReject>::return_type,
 			typename std::enable_if<std::is_same<Return,Promise<Result>>::value,std::nullptr_t>::type = nullptr>
-		Promise<Result> except(DispatchQueue* queue, OnReject onreject);
+		inline Promise<Result> except(DispatchQueue* queue, OnReject onreject);
 
 		template<typename OnReject,
 			typename ErrorType = typename std::remove_reference<typename std::remove_cv<typename lambda_traits<OnReject>::template arg<0>::type>::type>::type,
@@ -159,32 +159,34 @@ namespace fgl {
 			typename ErrorType = typename std::remove_reference<typename std::remove_cv<typename lambda_traits<OnReject>::template arg<0>::type>::type>::type,
 			typename Return = typename lambda_traits<OnReject>::return_type,
 			typename std::enable_if<std::is_same<Return,Promise<Result>>::value,std::nullptr_t>::type = nullptr>
-		Promise<Result> except(OnReject onreject);
+		inline Promise<Result> except(OnReject onreject);
 
 
 		Promise<Result> finally(String name, DispatchQueue* queue, Function<void()> onfinally);
-		Promise<Result> finally(DispatchQueue* queue, Function<void()> onfinally);
+		inline Promise<Result> finally(DispatchQueue* queue, Function<void()> onfinally);
 		Promise<Result> finally(String name, Function<void()> onfinally);
-		Promise<Result> finally(Function<void()> onfinally);
+		inline Promise<Result> finally(Function<void()> onfinally);
 
 
 		template<typename NextResult>
 		Promise<NextResult> map(String name, DispatchQueue* queue, Then<NextResult> transform);
 		template<typename NextResult>
-		Promise<NextResult> map(DispatchQueue* queue, Then<NextResult> transform);
+		inline Promise<NextResult> map(DispatchQueue* queue, Then<NextResult> transform);
 		template<typename NextResult>
 		Promise<NextResult> map(String name, Then<NextResult> transform);
 		template<typename NextResult>
-		Promise<NextResult> map(Then<NextResult> transform);
+		inline Promise<NextResult> map(Then<NextResult> transform);
 
 
-		Promise<Any> toAny(String name);
-		Promise<Any> toAny();
-		Promise<void> toVoid(String name);
-		Promise<void> toVoid();
+		inline Promise<Any> toAny(String name);
+		inline Promise<Any> toAny();
+		inline Promise<void> toVoid(String name);
+		inline Promise<void> toVoid();
 
-		
-		Result get();
+
+		inline Result get();
+
+		inline const String& getName() const;
 
 		
 		template<typename _Result=Result,
@@ -208,8 +210,8 @@ namespace fgl {
 		static Promise<Result> reject(String name, PromiseErrorPtr error);
 		static Promise<Result> reject(PromiseErrorPtr error);
 
-		static Promise<Result> never(String name);
-		static Promise<Result> never();
+		inline static Promise<Result> never(String name);
+		inline static Promise<Result> never();
 
 		
 		template<typename _Result=Result,
@@ -305,7 +307,7 @@ namespace fgl {
 	template<typename Result>
 	Promise<Result>::Promise(const Function<void(Resolver,Rejecter)>& executor)
 	#ifdef DEBUG_PROMISE_NAMING
-	: Promise("untitled:" + typeid(Result).name(), executor) {
+	: Promise(String("untitled:") + typeid(Result).name(), executor) {
 	#else
 	: Promise("", executor) {
 	#endif
@@ -499,7 +501,7 @@ namespace fgl {
 		typename std::enable_if<(is_promise<Return>::value && std::is_same<Return,Promise<NextResult>>::value), std::nullptr_t>::type>
 	Promise<NextResult> Promise<Result>::then(DispatchQueue* queue, OnResolve onresolve) {
 		#ifdef DEBUG_PROMISE_NAMING
-		auto thenName = String::join({
+		auto thenName = String::join(ArrayList<String>{
 			this->continuer->getName(),
 			" -> then<", typeid(NextResult).name(), ">(queue,onresolve)"
 		});
@@ -525,7 +527,7 @@ namespace fgl {
 		typename std::enable_if<(is_promise<Return>::value && std::is_same<Return,Promise<NextResult>>::value), std::nullptr_t>::type>
 	Promise<NextResult> Promise<Result>::then(OnResolve onresolve) {
 		#ifdef DEBUG_PROMISE_NAMING
-		auto thenName = String::join({
+		auto thenName = String::join(ArrayList<String>{
 			this->continuer->getName(),
 			" -> then<", typeid(NextResult).name(), ">(onresolve)"
 		});
@@ -611,7 +613,7 @@ namespace fgl {
 		typename std::enable_if<std::is_same<Return,Result>::value,std::nullptr_t>::type>
 	Promise<Result> Promise<Result>::except(DispatchQueue* queue, OnReject onreject) {
 		#ifdef DEBUG_PROMISE_NAMING
-		auto exceptName = String::join({
+		auto exceptName = String::join(ArrayList<String>{
 			this->continuer->getName(),
 			" -> except<", typeid(ErrorType).name(), ">(queue,onreject)"
 		});
@@ -637,7 +639,7 @@ namespace fgl {
 		typename std::enable_if<std::is_same<Return,Result>::value,std::nullptr_t>::type>
 	Promise<Result> Promise<Result>::except(OnReject onreject) {
 		#ifdef DEBUG_PROMISE_NAMING
-		auto exceptName = String::join({
+		auto exceptName = String::join(ArrayList<String>{
 			this->continuer->getName(),
 			" -> except<", typeid(ErrorType).name(), ">(onreject)"
 		});
@@ -693,7 +695,7 @@ namespace fgl {
 		typename std::enable_if<std::is_same<Return,Promise<Result>>::value,std::nullptr_t>::type>
 	Promise<Result> Promise<Result>::except(DispatchQueue* queue, OnReject onreject) {
 		#ifdef DEBUG_PROMISE_NAMING
-		auto exceptName = String::join({
+		auto exceptName = String::join(ArrayList<String>{
 			this->continuer->getName(),
 			" -> except<", typeid(ErrorType).name(), ">(queue,onreject)"
 		});
@@ -719,7 +721,7 @@ namespace fgl {
 		typename std::enable_if<std::is_same<Return,Promise<Result>>::value,std::nullptr_t>::type>
 	Promise<Result> Promise<Result>::except(OnReject onreject) {
 		#ifdef DEBUG_PROMISE_NAMING
-		auto exceptName = String::join({
+		auto exceptName = String::join(ArrayList<String>{
 			this->continuer->getName(),
 			" -> except<", typeid(ErrorType).name(), ">(onreject)"
 		});
@@ -861,7 +863,7 @@ namespace fgl {
 	template<typename NextResult>
 	Promise<NextResult> Promise<Result>::map(DispatchQueue* queue, Then<NextResult> transform) {
 		#ifdef DEBUG_PROMISE_NAMING
-		auto mapName = String::join({
+		auto mapName = String::join(ArrayList<String>{
 			this->continuer->getName(),
 			" -> map<", typeid(NextResult).name(), ">(queue,transform)"
 		});
@@ -881,7 +883,7 @@ namespace fgl {
 	template<typename NextResult>
 	Promise<NextResult> Promise<Result>::map(Then<NextResult> transform) {
 		#ifdef DEBUG_PROMISE_NAMING
-		auto mapName = String::join({
+		auto mapName = String::join(ArrayList<String>{
 			this->continuer->getName(),
 			" -> map<", typeid(NextResult).name(), ">(queue,transform)"
 		});
@@ -939,6 +941,13 @@ namespace fgl {
 	Result Promise<Result>::get() {
 		return this->continuer->get();
 	}
+
+
+
+	template<typename Result>
+	const String& Promise<Result>::getName() const {
+		return this->continuer->getName();
+	}
 	
 	
 	
@@ -958,7 +967,7 @@ namespace fgl {
 		typename std::enable_if<!std::is_same<_Result,void>::value, std::nullptr_t>::type>
 	Promise<Result> Promise<Result>::resolve(_Result result) {
 		#ifdef DEBUG_PROMISE_NAMING
-		auto resolveName = String::join({
+		auto resolveName = String::join(ArrayList<String>{
 			"resolve<", typeid(Result).name(), ">"
 		});
 		#else
@@ -1108,7 +1117,7 @@ namespace fgl {
 		typename std::enable_if<!std::is_same<_Result,void>::value, std::nullptr_t>::type>
 	Promise<ArrayList<Result>> Promise<Result>::all(ArrayList<Promise<_Result>> promises) {
 		#ifdef DEBUG_PROMISE_NAMING
-		auto allName = String::join({
+		auto allName = String::join(ArrayList<String>{
 			"all<", typeid(Result).name(), ">{ ",
 			String::join(promises.map([&](auto& promise) {
 				return promise.getName();
@@ -1182,7 +1191,7 @@ namespace fgl {
 		typename std::enable_if<std::is_same<_Result,void>::value, std::nullptr_t>::type>
 	Promise<void> Promise<Result>::all(ArrayList<Promise<_Result>> promises) {
 		#ifdef DEBUG_PROMISE_NAMING
-		auto allName = String::join({
+		auto allName = String::join(ArrayList<String>{
 			"all{ ",
 			String::join(promises.map([&](auto& promise) {
 				return promise.getName();
@@ -1248,7 +1257,7 @@ namespace fgl {
 		typename std::enable_if<!std::is_same<_Result,void>::value, std::nullptr_t>::type>
 	Promise<Result> Promise<Result>::race(ArrayList<Promise<_Result>> promises) {
 		#ifdef DEBUG_PROMISE_NAMING
-		auto raceName = String::join({
+		auto raceName = String::join(ArrayList<String>{
 			"race<", typeid(Result).name(), ">{ ",
 			String::join(promises.map([&](auto& promise) {
 				return promise.getName();
@@ -1314,7 +1323,7 @@ namespace fgl {
 		typename std::enable_if<std::is_same<_Result,void>::value, std::nullptr_t>::type>
 	Promise<void> Promise<Result>::race(ArrayList<Promise<_Result>> promises) {
 		#ifdef DEBUG_PROMISE_NAMING
-		auto raceName = String::join({
+		auto raceName = String::join(ArrayList<String>{
 			"race{ ",
 			String::join(promises.map([&](auto& promise) {
 				return promise.getName();
