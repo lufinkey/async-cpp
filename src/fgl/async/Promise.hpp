@@ -179,6 +179,17 @@ namespace fgl {
 		inline Promise<NextResult> map(Then<NextResult> transform);
 
 
+		template<typename Rep, typename Period>
+		Promise<Result> delay(String name, DispatchQueue* queue, std::chrono::duration<Rep,Period> delay);
+		template<typename Rep, typename Period>
+		Promise<Result> delay(DispatchQueue* queue, std::chrono::duration<Rep,Period> delay);
+
+		template<typename Rep, typename Period>
+		Promise<Result> delay(String name, std::chrono::duration<Rep,Period> delay);
+		template<typename Rep, typename Period>
+		Promise<Result> delay(std::chrono::duration<Rep,Period> delay);
+
+
 		inline Promise<Any> toAny(String name);
 		inline Promise<Any> toAny();
 		inline Promise<void> toVoid(String name);
@@ -928,6 +939,78 @@ namespace fgl {
 		#endif
 		return map<NextResult>(mapName, transform);
 	}
+
+
+	template<typename Result>
+	template<typename Rep, typename Period>
+	Promise<Result> Promise<Result>::delay(String name, DispatchQueue* queue, std::chrono::duration<Rep,Period> delay) {
+		if constexpr(std::is_same<Result,void>::value) {
+			return then(name, nullptr, [=]() {
+				return Promise<Result>([=](auto resolve, auto reject) {
+					if(queue != nullptr) {
+						queue->asyncAfter(std::chrono::steady_clock::now() + delay, [=]() {
+							resolve();
+						});
+					} else {
+						std::thread([=]() {
+							std::this_thread::sleep_for(delay);
+							resolve();
+						}).detach();
+					}
+				});
+			});
+		} else {
+			return then(name, nullptr, [=](Result result) {
+				return Promise<Result>([=](auto resolve, auto reject) {
+					if(queue != nullptr) {
+						queue->asyncAfter(std::chrono::steady_clock::now() + delay, [=]() {
+							resolve(result);
+						});
+					} else {
+						std::thread([=]() {
+							std::this_thread::sleep_for(delay);
+							resolve(result);
+						}).detach();
+					}
+				});
+			});
+		}
+	}
+
+	template<typename Result>
+	template<typename Rep, typename Period>
+	Promise<Result> Promise<Result>::delay(DispatchQueue* queue, std::chrono::duration<Rep,Period> delay) {
+		#ifdef DEBUG_PROMISE_NAMING
+		auto delayName = String::join({
+			this->continuer->getName(),
+			" -> delay(queue,", String::stream(delay.count()), ")"
+		});
+		#else
+		auto delayName = "";
+		#endif
+		return delay(delayName, queue, delay);
+	}
+
+	template<typename Result>
+	template<typename Rep, typename Period>
+	Promise<Result> Promise<Result>::delay(String name, std::chrono::duration<Rep,Period> delay) {
+		return delay(name, getDefaultPromiseQueue(), delay);
+	}
+
+	template<typename Result>
+	template<typename Rep, typename Period>
+	Promise<Result> Promise<Result>::delay(std::chrono::duration<Rep,Period> delay) {
+		#ifdef DEBUG_PROMISE_NAMING
+		auto delayName = String::join({
+			this->continuer->getName(),
+			" -> delay(", String::stream(delay.count()), ")"
+		});
+		#else
+		auto delayName = "";
+		#endif
+		return delay(delayName, delay);
+	}
+
 	
 	template<typename Result>
 	Promise<Any> Promise<Result>::toAny(String name) {
