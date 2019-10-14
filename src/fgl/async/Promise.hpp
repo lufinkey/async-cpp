@@ -29,6 +29,10 @@ namespace fgl {
 	
 	template<typename Result>
 	class Promise;
+
+	template<typename Result, typename Type>
+	using PromiseOr = typename std::enable_if<
+		(std::is_same<Type,Result>::value || std::is_same<Type,Promise<Result>>::value), Type>::type;
 	
 	template<typename PromiseType, typename ResultType = typename PromiseType::ResultType,
 		bool Test = std::is_same<PromiseType, Promise<ResultType>>::value>
