@@ -182,12 +182,12 @@ namespace fgl {
 		template<typename Rep, typename Period>
 		Promise<Result> delay(String name, DispatchQueue* queue, std::chrono::duration<Rep,Period> delay);
 		template<typename Rep, typename Period>
-		Promise<Result> delay(DispatchQueue* queue, std::chrono::duration<Rep,Period> delay);
+		inline Promise<Result> delay(DispatchQueue* queue, std::chrono::duration<Rep,Period> delay);
 
 		template<typename Rep, typename Period>
-		Promise<Result> delay(String name, std::chrono::duration<Rep,Period> delay);
+		inline Promise<Result> delay(String name, std::chrono::duration<Rep,Period> delay);
 		template<typename Rep, typename Period>
-		Promise<Result> delay(std::chrono::duration<Rep,Period> delay);
+		inline Promise<Result> delay(std::chrono::duration<Rep,Period> delay);
 
 
 		inline Promise<Any> toAny(String name);
