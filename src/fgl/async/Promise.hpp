@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <chrono>
 #include <future>
 #include <list>
 #include <memory>
@@ -191,21 +192,17 @@ namespace fgl {
 
 		
 		template<typename _Result=Result,
-			typename std::enable_if<std::is_same<_Result,Result>::value, std::nullptr_t>::type = nullptr,
-			typename std::enable_if<!std::is_same<_Result,void>::value, std::nullptr_t>::type = nullptr>
+			typename std::enable_if<(std::is_same<_Result,Result>::value && !std::is_same<_Result,void>::value), std::nullptr_t>::type = nullptr>
 		static Promise<Result> resolve(String name, _Result result);
 		template<typename _Result=Result,
-			typename std::enable_if<std::is_same<_Result,Result>::value, std::nullptr_t>::type = nullptr,
-			typename std::enable_if<!std::is_same<_Result,void>::value, std::nullptr_t>::type = nullptr>
+			typename std::enable_if<(std::is_same<_Result,Result>::value && !std::is_same<_Result,void>::value), std::nullptr_t>::type = nullptr>
 		static Promise<Result> resolve(_Result result);
 
 		template<typename _Result=Result,
-			typename std::enable_if<std::is_same<_Result,Result>::value, std::nullptr_t>::type = nullptr,
-			typename std::enable_if<std::is_same<_Result,void>::value, std::nullptr_t>::type = nullptr>
+			typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<_Result,void>::value), std::nullptr_t>::type = nullptr>
 		static Promise<Result> resolve(String name);
 		template<typename _Result=Result,
-			typename std::enable_if<std::is_same<_Result,Result>::value, std::nullptr_t>::type = nullptr,
-			typename std::enable_if<std::is_same<_Result,void>::value, std::nullptr_t>::type = nullptr>
+			typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<_Result,void>::value), std::nullptr_t>::type = nullptr>
 		static Promise<Result> resolve();
 
 		static Promise<Result> reject(String name, PromiseErrorPtr error);
@@ -216,40 +213,33 @@ namespace fgl {
 
 		
 		template<typename _Result=Result,
-			typename std::enable_if<std::is_same<_Result,Result>::value, std::nullptr_t>::type = nullptr,
-			typename std::enable_if<!std::is_same<_Result,void>::value, std::nullptr_t>::type = nullptr>
+			typename std::enable_if<(std::is_same<_Result,Result>::value && !std::is_same<_Result,void>::value), std::nullptr_t>::type = nullptr>
 		static Promise<ArrayList<Result>> all(String name, ArrayList<Promise<_Result>> promises);
 		template<typename _Result=Result,
-			typename std::enable_if<std::is_same<_Result,Result>::value, std::nullptr_t>::type = nullptr,
-			typename std::enable_if<!std::is_same<_Result,void>::value, std::nullptr_t>::type = nullptr>
+			typename std::enable_if<(std::is_same<_Result,Result>::value && !std::is_same<_Result,void>::value), std::nullptr_t>::type = nullptr>
 		static Promise<ArrayList<Result>> all(ArrayList<Promise<_Result>> promises);
 
 		template<typename _Result=Result,
-			typename std::enable_if<std::is_same<_Result,Result>::value, std::nullptr_t>::type = nullptr,
-			typename std::enable_if<std::is_same<_Result,void>::value, std::nullptr_t>::type = nullptr>
+			typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<_Result,void>::value), std::nullptr_t>::type = nullptr>
 		static Promise<void> all(String name, ArrayList<Promise<_Result>> promises);
 		template<typename _Result=Result,
-			typename std::enable_if<std::is_same<_Result,Result>::value, std::nullptr_t>::type = nullptr,
-			typename std::enable_if<std::is_same<_Result,void>::value, std::nullptr_t>::type = nullptr>
+			typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<_Result,void>::value), std::nullptr_t>::type = nullptr>
 		static Promise<void> all(ArrayList<Promise<_Result>> promises);
 
 		template<typename _Result=Result,
-			typename std::enable_if<std::is_same<_Result,Result>::value, std::nullptr_t>::type = nullptr,
-			typename std::enable_if<!std::is_same<_Result,void>::value, std::nullptr_t>::type = nullptr>
+			typename std::enable_if<(std::is_same<_Result,Result>::value && !std::is_same<_Result,void>::value), std::nullptr_t>::type = nullptr>
 		static Promise<Result> race(String name, ArrayList<Promise<_Result>> promises);
 		template<typename _Result=Result,
-			typename std::enable_if<std::is_same<_Result,Result>::value, std::nullptr_t>::type = nullptr,
-			typename std::enable_if<!std::is_same<_Result,void>::value, std::nullptr_t>::type = nullptr>
+			typename std::enable_if<(std::is_same<_Result,Result>::value && !std::is_same<_Result,void>::value), std::nullptr_t>::type = nullptr>
 		static Promise<Result> race(ArrayList<Promise<_Result>> promises);
 
 		template<typename _Result=Result,
-			typename std::enable_if<std::is_same<_Result,Result>::value, std::nullptr_t>::type = nullptr,
-			typename std::enable_if<std::is_same<_Result,void>::value, std::nullptr_t>::type = nullptr>
+			typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<_Result,void>::value), std::nullptr_t>::type = nullptr>
 		static Promise<void> race(String name, ArrayList<Promise<_Result>> promises);
 		template<typename _Result=Result,
-			typename std::enable_if<std::is_same<_Result,Result>::value, std::nullptr_t>::type = nullptr,
-			typename std::enable_if<std::is_same<_Result,void>::value, std::nullptr_t>::type = nullptr>
+			typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<_Result,void>::value), std::nullptr_t>::type = nullptr>
 		static Promise<void> race(ArrayList<Promise<_Result>> promises);
+
 		
 	private:
 		enum class State {
@@ -267,13 +257,11 @@ namespace fgl {
 			
 			// send promise result (non-void)
 			template<typename _Result=Result,
-				typename std::enable_if<std::is_same<_Result,Result>::value, std::nullptr_t>::type = nullptr,
-				typename std::enable_if<!std::is_same<_Result,void>::value, std::nullptr_t>::type = nullptr>
+				typename std::enable_if<(std::is_same<_Result,Result>::value && !std::is_same<_Result,void>::value), std::nullptr_t>::type = nullptr>
 			void resolve(_Result result);
 			// send promise result (void)
 			template<typename _Result=Result,
-				typename std::enable_if<std::is_same<_Result,Result>::value, std::nullptr_t>::type = nullptr,
-				typename std::enable_if<std::is_same<_Result,void>::value, std::nullptr_t>::type = nullptr>
+				typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<_Result,void>::value), std::nullptr_t>::type = nullptr>
 			void resolve();
 			// send promise error
 			void reject(std::exception_ptr error);
@@ -960,8 +948,7 @@ namespace fgl {
 	
 	template<typename Result>
 	template<typename _Result,
-		typename std::enable_if<std::is_same<_Result,Result>::value, std::nullptr_t>::type,
-		typename std::enable_if<!std::is_same<_Result,void>::value, std::nullptr_t>::type>
+		typename std::enable_if<(std::is_same<_Result,Result>::value && !std::is_same<_Result,void>::value), std::nullptr_t>::type>
 	Promise<Result> Promise<Result>::resolve(String name, _Result result) {
 		return Promise<Result>(name, [&](auto resolve, auto reject) {
 			resolve(result);
@@ -970,8 +957,7 @@ namespace fgl {
 
 	template<typename Result>
 	template<typename _Result,
-		typename std::enable_if<std::is_same<_Result,Result>::value, std::nullptr_t>::type,
-		typename std::enable_if<!std::is_same<_Result,void>::value, std::nullptr_t>::type>
+		typename std::enable_if<(std::is_same<_Result,Result>::value && !std::is_same<_Result,void>::value), std::nullptr_t>::type>
 	Promise<Result> Promise<Result>::resolve(_Result result) {
 		#ifdef DEBUG_PROMISE_NAMING
 		auto resolveName = String::join(ArrayList<String>{
@@ -985,8 +971,7 @@ namespace fgl {
 	
 	template<typename Result>
 	template<typename _Result,
-		typename std::enable_if<std::is_same<_Result,Result>::value, std::nullptr_t>::type,
-		typename std::enable_if<std::is_same<_Result,void>::value, std::nullptr_t>::type>
+		typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<_Result,void>::value), std::nullptr_t>::type>
 	Promise<Result> Promise<Result>::resolve(String name) {
 		return Promise<Result>(name, [&](auto resolve, auto reject) {
 			resolve();
@@ -995,8 +980,7 @@ namespace fgl {
 
 	template<typename Result>
 	template<typename _Result,
-			typename std::enable_if<std::is_same<_Result,Result>::value, std::nullptr_t>::type,
-			typename std::enable_if<std::is_same<_Result,void>::value, std::nullptr_t>::type>
+			typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<_Result,void>::value), std::nullptr_t>::type>
 	Promise<Result> Promise<Result>::resolve() {
 		#ifdef DEBUG_PROMISE_NAMING
 		auto resolveName = "resolve<void>";
@@ -1044,8 +1028,7 @@ namespace fgl {
 	
 	template<typename Result>
 	template<typename _Result,
-		typename std::enable_if<std::is_same<_Result,Result>::value, std::nullptr_t>::type,
-		typename std::enable_if<!std::is_same<_Result,void>::value, std::nullptr_t>::type>
+		typename std::enable_if<(std::is_same<_Result,Result>::value && !std::is_same<_Result,void>::value), std::nullptr_t>::type>
 	Promise<ArrayList<Result>> Promise<Result>::all(String name, ArrayList<Promise<_Result>> promises) {
 		return Promise<ArrayList<Result>>(name, [&](auto resolve, auto reject) {
 			size_t promiseCount = promises.size();
@@ -1120,8 +1103,7 @@ namespace fgl {
 
 	template<typename Result>
 	template<typename _Result,
-		typename std::enable_if<std::is_same<_Result,Result>::value, std::nullptr_t>::type,
-		typename std::enable_if<!std::is_same<_Result,void>::value, std::nullptr_t>::type>
+		typename std::enable_if<(std::is_same<_Result,Result>::value && !std::is_same<_Result,void>::value), std::nullptr_t>::type>
 	Promise<ArrayList<Result>> Promise<Result>::all(ArrayList<Promise<_Result>> promises) {
 		#ifdef DEBUG_PROMISE_NAMING
 		auto allName = String::join(ArrayList<String>{
@@ -1139,8 +1121,7 @@ namespace fgl {
 	
 	template<typename Result>
 	template<typename _Result,
-		typename std::enable_if<std::is_same<_Result,Result>::value, std::nullptr_t>::type,
-		typename std::enable_if<std::is_same<_Result,void>::value, std::nullptr_t>::type>
+		typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<_Result,void>::value), std::nullptr_t>::type>
 	Promise<void> Promise<Result>::all(String name, ArrayList<Promise<_Result>> promises) {
 		return Promise<void>(name, [&](auto resolve, auto reject) {
 			size_t promiseCount = promises.size();
@@ -1194,8 +1175,7 @@ namespace fgl {
 
 	template<typename Result>
 	template<typename _Result,
-		typename std::enable_if<std::is_same<_Result,Result>::value, std::nullptr_t>::type,
-		typename std::enable_if<std::is_same<_Result,void>::value, std::nullptr_t>::type>
+		typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<_Result,void>::value), std::nullptr_t>::type>
 	Promise<void> Promise<Result>::all(ArrayList<Promise<_Result>> promises) {
 		#ifdef DEBUG_PROMISE_NAMING
 		auto allName = String::join(ArrayList<String>{
@@ -1213,8 +1193,7 @@ namespace fgl {
 	
 	template<typename Result>
 	template<typename _Result,
-		typename std::enable_if<std::is_same<_Result,Result>::value, std::nullptr_t>::type,
-		typename std::enable_if<!std::is_same<_Result,void>::value, std::nullptr_t>::type>
+		typename std::enable_if<(std::is_same<_Result,Result>::value && !std::is_same<_Result,void>::value), std::nullptr_t>::type>
 	Promise<Result> Promise<Result>::race(String name, ArrayList<Promise<_Result>> promises) {
 		return Promise<Result>(name, [&](auto resolve, auto reject) {
 			size_t promiseCount = promises.size();
@@ -1260,8 +1239,7 @@ namespace fgl {
 
 	template<typename Result>
 	template<typename _Result,
-		typename std::enable_if<std::is_same<_Result,Result>::value, std::nullptr_t>::type,
-		typename std::enable_if<!std::is_same<_Result,void>::value, std::nullptr_t>::type>
+		typename std::enable_if<(std::is_same<_Result,Result>::value && !std::is_same<_Result,void>::value), std::nullptr_t>::type>
 	Promise<Result> Promise<Result>::race(ArrayList<Promise<_Result>> promises) {
 		#ifdef DEBUG_PROMISE_NAMING
 		auto raceName = String::join(ArrayList<String>{
@@ -1279,8 +1257,7 @@ namespace fgl {
 	
 	template<typename Result>
 	template<typename _Result,
-		typename std::enable_if<std::is_same<_Result,Result>::value, std::nullptr_t>::type,
-		typename std::enable_if<std::is_same<_Result,void>::value, std::nullptr_t>::type>
+		typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<_Result,void>::value), std::nullptr_t>::type>
 	Promise<void> Promise<Result>::race(String name, ArrayList<Promise<_Result>> promises) {
 		return Promise<void>(name, [&](auto resolve, auto reject) {
 			size_t promiseCount = promises.size();
@@ -1326,8 +1303,7 @@ namespace fgl {
 
 	template<typename Result>
 	template<typename _Result,
-		typename std::enable_if<std::is_same<_Result,Result>::value, std::nullptr_t>::type,
-		typename std::enable_if<std::is_same<_Result,void>::value, std::nullptr_t>::type>
+		typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<_Result,void>::value), std::nullptr_t>::type>
 	Promise<void> Promise<Result>::race(ArrayList<Promise<_Result>> promises) {
 		#ifdef DEBUG_PROMISE_NAMING
 		auto raceName = String::join(ArrayList<String>{
@@ -1364,8 +1340,7 @@ namespace fgl {
 
 	template<typename Result>
 	template<typename _Result,
-		typename std::enable_if<std::is_same<_Result,Result>::value, std::nullptr_t>::type,
-		typename std::enable_if<!std::is_same<_Result,void>::value, std::nullptr_t>::type>
+		typename std::enable_if<(std::is_same<_Result,Result>::value && !std::is_same<_Result,void>::value), std::nullptr_t>::type>
 	void Promise<Result>::Continuer::resolve(_Result result) {
 		std::unique_lock<std::mutex> lock(mutex);
 		FGL_ASSERT(state == State::EXECUTING, "Cannot resolve a promise multiple times");
@@ -1386,8 +1361,7 @@ namespace fgl {
 	
 	template<typename Result>
 	template<typename _Result,
-		typename std::enable_if<std::is_same<_Result,Result>::value, std::nullptr_t>::type,
-		typename std::enable_if<std::is_same<_Result,void>::value, std::nullptr_t>::type>
+		typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<_Result,void>::value), std::nullptr_t>::type>
 	void Promise<Result>::Continuer::resolve() {
 		std::unique_lock<std::mutex> lock(mutex);
 		FGL_ASSERT(state == State::EXECUTING, "Cannot resolve a promise multiple times");
