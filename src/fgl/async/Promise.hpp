@@ -944,9 +944,9 @@ namespace fgl {
 	template<typename Result>
 	template<typename Rep, typename Period>
 	Promise<Result> Promise<Result>::delay(String name, DispatchQueue* queue, std::chrono::duration<Rep,Period> delay) {
-		if constexpr(std::is_same<Result,void>::value) {
-			return then(name, nullptr, [=]() {
-				return Promise<Result>([=](auto resolve, auto reject) {
+		return Promise<Result>(name, [=](auto resolve, auto reject) {
+			if constexpr(std::is_same<Result,void>::value) {
+				return this->continuer->handle(nullptr, [=]() {
 					if(queue != nullptr) {
 						queue->asyncAfter(std::chrono::steady_clock::now() + delay, [=]() {
 							resolve();
@@ -957,24 +957,24 @@ namespace fgl {
 							resolve();
 						}).detach();
 					}
-				});
-			});
-		} else {
-			return then(name, nullptr, [=](Result result) {
-				return Promise<Result>([=](auto resolve, auto reject) {
-					if(queue != nullptr) {
-						queue->asyncAfter(std::chrono::steady_clock::now() + delay, [=]() {
-							resolve(result);
-						});
-					} else {
-						std::thread([=]() {
-							std::this_thread::sleep_for(delay);
-							resolve(result);
-						}).detach();
-					}
-				});
-			});
-		}
+				}, nullptr, reject);
+			} else {
+				return this->continuer->handle(nullptr, [=](Result result) {
+					return Promise<Result>([=](auto resolve, auto reject) {
+						if (queue != nullptr) {
+							queue->asyncAfter(std::chrono::steady_clock::now() + delay, [=]() {
+								resolve(result);
+							});
+						} else {
+							std::thread([=]() {
+								std::this_thread::sleep_for(delay);
+								resolve(result);
+							}).detach();
+						}
+					});
+				}, nullptr, reject);
+			}
+		});
 	}
 
 	template<typename Result>
