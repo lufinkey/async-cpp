@@ -254,48 +254,17 @@ namespace fgl {
 
 
 		template<typename Rep, typename Period, typename AfterDelay,
-			typename _Result = Result,
-			typename Return = typename lambda_traits<AfterDelay>::return_type,
-			typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<Return,Result>::value), std::nullptr_t>::type = nullptr>
+			typename = IsPromiseOrTFunction<Result,AfterDelay>>
 		static Promise<Result> delayed(String name, std::chrono::duration<Rep,Period> delay, DispatchQueue* queue, AfterDelay afterDelay);
 		template<typename Rep, typename Period, typename AfterDelay,
-			typename _Result = Result,
-			typename Return = typename lambda_traits<AfterDelay>::return_type,
-			typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<Return,Result>::value), std::nullptr_t>::type = nullptr>
+			typename = IsPromiseOrTFunction<Result,AfterDelay>>
 		inline static Promise<Result> delayed(std::chrono::duration<Rep,Period> delay, DispatchQueue* queue, AfterDelay afterDelay);
 
 		template<typename Rep, typename Period, typename AfterDelay,
-			typename _Result = Result,
-			typename Return = typename lambda_traits<AfterDelay>::return_type,
-			typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<Return,Result>::value), std::nullptr_t>::type = nullptr>
+			typename = IsPromiseOrTFunction<Result,AfterDelay>>
 		inline static Promise<Result> delayed(String name, std::chrono::duration<Rep,Period> delay, AfterDelay afterDelay);
 		template<typename Rep, typename Period, typename AfterDelay,
-			typename _Result = Result,
-			typename Return = typename lambda_traits<AfterDelay>::return_type,
-			typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<Return,Result>::value), std::nullptr_t>::type = nullptr>
-		inline static Promise<Result> delayed(std::chrono::duration<Rep,Period> delay, AfterDelay afterDelay);
-
-
-		template<typename Rep, typename Period, typename AfterDelay,
-			typename _Result = Result,
-			typename Return = typename lambda_traits<AfterDelay>::return_type,
-			typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<Return,Promise<Result>>::value), std::nullptr_t>::type = nullptr>
-		static Promise<Result> delayed(String name, std::chrono::duration<Rep,Period> delay, DispatchQueue* queue, AfterDelay afterDelay);
-		template<typename Rep, typename Period, typename AfterDelay,
-			typename _Result = Result,
-			typename Return = typename lambda_traits<AfterDelay>::return_type,
-			typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<Return,Promise<Result>>::value), std::nullptr_t>::type = nullptr>
-		inline static Promise<Result> delayed(std::chrono::duration<Rep,Period> delay, DispatchQueue* queue, AfterDelay afterDelay);
-
-		template<typename Rep, typename Period, typename AfterDelay,
-			typename _Result = Result,
-			typename Return = typename lambda_traits<AfterDelay>::return_type,
-			typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<Return,Promise<Result>>::value), std::nullptr_t>::type = nullptr>
-		inline static Promise<Result> delayed(String name, std::chrono::duration<Rep,Period> delay, AfterDelay afterDelay);
-		template<typename Rep, typename Period, typename AfterDelay,
-			typename _Result = Result,
-			typename Return = typename lambda_traits<AfterDelay>::return_type,
-			typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<Return,Promise<Result>>::value), std::nullptr_t>::type = nullptr>
+			typename = IsPromiseOrTFunction<Result,AfterDelay>>
 		inline static Promise<Result> delayed(std::chrono::duration<Rep,Period> delay, AfterDelay afterDelay);
 
 
@@ -1555,30 +1524,39 @@ namespace fgl {
 
 
 	template<typename Result>
-	template<typename Rep, typename Period, typename AfterDelay,
-		typename _Result,
-		typename Return,
-		typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<Return,Result>::value), std::nullptr_t>::type>
+	template<typename Rep, typename Period, typename AfterDelay, typename _>
 	Promise<Result> Promise<Result>::delayed(String name, std::chrono::duration<Rep,Period> delay, DispatchQueue* queue, AfterDelay afterDelay) {
+		using Return = typename lambda_traits<AfterDelay>::return_type;
 		return Promise<Result>(name, [=](auto resolve, auto reject) {
 			auto finishDelay = [=]() {
-				if constexpr(std::is_same<Result,void>::value) {
+				if constexpr(is_promise<Return>::value) {
+					std::unique_ptr<Promise<Result>> resultPromise;
 					try {
-						afterDelay();
+						resultPromise = std::make_unique<Promise<Result>>(afterDelay());
 					} catch(...) {
 						reject(std::current_exception());
 						return;
 					}
-					resolve();
+					resultPromise->continuer->handle(nullptr, resolve, nullptr, reject);
 				} else {
-					std::unique_ptr<Result> result;
-					try {
-						result = std::make_unique<Result>(afterDelay());
-					} catch(...) {
-						reject(std::current_exception());
-						return;
+					if constexpr(std::is_same<Result,void>::value) {
+						try {
+							afterDelay();
+						} catch(...) {
+							reject(std::current_exception());
+							return;
+						}
+						resolve();
+					} else {
+						std::unique_ptr<Result> result;
+						try {
+							result = std::make_unique<Result>(afterDelay());
+						} catch(...) {
+							reject(std::current_exception());
+							return;
+						}
+						resolve(std::move(*result.get()));
 					}
-					resolve(std::move(*result.get()));
 				}
 			};
 			if(queue != nullptr) {
@@ -1595,10 +1573,7 @@ namespace fgl {
 	}
 
 	template<typename Result>
-	template<typename Rep, typename Period, typename AfterDelay,
-		typename _Result,
-		typename Return,
-		typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<Return,Result>::value), std::nullptr_t>::type>
+	template<typename Rep, typename Period, typename AfterDelay, typename _>
 	Promise<Result> Promise<Result>::delayed(std::chrono::duration<Rep,Period> delay, DispatchQueue* queue, AfterDelay afterDelay) {
 		#ifdef DEBUG_PROMISE_NAMING
 		auto delayedName = String::join({
@@ -1611,94 +1586,17 @@ namespace fgl {
 	}
 
 	template<typename Result>
-	template<typename Rep, typename Period, typename AfterDelay,
-		typename _Result,
-		typename Return,
-		typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<Return,Result>::value), std::nullptr_t>::type>
+	template<typename Rep, typename Period, typename AfterDelay, typename _>
 	Promise<Result> Promise<Result>::delayed(String name, std::chrono::duration<Rep,Period> delay, AfterDelay afterDelay) {
 		return delayed(name, delay, getDefaultPromiseQueue(), afterDelay);
 	}
 
 	template<typename Result>
-	template<typename Rep, typename Period, typename AfterDelay,
-		typename _Result,
-		typename Return,
-		typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<Return,Result>::value), std::nullptr_t>::type>
+	template<typename Rep, typename Period, typename AfterDelay, typename _>
 	Promise<Result> Promise<Result>::delayed(std::chrono::duration<Rep,Period> delay, AfterDelay afterDelay) {
 		#ifdef DEBUG_PROMISE_NAMING
 		auto delayedName = String::join({
 			"delayed(", String::stream(delay.count()), ",afterdelay)"
-		});
-		#else
-		auto delayedName = "";
-		#endif
-		return delayed(delayedName, delay, afterDelay);
-	}
-
-	template<typename Result>
-	template<typename Rep, typename Period, typename AfterDelay,
-		typename _Result,
-		typename Return,
-		typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<Return,Promise<Result>>::value), std::nullptr_t>::type>
-	Promise<Result> Promise<Result>::delayed(String name, std::chrono::duration<Rep,Period> delay, DispatchQueue* queue, AfterDelay afterDelay) {
-		return Promise<Result>(name, [=](auto resolve, auto reject) {
-			auto finishDelay = [=]() {
-				std::unique_ptr<Promise<Result>> resultPromise;
-				try {
-					resultPromise = std::make_unique<Promise<Result>>(afterDelay());
-				} catch(...) {
-					reject(std::current_exception());
-					return;
-				}
-				resultPromise.then(nullptr, resolve, reject);
-			};
-			if(queue != nullptr) {
-				queue->asyncAfter(std::chrono::steady_clock::now() + delay, [=]() {
-					finishDelay();
-				});
-			} else {
-				std::thread([=]() {
-					std::this_thread::sleep_for(delay);
-					finishDelay();
-				}).detach();
-			}
-		});
-	}
-
-	template<typename Result>
-	template<typename Rep, typename Period, typename AfterDelay,
-		typename _Result,
-		typename Return,
-		typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<Return,Promise<Result>>::value), std::nullptr_t>::type>
-	Promise<Result> Promise<Result>::delayed(std::chrono::duration<Rep,Period> delay, DispatchQueue* queue, AfterDelay afterDelay) {
-		#ifdef DEBUG_PROMISE_NAMING
-		auto delayedName = String::join({
-			"delayed(", String::stream(delay.count()), ",queue,asyncAfterdelay)"
-		});
-		#else
-		auto delayedName = "";
-		#endif
-		return delayed(delayedName, delay, queue, afterDelay);
-	}
-
-	template<typename Result>
-	template<typename Rep, typename Period, typename AfterDelay,
-		typename _Result,
-		typename Return,
-		typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<Return,Promise<Result>>::value), std::nullptr_t>::type>
-	Promise<Result> Promise<Result>::delayed(String name, std::chrono::duration<Rep,Period> delay, AfterDelay afterDelay) {
-		return delayed(name, delay, getDefaultPromiseQueue(), afterDelay);
-	}
-
-	template<typename Result>
-	template<typename Rep, typename Period, typename AfterDelay,
-		typename _Result,
-		typename Return,
-		typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<Return,Promise<Result>>::value), std::nullptr_t>::type>
-	Promise<Result> Promise<Result>::delayed(std::chrono::duration<Rep,Period> delay, AfterDelay afterDelay) {
-		#ifdef DEBUG_PROMISE_NAMING
-		auto delayedName = String::join({
-			"delayed(", String::stream(delay.count()), ",asyncAfterdelay)"
 		});
 		#else
 		auto delayedName = "";
