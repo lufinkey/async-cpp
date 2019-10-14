@@ -187,6 +187,7 @@ namespace fgl {
 		inline Result get();
 
 		inline const String& getName() const;
+		inline const std::shared_future<Result>& getFuture() const;
 
 		
 		template<typename _Result=Result,
@@ -262,6 +263,7 @@ namespace fgl {
 			Continuer(std::shared_ptr<Continuer>& ptr, String name);
 
 			inline const String& getName() const;
+			inline const std::shared_future<Result>& getFuture() const;
 			
 			// send promise result (non-void)
 			template<typename _Result=Result,
@@ -948,6 +950,11 @@ namespace fgl {
 	const String& Promise<Result>::getName() const {
 		return this->continuer->getName();
 	}
+
+	template<typename Result>
+	const std::shared_future<Result>& Promise<Result>::getFuture() const {
+		return this->continuer->getFuture();
+	}
 	
 	
 	
@@ -1348,6 +1355,11 @@ namespace fgl {
 	template<typename Result>
 	const String& Promise<Result>::Continuer::getName() const {
 		return name;
+	}
+
+	template<typename Result>
+	const std::shared_future<Result>& Promise<Result>::Continuer::getFuture() const {
+		return future;
 	}
 
 	template<typename Result>
