@@ -178,16 +178,16 @@ namespace fgl {
 		
 		
 		template<typename Rep, typename Period, typename OnTimeout,
-			typename = IsPromiseOr<Result,typename lambda_traits<OnTimeout>::return_type>>
+			typename = IsPromiseOrTFunction<Result,OnTimeout>>
 		Promise<Result> timeout(String name, DispatchQueue* queue, std::chrono::duration<Rep,Period> timeout, OnTimeout onTimeout);
 		template<typename Rep, typename Period, typename OnTimeout,
-			typename = IsPromiseOr<Result,typename lambda_traits<OnTimeout>::return_type>>
+			typename = IsPromiseOrTFunction<Result,OnTimeout>>
 		inline Promise<Result> timeout(DispatchQueue* queue, std::chrono::duration<Rep,Period> timeout, OnTimeout onTimeout);
 		template<typename Rep, typename Period, typename OnTimeout,
-			typename = IsPromiseOr<Result,typename lambda_traits<OnTimeout>::return_type>>
+			typename = IsPromiseOrTFunction<Result,OnTimeout>>
 		inline Promise<Result> timeout(String name, std::chrono::duration<Rep,Period> timeout, OnTimeout onTimeout);
 		template<typename Rep, typename Period, typename OnTimeout,
-			typename = IsPromiseOr<Result,typename lambda_traits<OnTimeout>::return_type>>
+			typename = IsPromiseOrTFunction<Result,OnTimeout>>
 		inline Promise<Result> timeout(std::chrono::duration<Rep,Period> timeout, OnTimeout onTimeout);
 
 
