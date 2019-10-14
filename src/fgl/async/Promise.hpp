@@ -9,6 +9,7 @@
 #pragma once
 
 #include <chrono>
+#include <condition_variable>
 #include <future>
 #include <list>
 #include <memory>
@@ -29,24 +30,35 @@ namespace fgl {
 	
 	template<typename Result>
 	class Promise;
-
-	template<typename Result, typename Type>
-	using PromiseOr = typename std::enable_if<
-		(std::is_same<Type,Result>::value || std::is_same<Type,Promise<Result>>::value), Type>::type;
 	
-	template<typename PromiseType, typename ResultType = typename PromiseType::ResultType,
-		bool Test = std::is_same<PromiseType, Promise<ResultType>>::value>
+	template<typename PromiseType>
 	struct is_promise {
 		static constexpr bool value = false;
 	};
 	
-	template<typename PromiseType, typename ResultType>
-	struct is_promise<PromiseType, ResultType, true> {
+	template<typename ResultType>
+	struct is_promise<Promise<ResultType>> {
 		static constexpr bool value = true;
 		typedef ResultType result_type;
 		typedef Promise<ResultType> promise_type;
 		typedef std::nullptr_t null_type;
 	};
+
+	template<typename PromiseType>
+	using IsPromise = typename is_promise<PromiseType>::promise_type;
+
+	template<typename Result, typename Type>
+	using IsPromiseOr = typename std::enable_if<
+		(std::is_same<Type,Promise<Result>>::value || (!is_promise<Type>::value && std::is_same<Type,Result>::value)), Type>::type;
+
+	template<typename Result, typename Type>
+	using IsPromiseOrConvertible = typename std::enable_if<
+		(std::is_same<Type,Promise<Result>>::value || (!is_promise<Type>::value && std::is_convertible<Type,Result>::value)), Type>::type;
+
+	template<typename Func>
+	using IsPromiseFunction = typename std::enable_if<is_promise<typename lambda_traits<Func>::return_type>::value,Func>::type;
+
+
 	
 	template<typename Result>
 	class Promise {
@@ -192,6 +204,20 @@ namespace fgl {
 		inline Promise<Result> delay(String name, std::chrono::duration<Rep,Period> delay);
 		template<typename Rep, typename Period>
 		inline Promise<Result> delay(std::chrono::duration<Rep,Period> delay);
+		
+		
+		template<typename Rep, typename Period, typename OnTimeout,
+			typename = IsPromiseOr<Result,typename lambda_traits<OnTimeout>::return_type>>
+		Promise<Result> timeout(String name, DispatchQueue* queue, std::chrono::duration<Rep,Period> timeout, OnTimeout onTimeout);
+		template<typename Rep, typename Period, typename OnTimeout,
+			typename = IsPromiseOr<Result,typename lambda_traits<OnTimeout>::return_type>>
+		inline Promise<Result> timeout(DispatchQueue* queue, std::chrono::duration<Rep,Period> timeout, OnTimeout onTimeout);
+		template<typename Rep, typename Period, typename OnTimeout,
+			typename = IsPromiseOr<Result,typename lambda_traits<OnTimeout>::return_type>>
+		inline Promise<Result> timeout(String name, std::chrono::duration<Rep,Period> timeout, OnTimeout onTimeout);
+		template<typename Rep, typename Period, typename OnTimeout,
+			typename = IsPromiseOr<Result,typename lambda_traits<OnTimeout>::return_type>>
+		inline Promise<Result> timeout(std::chrono::duration<Rep,Period> timeout, OnTimeout onTimeout);
 
 
 		inline Promise<Any> toAny(String name);
@@ -207,10 +233,10 @@ namespace fgl {
 
 		
 		template<typename _Result=Result,
-			typename std::enable_if<(std::is_same<_Result,Result>::value && !std::is_same<_Result,void>::value), std::nullptr_t>::type = nullptr>
+			typename std::enable_if<(std::is_convertible<_Result,Result>::value && !std::is_same<_Result,void>::value), std::nullptr_t>::type = nullptr>
 		static Promise<Result> resolve(String name, _Result result);
 		template<typename _Result=Result,
-			typename std::enable_if<(std::is_same<_Result,Result>::value && !std::is_same<_Result,void>::value), std::nullptr_t>::type = nullptr>
+			typename std::enable_if<(std::is_convertible<_Result,Result>::value && !std::is_same<_Result,void>::value), std::nullptr_t>::type = nullptr>
 		static Promise<Result> resolve(_Result result);
 
 		template<typename _Result=Result,
@@ -1014,7 +1040,173 @@ namespace fgl {
 		#endif
 		return delay(delayName, delay);
 	}
+	
+	
+	
+	template<typename Result>
+	template<typename Rep, typename Period, typename OnTimeout, typename _>
+	Promise<Result> Promise<Result>::timeout(String name, DispatchQueue* queue, std::chrono::duration<Rep,Period> timeout, OnTimeout onTimeout) {
+		using Return = typename lambda_traits<OnTimeout>::return_type;
+		return Promise<Result>(name, [=](auto resolve, auto reject) {
+			struct SharedData {
+				std::mutex mutex;
+				std::condition_variable cv;
+				bool finished = false;
+			};
+			auto sharedData = std::shared_ptr<SharedData>(new SharedData());
+			auto endTime = std::chrono::steady_clock::now() + timeout;
+			auto handleTimeout = [=]() {
+				std::unique_lock<std::mutex> lock(sharedData->mutex);
+				if(sharedData->finished) {
+					return;
+				}
+				sharedData->finished = true;
+				lock.unlock();
+				if constexpr(is_promise<Return>::value) {
+					std::unique_ptr<Promise<Result>> resultPromise;
+					try {
+						resultPromise = std::make_unique<Promise<Result>>(onTimeout());
+					} catch(...) {
+						reject(std::current_exception());
+						return;
+					}
+					resultPromise->continuer->handle(nullptr, resolve, nullptr, reject);
+				} else {
+					if constexpr(std::is_same<Result,void>::value) {
+						try {
+							onTimeout();
+						} catch(...) {
+							reject(std::current_exception());
+							return;
+						}
+						resolve();
+					} else {
+						std::unique_ptr<Result> resultPtr;
+						try {
+							resultPtr = std::make_unique<Promise<Result>>(onTimeout());
+						} catch(...) {
+							reject(std::current_exception());
+							return;
+						}
+						resolve(std::move(*resultPtr.get()));
+					}
+				}
+			};
+			if(queue != nullptr) {
+				auto workItem = new DispatchWorkItem({.deleteAfterRunning=true}, [=]() {
+					handleTimeout();
+				});
+				auto handlePerform = [=]() {
+					std::unique_lock<std::mutex>(sharedData->mutex);
+					if(sharedData->finished) {
+						return false;
+					}
+					sharedData->finished = true;
+					workItem->cancel();
+					sharedData->mutex.unlock();
+					return true;
+				};
+				queue->asyncAfter(endTime, workItem);
+				if constexpr(std::is_same<Result,void>::value) {
+					this->continuer->handle(nullptr, [=]() {
+						if(handlePerform()) {
+						   resolve();
+						}
+					}, nullptr, [=](std::exception_ptr error) {
+						if(handlePerform()) {
+							reject(error);
+						}
+					});
+				} else {
+					this->continuer->handle(nullptr, [=](Result result) {
+						if(handlePerform()) {
+							resolve(result);
+						}
+					}, nullptr, [=](std::exception_ptr error) {
+						if(handlePerform()) {
+							reject(error);
+						}
+					});
+				}
+			} else {
+				std::thread([=]() {
+					std::mutex waitMutex;
+					std::unique_lock<std::mutex> waitLock;
+					sharedData->cv.wait_until(waitLock, endTime, [=]() -> bool {
+						return (endTime <= std::chrono::steady_clock::now() || sharedData->finished);
+					});
+					handleTimeout();
+				}).detach();
+				auto handlePerform = [=]() {
+					std::unique_lock<std::mutex> lock(sharedData->mutex);
+					if(sharedData->finished) {
+						return false;
+					}
+					sharedData->finished = true;
+					lock.unlock();
+					sharedData->cv.notify_one();
+					return true;
+				};
+				if constexpr(std::is_same<Result,void>::value) {
+					this->continuer->handle(nullptr, [=]() {
+						if(handlePerform()) {
+						   resolve();
+						}
+					}, nullptr, [=](std::exception_ptr error) {
+						if(handlePerform()) {
+							reject(error);
+						}
+					});
+				} else {
+					this->continuer->handle(nullptr, [=](Result result) {
+						if(handlePerform()) {
+							resolve(result);
+						}
+					}, nullptr, [=](std::exception_ptr error) {
+						if(handlePerform()) {
+							reject(error);
+						}
+					});
+				}
+			}
+		});
+	}
+	
+	template<typename Result>
+	template<typename Rep, typename Period, typename OnTimeout, typename _>
+	Promise<Result> Promise<Result>::timeout(DispatchQueue* queue, std::chrono::duration<Rep,Period> timeout, OnTimeout onTimeout) {
+		#ifdef DEBUG_PROMISE_NAMING
+		auto timeoutName = String::join({
+			this->continuer->getName(),
+			" -> timeout(queue,", String::stream(timeout.count()), ",ontimeout)"
+		});
+		#else
+		auto timeoutName = "";
+		#endif
+		return this->timeout(timeoutName, queue, timeout, onTimeout);
+	}
+	
+	template<typename Result>
+	template<typename Rep, typename Period, typename OnTimeout, typename _>
+	Promise<Result> Promise<Result>::timeout(String name, std::chrono::duration<Rep,Period> timeout, OnTimeout onTimeout) {
+		return this->timeout(name, getDefaultPromiseQueue(), timeout, onTimeout);
+	}
+	
+	template<typename Result>
+	template<typename Rep, typename Period, typename OnTimeout, typename _>
+	Promise<Result> Promise<Result>::timeout(std::chrono::duration<Rep,Period> timeout, OnTimeout onTimeout) {
+		#ifdef DEBUG_PROMISE_NAMING
+		auto timeoutName = String::join({
+			this->continuer->getName(),
+			" -> timeout(", String::stream(timeout.count()), ",ontimeout)"
+		});
+		#else
+		auto timeoutName = "";
+		#endif
+		return this->timeout(timeoutName, timeout, onTimeout);
+	}
 
+	
 	
 	template<typename Result>
 	Promise<Any> Promise<Result>::toAny(String name) {
@@ -1081,7 +1273,7 @@ namespace fgl {
 	
 	template<typename Result>
 	template<typename _Result,
-		typename std::enable_if<(std::is_same<_Result,Result>::value && !std::is_same<_Result,void>::value), std::nullptr_t>::type>
+		typename std::enable_if<(std::is_convertible<_Result,Result>::value && !std::is_same<_Result,void>::value), std::nullptr_t>::type>
 	Promise<Result> Promise<Result>::resolve(String name, _Result result) {
 		return Promise<Result>(name, [&](auto resolve, auto reject) {
 			resolve(result);
@@ -1090,7 +1282,7 @@ namespace fgl {
 
 	template<typename Result>
 	template<typename _Result,
-		typename std::enable_if<(std::is_same<_Result,Result>::value && !std::is_same<_Result,void>::value), std::nullptr_t>::type>
+		typename std::enable_if<(std::is_convertible<_Result,Result>::value && !std::is_same<_Result,void>::value), std::nullptr_t>::type>
 	Promise<Result> Promise<Result>::resolve(_Result result) {
 		#ifdef DEBUG_PROMISE_NAMING
 		auto resolveName = String::join(ArrayList<String>{
@@ -1473,7 +1665,7 @@ namespace fgl {
 				} else {
 					std::unique_ptr<Result> result;
 					try {
-						result = std::make_unique(afterDelay());
+						result = std::make_unique<Result>(afterDelay());
 					} catch(...) {
 						reject(std::current_exception());
 						return;
@@ -1545,7 +1737,7 @@ namespace fgl {
 			auto finishDelay = [=]() {
 				std::unique_ptr<Promise<Result>> resultPromise;
 				try {
-					resultPromise = std::make_unique(afterDelay());
+					resultPromise = std::make_unique<Promise<Result>>(afterDelay());
 				} catch(...) {
 					reject(std::current_exception());
 					return;

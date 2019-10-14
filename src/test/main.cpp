@@ -64,8 +64,14 @@ int main(int argc, const char* argv[]) {
 		throw std::logic_error("eyy some shit happened");
 	}).except([](std::exception& error) {
 		printf("we caught an error: %s\n", error.what());
+	}).then([]() -> Promise<String> {
+		return Promise<String>::resolve("ayy");
+	}).timeout(std::chrono::seconds(10), []() -> Promise<String> {
+		// do nothing
+		return Promise<String>::resolve("nayyy");
 	});
 	print_type<decltype(promise)>();
-	await(promise);
+	auto result = await(promise);
+	printf("got result: %s\n", (const char*)result);
 	return 0;
 }
