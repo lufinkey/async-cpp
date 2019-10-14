@@ -990,18 +990,16 @@ namespace fgl {
 				}, nullptr, reject);
 			} else {
 				return this->continuer->handle(nullptr, [=](Result result) {
-					return Promise<Result>([=](auto resolve, auto reject) {
-						if (queue != nullptr) {
-							queue->asyncAfter(std::chrono::steady_clock::now() + delay, [=]() {
-								resolve(result);
-							});
-						} else {
-							std::thread([=]() {
-								std::this_thread::sleep_for(delay);
-								resolve(result);
-							}).detach();
-						}
-					});
+					if (queue != nullptr) {
+						queue->asyncAfter(std::chrono::steady_clock::now() + delay, [=]() {
+							resolve(result);
+						});
+					} else {
+						std::thread([=]() {
+							std::this_thread::sleep_for(delay);
+							resolve(result);
+						}).detach();
+					}
 				}, nullptr, reject);
 			}
 		});
@@ -1018,13 +1016,13 @@ namespace fgl {
 		#else
 		auto delayName = "";
 		#endif
-		return delay(delayName, queue, delay);
+		return this->delay(delayName, queue, delay);
 	}
 
 	template<typename Result>
 	template<typename Rep, typename Period>
 	Promise<Result> Promise<Result>::delay(String name, std::chrono::duration<Rep,Period> delay) {
-		return delay(name, getDefaultPromiseQueue(), delay);
+		return this->delay(name, getDefaultPromiseQueue(), delay);
 	}
 
 	template<typename Result>
@@ -1038,7 +1036,7 @@ namespace fgl {
 		#else
 		auto delayName = "";
 		#endif
-		return delay(delayName, delay);
+		return this->delay(delayName, delay);
 	}
 	
 	
