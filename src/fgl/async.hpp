@@ -12,3 +12,4 @@
 #include <fgl/async/Promise.hpp>
 #include <fgl/async/Generator.hpp>
 #include <fgl/async/Timer.hpp>
+#include <fgl/async/AsyncQueue.hpp>
