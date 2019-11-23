@@ -118,7 +118,7 @@ namespace fgl {
 
 
 
-#pragma mark - Generator implementation
+#pragma mark Generator implementation
 
 	template<typename Yield, typename Next>
 	Generator<Yield,Next>::Generator(YieldReturner yieldReturner) {

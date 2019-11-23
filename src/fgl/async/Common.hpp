@@ -16,6 +16,8 @@
 	#include <list>
 	#include <string>
 	#include <vector>
+	#include <optional>
+	#include <type_traits>
 #else
 	#include <fgl/data.hpp>
 #endif
@@ -33,12 +35,12 @@ namespace fgl {
 
 		template<typename T>
 		using Optional = std::optional<T>;
-		template<typename T, bool isOptional = std::is_same<T, Optional<T>>::value>
+		template<typename T>
 		struct optionalize_t {
 			using type = Optional<T>;
 		};
 		template<typename T>
-		struct optionalize_t<T,true> {
+		struct optionalize_t<Optional<T>> {
 			using type = T;
 		};
 		template<typename T>
@@ -71,11 +73,11 @@ namespace fgl {
 	
 	#ifdef ASYNC_CPP_STANDALONE
 		#ifndef ASYNC_CPP_LIST_PUSH
-			#define ASYNC_CPP_LIST_PUSH(list, element) list.push_back(element)
+			#define ASYNC_CPP_LIST_PUSH(list, ...) list.push_back(__VA_ARGS__)
 		#endif
 	#else
 		#ifndef ASYNC_CPP_LIST_PUSH
-			#define ASYNC_CPP_LIST_PUSH(list, element) list.pushBack(element)
+			#define ASYNC_CPP_LIST_PUSH(list, ...) list.pushBack(__VA_ARGS__)
 		#endif
 	#endif
 }

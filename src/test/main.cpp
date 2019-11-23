@@ -73,7 +73,7 @@ int main(int argc, const char* argv[]) {
 	}).delay(std::chrono::seconds(12));
 	print_type<decltype(promise)>();
 	auto result = await(promise);
-	printf("got result: %s\n", (const char*)result);
+	printf("got result: %s\n", result.c_str());
 	
 	auto gen = generate<int,int>([](auto yield) {
 		printf("we're gonna yield 4\n");
