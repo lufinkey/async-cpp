@@ -1246,7 +1246,7 @@ namespace fgl {
 		return Promise<ArrayList<Result>>(name, [&](auto resolve, auto reject) {
 			size_t promiseCount = promises.size();
 			if(promiseCount == 0) {
-				resolve({});
+				resolve(ArrayList<Result>());
 				return;
 			}
 			
@@ -1339,7 +1339,7 @@ namespace fgl {
 		return Promise<void>(name, [&](auto resolve, auto reject) {
 			size_t promiseCount = promises.size();
 			if(promiseCount == 0) {
-				resolve({});
+				resolve();
 				return;
 			}
 			
