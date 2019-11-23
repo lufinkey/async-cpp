@@ -1305,7 +1305,7 @@ namespace fgl {
 			
 			for(size_t i=0; i<promiseCount; i++) {
 				auto& promise = promises[i];
-				promise->continuer->handle(nullptr, [=](_Result result) {
+				promise.continuer->handle(nullptr, [=](_Result result) {
 					resolveIndex(i, result);
 				}, nullptr, [=](auto error) {
 					rejectAll(error);
@@ -1377,7 +1377,7 @@ namespace fgl {
 			
 			for(size_t i=0; i<promiseCount; i++) {
 				auto& promise = promises[i];
-				promise->continuer->handle(nullptr, [=]() {
+				promise.continuer->handle(nullptr, [=]() {
 					resolveIndex(i);
 				}, nullptr, [=](auto error) {
 					rejectAll(error);
