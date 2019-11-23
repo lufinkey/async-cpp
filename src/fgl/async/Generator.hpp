@@ -14,6 +14,29 @@
 #include <fgl/async/Promise.hpp>
 
 namespace fgl {
+
+	template<typename Yield, typename Next>
+	class Generator;
+	
+	template<typename GeneratorType>
+	struct is_generator {
+		static constexpr bool value = false;
+	};
+	
+	template<typename Yield, typename Next>
+	struct is_generator<Generator<Yield,Next>> {
+		static constexpr bool value = true;
+		typedef Yield yield_type;
+		typedef Next next_type;
+		typedef Generator<Yield,Next> generator_type;
+		typedef std::nullptr_t null_type;
+	};
+
+	template<typename GeneratorType>
+	using IsGenerator = typename is_generator<GeneratorType>::generator_type;
+
+
+
 	template<typename Yield, typename Next>
 	class Generator {
 	public:
