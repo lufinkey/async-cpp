@@ -87,7 +87,10 @@ namespace fgl {
 
 
 	template<typename Yield, typename Return,
-		typename std::enable_if<std::is_same<Return,Yield>::value || std::is_same<Return,void>::value,std::nullptr_t>::type = nullptr>
+		typename std::enable_if<
+			std::is_same<Return,Yield>::value
+			|| std::is_same<Return,Optional<Yield>>::value
+			|| std::is_same<Return,void>::value,std::nullptr_t>::type = nullptr>
 	Generator<Yield,void> generate(Function<Return(Function<void(Yield)> yield)> executor);
 
 
@@ -236,7 +239,10 @@ namespace fgl {
 
 
 	template<typename Yield, typename Return,
-		typename std::enable_if<std::is_same<Return,Yield>::value || std::is_same<Return,void>::value,std::nullptr_t>::type>
+	typename std::enable_if<
+		std::is_same<Return,Yield>::value
+		|| std::is_same<Return,Optional<Yield>>::value
+		|| std::is_same<Return,void>::value,std::nullptr_t>::type>
 	Generator<Yield,void> generate(Function<Return(Function<void(Yield)> yield)> executor) {
 		using YieldResult = typename Generator<Yield,void>::YieldResult;
 		struct ResultDefer {
@@ -286,6 +292,29 @@ namespace fgl {
 					sharedData->yieldDefer = std::nullopt;
 					lock.unlock();
 					defer->resolve(YieldResult{.value=std::nullopt,.done=true});
+				}
+			} else if constexpr(std::is_same<Return,Optional<Yield>>::value) {
+				Optional<Yield> returnVal;
+				try {
+					returnVal = executor(yielder);
+				} catch(...) {
+					std::unique_lock<std::mutex> lock(sharedData->mutex);
+					auto defer = sharedData->yieldDefer;
+					sharedData->yieldDefer = std::nullopt;
+					lock.unlock();
+					defer->reject(std::current_exception());
+					return;
+				}
+				{
+					std::unique_lock<std::mutex> lock(sharedData->mutex);
+					auto defer = sharedData->yieldDefer;
+					sharedData->yieldDefer = std::nullopt;
+					lock.unlock();
+					if constexpr(!std::is_same<Optionalized<Yield>,Optional<Yield>>::value) {
+						defer->resolve(YieldResult{.value=returnVal.value_or(std::nullopt),.done=true});
+					} else {
+						defer->resolve(YieldResult{.value=returnVal,.done=true});
+					}
 				}
 			} else {
 				std::unique_ptr<Return> returnVal;
