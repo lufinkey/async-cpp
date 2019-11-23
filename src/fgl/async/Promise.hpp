@@ -201,6 +201,7 @@ namespace fgl {
 
 		inline const String& getName() const;
 		inline const std::shared_future<Result>& getFuture() const;
+		inline bool isComplete() const;
 
 		
 		template<typename _Result=Result,
@@ -281,6 +282,7 @@ namespace fgl {
 
 			inline const String& getName() const;
 			inline const std::shared_future<Result>& getFuture() const;
+			inline State getState() const;
 			
 			// send promise result (non-void)
 			template<typename _Result=Result,
@@ -1146,6 +1148,19 @@ namespace fgl {
 		return this->continuer->getFuture();
 	}
 	
+	template<typename Result>
+	bool Promise<Result>::isComplete() const {
+		auto state = this->continuer->getState();
+		switch(state) {
+			case State::EXECUTING:
+				return false;
+			case State::RESOLVED:
+			case State::REJECTED:
+				return true;
+		}
+		throw std::runtime_error("invalid state");
+	}
+	
 	
 	
 	template<typename Result>
@@ -1622,6 +1637,11 @@ namespace fgl {
 	template<typename Result>
 	const std::shared_future<Result>& Promise<Result>::Continuer::getFuture() const {
 		return future;
+	}
+	
+	template<typename Result>
+	typename Promise<Result>::State Promise<Result>::Continuer::getState() const {
+		return state;
 	}
 
 	template<typename Result>

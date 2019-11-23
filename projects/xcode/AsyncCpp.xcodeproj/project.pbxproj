@@ -25,6 +25,9 @@
 		A5B7A7D1233EE80200301FC0 /* Timer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A5B7A7CF233EE80200301FC0 /* Timer.cpp */; };
 		A5B7A7D2233EE80200301FC0 /* Timer.hpp in Headers */ = {isa = PBXBuildFile; fileRef = A5B7A7D0233EE80200301FC0 /* Timer.hpp */; };
 		A5B7A7D4233EE80E00301FC0 /* Timer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A5B7A7CF233EE80200301FC0 /* Timer.cpp */; };
+		A5B9737F23824A8C00FB3F1C /* Generator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A5B9737D23824A8C00FB3F1C /* Generator.cpp */; };
+		A5B9738023824A8C00FB3F1C /* Generator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A5B9737D23824A8C00FB3F1C /* Generator.cpp */; };
+		A5B9738123824A8C00FB3F1C /* Generator.hpp in Headers */ = {isa = PBXBuildFile; fileRef = A5B9737E23824A8C00FB3F1C /* Generator.hpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -105,6 +108,8 @@
 		A5B7A7792335676200301FC0 /* DataCpp.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = DataCpp.xcodeproj; path = "../../../data-cpp/projects/xcode/DataCpp.xcodeproj"; sourceTree = "<group>"; };
 		A5B7A7CF233EE80200301FC0 /* Timer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Timer.cpp; sourceTree = "<group>"; };
 		A5B7A7D0233EE80200301FC0 /* Timer.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Timer.hpp; sourceTree = "<group>"; };
+		A5B9737D23824A8C00FB3F1C /* Generator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Generator.cpp; sourceTree = "<group>"; };
+		A5B9737E23824A8C00FB3F1C /* Generator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Generator.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -156,6 +161,8 @@
 				A53E4E4B2304892D000BB7D8 /* PromiseErrorPtr.hpp */,
 				A53E4E4C2304892D000BB7D8 /* Promise.hpp */,
 				A53E4E542304892D000BB7D8 /* Promise.cpp */,
+				A5B9737E23824A8C00FB3F1C /* Generator.hpp */,
+				A5B9737D23824A8C00FB3F1C /* Generator.cpp */,
 				A5B7A7D0233EE80200301FC0 /* Timer.hpp */,
 				A5B7A7CF233EE80200301FC0 /* Timer.cpp */,
 			);
@@ -234,6 +241,7 @@
 			files = (
 				A53E4E862304D1C8000BB7D8 /* Promise.hpp in Headers */,
 				A53E4E852304D1C8000BB7D8 /* PromiseErrorPtr.hpp in Headers */,
+				A5B9738123824A8C00FB3F1C /* Generator.hpp in Headers */,
 				A53E4E832304D1C8000BB7D8 /* DispatchWorkItem.hpp in Headers */,
 				A5B7A7D2233EE80200301FC0 /* Timer.hpp in Headers */,
 				A53E4E802304D1C8000BB7D8 /* DispatchQueue.hpp in Headers */,
@@ -372,6 +380,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A5B9737F23824A8C00FB3F1C /* Generator.cpp in Sources */,
 				A53E4E872304D1C8000BB7D8 /* Promise.cpp in Sources */,
 				A53E4E812304D1C8000BB7D8 /* DispatchQueue.cpp in Sources */,
 				A53E4E842304D1C8000BB7D8 /* DispatchWorkItem.cpp in Sources */,
@@ -383,6 +392,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A5B9738023824A8C00FB3F1C /* Generator.cpp in Sources */,
 				A53E4E952304D261000BB7D8 /* DispatchQueue.cpp in Sources */,
 				A53E4E962304D261000BB7D8 /* DispatchWorkItem.cpp in Sources */,
 				A53E4E972304D261000BB7D8 /* Promise.cpp in Sources */,
