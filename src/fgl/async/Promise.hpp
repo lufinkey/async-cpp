@@ -358,7 +358,6 @@ namespace fgl {
 	
 	template<typename Result>
 	Promise<void> Promise<Result>::then(String name, DispatchQueue* queue, Then<void> onresolve, Catch<std::exception_ptr,void> onreject) {
-		FGL_ASSERT(queue != nullptr, "queue cannot be null");
 		return Promise<void>(name, [=](auto resolve, auto reject) {
 			if constexpr(std::is_same<Result,void>::value) {
 				auto resolveHandler = onresolve ? [=]() {
@@ -484,7 +483,6 @@ namespace fgl {
 		typename NextResult,
 		typename std::enable_if<(is_promise<Return>::value && std::is_same<Return,Promise<NextResult>>::value), std::nullptr_t>::type>
 	Promise<NextResult> Promise<Result>::then(String name, DispatchQueue* queue, OnResolve onresolve) {
-		FGL_ASSERT(queue != nullptr, "queue cannot be null");
 		return Promise<NextResult>(name, [=](auto resolve, auto reject) {
 			if constexpr(std::is_same<Result,void>::value) {
 				this->continuer->handle(queue, [=]() {
@@ -563,7 +561,6 @@ namespace fgl {
 	Promise<Result> Promise<Result>::except(String name, DispatchQueue* queue, OnReject onreject) {
 		using ErrorType = typename std::remove_reference<typename std::remove_cv<typename lambda_traits<OnReject>::template arg<0>::type>::type>::type;
 		using Return = typename lambda_traits<OnReject>::return_type;
-		FGL_ASSERT(queue != nullptr, "queue cannot be null");
 		return Promise<Result>(name, [=](auto resolve, auto reject) {
 			this->continuer->handle(nullptr, resolve, queue, [=](auto error) {
 				if constexpr(is_promise<Return>::value) {
@@ -693,7 +690,6 @@ namespace fgl {
 	
 	template<typename Result>
 	Promise<Result> Promise<Result>::finally(String name, DispatchQueue* queue, Function<void()> onfinally) {
-		FGL_ASSERT(queue != nullptr, "queue cannot be null");
 		FGL_ASSERT(onfinally, "onfinally cannot be null");
 		return Promise<Result>(name, [=](auto resolve, auto reject) {
 			if constexpr(std::is_same<Result,void>::value) {

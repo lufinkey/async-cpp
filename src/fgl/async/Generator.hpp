@@ -48,11 +48,11 @@ namespace fgl {
 		
 		template<typename _Next=Next,
 			typename std::enable_if<(std::is_same<_Next,Next>::value && !std::is_same<_Next,void>::value), std::nullptr_t>::type = nullptr>
-		Promise<YieldResult> next(Next nextValue);
+		inline Promise<YieldResult> next(_Next nextValue);
 		
 		template<typename _Next=Next,
 			typename std::enable_if<(std::is_same<_Next,Next>::value && std::is_same<_Next,void>::value), std::nullptr_t>::type = nullptr>
-		Promise<YieldResult> next();
+		inline Promise<YieldResult> next();
 		
 	private:
 		enum class State {
@@ -67,7 +67,7 @@ namespace fgl {
 			
 			template<typename _Next=Next,
 				typename std::enable_if<(std::is_same<_Next,Next>::value && !std::is_same<_Next,void>::value), std::nullptr_t>::type = nullptr>
-			Promise<YieldResult> next(Next nextValue);
+			Promise<YieldResult> next(_Next nextValue);
 			
 			template<typename _Next=Next,
 				typename std::enable_if<(std::is_same<_Next,Next>::value && std::is_same<_Next,void>::value), std::nullptr_t>::type = nullptr>
@@ -86,6 +86,91 @@ namespace fgl {
 
 
 
+	template<typename Yield, typename Return,
+		typename std::enable_if<std::is_same<Return,Yield>::value || std::is_same<Return,void>::value,std::nullptr_t>::type = nullptr>
+	Generator<Yield,void> generate(Function<Return(Function<void(Yield)> yield)> executor) {
+		using YieldResult = typename Generator<Yield,void>::YieldResult;
+		struct ResultDefer {
+			typename Promise<YieldResult>::Resolver resolve;
+			typename Promise<YieldResult>::Rejecter reject;
+		};
+		struct SharedData {
+			std::mutex mutex;
+			std::condition_variable cv;
+			Optional<ResultDefer> yieldDefer;
+		};
+		auto sharedData = std::make_shared<SharedData>();
+		std::thread([=]() {
+			std::mutex waitMutex;
+			std::unique_lock<std::mutex> waitLock(waitMutex);
+			sharedData->cv.wait(waitLock, [&]() {
+				return sharedData->yieldDefer.has_value();
+			});
+			auto threadId = std::this_thread::get_id();
+			auto yielder = [&](Yield yieldValue) {
+				if(threadId != std::this_thread::get_id()) {
+					throw std::runtime_error("Cannot call yield from a different thread than the executor");
+				}
+				std::unique_lock<std::mutex> lock(sharedData->mutex);
+				auto defer = sharedData->yieldDefer;
+				sharedData->yieldDefer = std::nullopt;
+				lock.unlock();
+				defer->resolve(YieldResult{.value=yieldValue,.done=false});
+				sharedData->cv.wait(waitLock, [&]() {
+					return sharedData->yieldDefer.has_value();
+				});
+			};
+			if constexpr(std::is_same<Return,void>::value) {
+				try {
+					executor(yielder);
+				} catch(...) {
+					std::unique_lock<std::mutex> lock(sharedData->mutex);
+					auto defer = sharedData->yieldDefer;
+					sharedData->yieldDefer = std::nullopt;
+					lock.unlock();
+					defer->reject(std::current_exception());
+					return;
+				}
+				{
+					std::unique_lock<std::mutex> lock(sharedData->mutex);
+					auto defer = sharedData->yieldDefer;
+					sharedData->yieldDefer = std::nullopt;
+					lock.unlock();
+					defer->resolve(YieldResult{.value=std::nullopt,.done=true});
+				}
+			} else {
+				std::unique_ptr<Return> returnVal;
+				try {
+					returnVal = std::make_unique<Return>(executor(yielder));
+				} catch(...) {
+					std::unique_lock<std::mutex> lock(sharedData->mutex);
+					auto defer = sharedData->yieldDefer;
+					sharedData->yieldDefer = std::nullopt;
+					lock.unlock();
+					defer->reject(std::current_exception());
+					return;
+				}
+				{
+					std::unique_lock<std::mutex> lock(sharedData->mutex);
+					auto defer = sharedData->yieldDefer;
+					sharedData->yieldDefer = std::nullopt;
+					lock.unlock();
+					defer->resolve(YieldResult{.value=Optional<Return>(std::move(*returnVal.get())),.done=true});
+				}
+			}
+		}).detach();
+		return Generator<Yield,void>([=]() -> Promise<YieldResult> {
+			return Promise<YieldResult>([&](auto resolve, auto reject) {
+				std::unique_lock<std::mutex> lock(sharedData->mutex);
+				sharedData->yieldDefer = ResultDefer{ resolve, reject };
+				lock.unlock();
+				sharedData->cv.notify_one();
+			});
+		});
+	}
+
+
+
 #pragma mark - Generator implementation
 
 	template<typename Yield, typename Next>
@@ -96,7 +181,7 @@ namespace fgl {
 	template<typename Yield, typename Next>
 	template<typename _Next,
 		typename std::enable_if<(std::is_same<_Next,Next>::value && !std::is_same<_Next,void>::value), std::nullptr_t>::type>
-	Promise<typename Generator<Yield,Next>::YieldResult> Generator<Yield,Next>::next(Next nextValue) {
+	Promise<typename Generator<Yield,Next>::YieldResult> Generator<Yield,Next>::next(_Next nextValue) {
 		return continuer->next(nextValue);
 	}
 
@@ -119,7 +204,7 @@ namespace fgl {
 	template<typename Yield, typename Next>
 	template<typename _Next,
 		typename std::enable_if<(std::is_same<_Next,Next>::value && !std::is_same<_Next,void>::value), std::nullptr_t>::type>
-	Promise<typename Generator<Yield,Next>::YieldResult> Generator<Yield,Next>::Continuer::next(Next nextValue) {
+	Promise<typename Generator<Yield,Next>::YieldResult> Generator<Yield,Next>::Continuer::next(_Next nextValue) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		if(state == State::FINISHED) {
 			return Promise<YieldResult>::resolve(YieldResult{.done=true});
@@ -188,7 +273,7 @@ namespace fgl {
 				std::unique_lock<std::recursive_mutex> lock(self->mutex);
 				if(result.done) {
 					state = State::FINISHED;
-					yieldReturner = nullptr;
+					self->yieldReturner = nullptr;
 				} else {
 					state = State::WAITING;
 				}
@@ -196,7 +281,7 @@ namespace fgl {
 			}, [=](std::exception_ptr error) {
 				std::unique_lock<std::recursive_mutex> lock(self->mutex);
 				state = State::FINISHED;
-				yieldReturner = nullptr;
+				self->yieldReturner = nullptr;
 				self->nextPromise = std::nullopt;
 			});
 			return yieldPromise;

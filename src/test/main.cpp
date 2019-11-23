@@ -74,5 +74,24 @@ int main(int argc, const char* argv[]) {
 	print_type<decltype(promise)>();
 	auto result = await(promise);
 	printf("got result: %s\n", (const char*)result);
+	
+	auto gen = generate<int,int>([](auto yield) {
+		printf("we're gonna yield 4\n");
+		yield(4);
+		printf("we're gonna yield 5\n");
+		yield(5);
+		printf("we're gonna return 6\n");
+		return 6;
+	});
+	printf("running generator\n");
+	int genCounter = 0;
+	bool genDone = false;
+	while(!genDone) {
+		auto genResult = gen.next().get();
+		genDone = genResult.done;
+		printf("we got gen result %i. done? %i, has value? %i, value? %i\n", genCounter, (int)genResult.done, (int)genResult.value.has_value(), genResult.value.value_or(-1));
+		genCounter++;
+	}
+	
 	return 0;
 }

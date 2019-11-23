@@ -7,3 +7,7 @@
 //
 
 #include "Generator.hpp"
+
+namespace fgl {
+	//
+}

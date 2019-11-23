@@ -10,4 +10,5 @@
 #include <fgl/async/DispatchTimeoutResult.hpp>
 #include <fgl/async/DispatchWorkItem.hpp>
 #include <fgl/async/Promise.hpp>
+#include <fgl/async/Generator.hpp>
 #include <fgl/async/Timer.hpp>
