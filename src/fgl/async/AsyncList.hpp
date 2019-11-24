@@ -246,15 +246,12 @@ namespace fgl {
 		}
 		auto indexMarker = std::make_shared<size_t>(index);
 		if(options.trackIndexChanges) {
-			indexMarkers.push_back(indexMarker);
+			watchIndex(indexMarker);
 		}
 		return Promise<Optional<T>>([&](auto resolve, auto reject) {
 			mutationQueue.run([=]() -> Promise<void> {
 				if(options.trackIndexChanges) {
-					auto it = std::find(indexMarkers.begin(), indexMarkers.end(), indexMarker);
-					if(it != indexMarkers.end()) {
-						indexMarkers.erase(it);
-					}
+					unwatchIndex(indexMarker);
 				}
 				size_t index = *indexMarker.get();
 				size_t chunkStartIndex = chunkStartIndexForIndex(index);
@@ -275,15 +272,12 @@ namespace fgl {
 		}
 		auto indexMarker = std::make_shared<size_t>(index);
 		if(options.trackIndexChanges) {
-			indexMarkers.push_back(indexMarker);
+			watchIndex(indexMarker);
 		}
 		return Promise<LinkedList<T>>([=](auto resolve, auto reject) {
 			mutationQueue.run([=]() -> Promise<void> {
 				if(options.trackIndexChanges) {
-					auto it = std::find(indexMarkers.begin(), indexMarkers.end(), indexMarker);
-					if(it != indexMarkers.end()) {
-						indexMarkers.erase(it);
-					}
+					unwatchIndex(indexMarker);
 				}
 				size_t index = *indexMarker.get();
 				size_t chunkStartIndex = chunkStartIndexForIndex(index);
@@ -323,23 +317,28 @@ namespace fgl {
 	template<typename T>
 	Generator<LinkedList<T>,void> AsyncList<T>::generateItems(size_t startIndex) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
-		auto indexMarker = std::make_shared<size_t>(startIndex);
-		indexMarkers.push_back(indexMarker);
+		auto indexMarker = watchIndex(startIndex);
 		return generate<LinkedList<T>,LinkedList<T>>([=](auto yield) {
 			std::unique_lock<std::recursive_mutex> lock(mutex);
 			bool done = false;
-			while(!done) {
-				size_t index = *indexMarker;
-				lock.unlock();
-				auto items = getItems(index, chunkSize).get();
-				lock.lock();
-				*indexMarker += items.size();
-				if(*indexMarker >= itemsSize) {
-					return items;
+			try {
+				while(!done) {
+					size_t index = *indexMarker;
+					lock.unlock();
+					auto items = getItems(index, chunkSize).get();
+					lock.lock();
+					*indexMarker += items.size();
+					if(*indexMarker >= itemsSize) {
+						unwatchIndex(indexMarker);
+						return items;
+					}
+					lock.unlock();
+					yield(items);
+					lock.lock();
 				}
-				lock.unlock();
-				yield(items);
-				lock.lock();
+			} catch(...) {
+				unwatchIndex(indexMarker);
+				std::rethrow_exception(std::current_exception());
 			}
 		});
 	}
