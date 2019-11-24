@@ -77,6 +77,15 @@ namespace fgl {
 			typename std::enable_if<(std::is_same<_Next,Next>::value && std::is_same<_Next,void>::value), std::nullptr_t>::type = nullptr>
 		inline Promise<YieldResult> next();
 		
+		template<typename NewYield>
+		Generator<NewYield,Next> map(DispatchQueue* queue, Function<NewYield(Yield)> transform);
+		template<typename NewYield>
+		Generator<NewYield,Next> map(Function<NewYield(Yield)> transform);
+		template<typename NewYield>
+		Generator<NewYield,Next> mapAsync(DispatchQueue* queue, Function<Promise<NewYield>(Yield)> transform);
+		template<typename NewYield>
+		Generator<NewYield,Next> mapAsync(Function<Promise<NewYield>(Yield)> transform);
+		
 	private:
 		enum class State {
 			WAITING,
@@ -137,6 +146,96 @@ namespace fgl {
 		typename std::enable_if<(std::is_same<_Next,Next>::value && std::is_same<_Next,void>::value), std::nullptr_t>::type>
 	Promise<typename Generator<Yield,Next>::YieldResult> Generator<Yield,Next>::next() {
 		return continuer->next();
+	}
+
+
+
+	template<typename Yield, typename Next>
+	template<typename NewYield>
+	Generator<NewYield,Next> Generator<Yield,Next>::map(DispatchQueue* queue, Function<NewYield(Yield)> transform) {
+		using NewYieldResult = typename Generator<NewYield,Next>::YieldResult;
+		auto resultTransform = [=](auto yieldResult) {
+			if constexpr(std::is_same<Optionalized<Yield>,Yield>::value) {
+				return NewYieldResult{
+					.value=transform(std::move(yieldResult.value)),
+					.done=yieldResult.done
+				};
+			} else {
+				if(yieldResult.value.has_value()) {
+					return NewYieldResult{
+						.value=transform(std::move(yieldResult.value.value())),
+						.done=yieldResult.done
+					};
+				} else {
+					return NewYieldResult{
+						.value=std::nullopt,
+						.done=yieldResult.done
+					};
+				}
+			}
+		};
+		auto _continuer = this->continuer;
+		if constexpr(std::is_same<Next,void>::value) {
+			return Generator<NewYield,Next>([=]() {
+				return _continuer->next().template map<NewYieldResult>(queue, resultTransform);
+			});
+		} else {
+			return Generator<NewYield,Next>([=](Next nextValue) {
+				return _continuer->next(nextValue).template map<NewYieldResult>(queue, resultTransform);
+			});
+		}
+	}
+
+	template<typename Yield, typename Next>
+	template<typename NewYield>
+	Generator<NewYield,Next> Generator<Yield,Next>::map(Function<NewYield(Yield)> transform) {
+		return map<NewYield>(nullptr, transform);
+	}
+
+	template<typename Yield, typename Next>
+	template<typename NewYield>
+	Generator<NewYield,Next> Generator<Yield,Next>::mapAsync(DispatchQueue* queue, Function<Promise<NewYield>(Yield)> transform) {
+		using NewYieldResult = typename Generator<NewYield,Next>::YieldResult;
+		auto resultTransform = [=](auto yieldResult) {
+			if constexpr(std::is_same<Optionalized<Yield>,Yield>::value) {
+				return transform(std::move(yieldResult.value)).template map<NewYieldResult>(nullptr, [=](NewYield newValue) {
+					return NewYieldResult{
+						.value=newValue,
+						.done=yieldResult.done
+					};
+				});
+			} else {
+				if(yieldResult.value.has_value()) {
+					return transform(std::move(yieldResult.value.value())).template map<NewYieldResult>(nullptr, [=](NewYield newValue) {
+						return NewYieldResult{
+							.value=newValue,
+							.done=yieldResult.done
+						};
+					});
+				} else {
+					return NewYieldResult{
+						.value=std::nullopt,
+						.done=yieldResult.done
+					};
+				}
+			}
+		};
+		auto _continuer = this->continuer;
+		if constexpr(std::is_same<Next,void>::value) {
+			return Generator<NewYield,Next>([=]() {
+				return _continuer->next().template then<NewYieldResult>(queue, resultTransform);
+			});
+		} else {
+			return Generator<NewYield,Next>([=](Next nextValue) {
+				return _continuer->next(nextValue).template then<NewYieldResult>(queue, resultTransform);
+			});
+		}
+	}
+
+	template<typename Yield, typename Next>
+	template<typename NewYield>
+	Generator<NewYield,Next> Generator<Yield,Next>::mapAsync(Function<Promise<NewYield>(Yield)> transform) {
+		return mapAsync(nullptr, transform);
 	}
 
 
