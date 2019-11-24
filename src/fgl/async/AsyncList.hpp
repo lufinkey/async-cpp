@@ -75,6 +75,7 @@ namespace fgl {
 		AsyncList(Options options);
 		
 		inline const std::map<size_t,ItemNode>& getMap() const;
+		inline size_t size() const;
 		inline size_t getChunkSize() const;
 		
 		std::shared_ptr<size_t> watchIndex(size_t index);
@@ -138,6 +139,11 @@ namespace fgl {
 	template<typename T>
 	const std::map<size_t,typename AsyncList<T>::ItemNode>& AsyncList<T>::getMap() const {
 		return items;
+	}
+
+	template<typename T>
+	size_t AsyncList<T>::size() const {
+		return itemsSize;
 	}
 
 	template<typename T>
