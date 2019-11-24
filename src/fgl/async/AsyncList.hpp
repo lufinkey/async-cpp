@@ -72,6 +72,10 @@ namespace fgl {
 		
 		size_t getChunkSize() const;
 		
+		std::shared_ptr<size_t> watchIndex(size_t index);
+		std::shared_ptr<size_t> watchIndex(std::shared_ptr<size_t> index);
+		void unwatchIndex(std::shared_ptr<size_t> index);
+		
 		bool isItemLoaded(size_t index, bool ignoreValidity = false) const;
 		bool areItemsLoaded(size_t index, size_t count, bool ignoreValidity = false) const;
 		LinkedList<T> getLoadedItems(size_t startIndex = 0, bool ignoreValidity = false) const;
@@ -141,6 +145,30 @@ namespace fgl {
 	template<typename T>
 	size_t AsyncList<T>::getChunkSize() const {
 		return chunkSize;
+	}
+
+	template<typename T>
+	std::shared_ptr<size_t> AsyncList<T>::watchIndex(size_t index) {
+		auto indexMarker = std::make_shared<size_t>(index);
+		indexMarkers.push_back(indexMarker);
+		return indexMarker;
+	}
+
+	template<typename T>
+	std::shared_ptr<size_t> AsyncList<T>::watchIndex(std::shared_ptr<size_t> index) {
+		auto it = std::find(indexMarkers.begin(), indexMarkers.end(), index);
+		if(it == indexMarkers.end()) {
+			indexMarkers.push_back(index);
+		}
+		return index;
+	}
+
+	template<typename T>
+	void AsyncList<T>::unwatchIndex(std::shared_ptr<size_t> index) {
+		auto it = std::find(indexMarkers.begin(), indexMarkers.end(), index);
+		if(it != indexMarkers.end()) {
+			indexMarkers.erase(it);
+		}
 	}
 	
 	template<typename T>
