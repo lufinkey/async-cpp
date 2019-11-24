@@ -29,17 +29,19 @@ namespace fgl {
 			AsyncList* getList();
 			const AsyncList* getList() const;
 			
+			template<typename Work>
+			void lock(Work work);
 			void apply(size_t index, LinkedList<T> items);
 			void insert(size_t index, LinkedList<T> items);
-			void remove(size_t index, LinkedList<T> items);
-			void move(size_t index, size_t count, size_t newIndex);
+			void remove(size_t index, size_t count);
+			//void move(size_t index, size_t count, size_t newIndex);
 			void resize(size_t count);
 			void invalidate(size_t index, size_t count);
 			
 		private:
-			Mutator(AsyncList* list);
+			Mutator(AsyncList& list);
 			
-			AsyncList* list;
+			AsyncList& list;
 		};
 		friend class AsyncList<T>::Mutator;
 		
@@ -47,10 +49,8 @@ namespace fgl {
 		public:
 			virtual ~Delegate() {}
 			
-			virtual bool doesAsyncListItemNeedReload(const T& item) const = 0;
 			virtual Promise<void> loadAsyncListItems(Mutator* mutator, size_t index, size_t count) = 0;
 			
-			virtual bool canEvaluateAsyncListItemEquality(const AsyncList* list) const = 0;
 			virtual bool areAsyncListItemsEqual(const AsyncList* list, const T& item1, const T& item2) const = 0;
 			
 			//virtual Promise<void> insertAsyncListItems(Mutator* mutator, size_t index, size_t count) = 0;
@@ -68,7 +68,6 @@ namespace fgl {
 		
 		AsyncList(const AsyncList&) = delete;
 		AsyncList(Options options);
-		~AsyncList();
 		
 		size_t getChunkSize() const;
 		
@@ -106,7 +105,7 @@ namespace fgl {
 		std::list<std::shared_ptr<size_t>> indexMarkers;
 		
 		AsyncQueue mutationQueue;
-		Mutator* mutator;
+		Mutator mutator;
 		Delegate* delegate;
 	};
 
@@ -117,7 +116,7 @@ namespace fgl {
 
 	template<typename T>
 	AsyncList<T>::AsyncList(Options options)
-	: itemsSize(options.initialSize), chunkSize(options.chunkSize), mutator(nullptr), delegate(options.delegate) {
+	: itemsSize(options.initialSize), chunkSize(options.chunkSize), mutator(*this), delegate(options.delegate) {
 		if(options.delegate == nullptr) {
 			throw std::invalid_argument("delegate cannot be null");
 		} else if(options.chunkSize == 0) {
@@ -133,13 +132,6 @@ namespace fgl {
 			};
 			initialItemsOffset++;
 		}
-		
-		mutator = new Mutator(this);
-	}
-
-	template<typename T>
-	AsyncList<T>::~AsyncList() {
-		delete mutator;
 	}
 
 	template<typename T>
@@ -349,5 +341,202 @@ namespace fgl {
 	template<typename T>
 	size_t AsyncList<T>::chunkStartIndexForIndex(size_t index) const {
 		return std::floor(index / chunkSize) * chunkSize;
+	}
+
+
+
+	template<typename T>
+	AsyncList<T>::Mutator::Mutator(AsyncList<T>& list)
+	: list(list) {
+		//
+	}
+
+	template<typename T>
+	AsyncList<T>* AsyncList<T>::Mutator::getList() {
+		return &list;
+	}
+
+	template<typename T>
+	const AsyncList<T>* AsyncList<T>::Mutator::getList() const {
+		return &list;
+	}
+
+	template<typename T>
+	template<typename Work>
+	void AsyncList<T>::Mutator::lock(Work work) {
+		std::unique_lock<std::recursive_mutex> lock(list.mutex);
+		work();
+	}
+	
+	template<typename T>
+	void AsyncList<T>::Mutator::apply(size_t index, LinkedList<T> items) {
+		std::unique_lock<std::recursive_mutex> lock(list.mutex);
+		size_t i=index;
+		for(auto& item : items) {
+			list.items[i] = AsyncList<T>::ItemNode{
+				.item=item,
+				.valid=true
+			};
+			i++;
+		}
+	}
+
+	template<typename T>
+	void AsyncList<T>::Mutator::insert(size_t index, LinkedList<T> items) {
+		std::unique_lock<std::recursive_mutex> lock(list.mutex);
+		size_t insertCount = items.size();
+		// update list size
+		list.itemsSize += insertCount;
+		// update keys for elements above insert range
+		for(size_t i=(index+insertCount-1); i>=index && i!=(size_t)-1; i--) {
+			auto node = list.items.extract(i);
+			if(!node.empty()) {
+				node.key() += insertCount;
+				list.items.insert(list.items.end(), node);
+			}
+		}
+		// update index markers
+		for(auto& indexMarker : list.indexMarkers) {
+			if(*indexMarker >= index && *indexMarker != -1) {
+				*indexMarker += insertCount;
+			}
+		}
+		// apply new items
+		size_t i=index;
+		for(auto& item : items) {
+			list.items[i] = AsyncList<T>::ItemNode{
+				.item=item,
+				.valid=true
+			};
+			i++;
+		}
+	}
+
+	template<typename T>
+	void AsyncList<T>::Mutator::remove(size_t index, size_t count) {
+		std::unique_lock<std::recursive_mutex> lock(list.mutex);
+		if(index >= list->itemsSize) {
+			return;
+		}
+		size_t endIndex = index + count;
+		if(endIndex > list->itemsSize) {
+			endIndex = list->itemsSize;
+		}
+		size_t removeCount = endIndex - index;
+		if(removeCount == 0) {
+			return;
+		}
+		// update list items
+		if(list.items.size() > 0) {
+			using node_type = typename decltype(list->items)::node_type;
+			std::list<node_type> reinsertNodes;
+			auto it = list.items.end() - 1;
+			bool removing = false;
+			auto removeStartIt = list.items.end();
+			auto removeEndIt = list.items.end();
+			do {
+				if(it->first >= endIndex) {
+					auto nodeIt = it;
+					it++;
+					auto node = list.items.extract(it);
+					node.key() -= removeCount;
+					reinsertNodes.emplace_front(std::move(node));
+				} else if(it->first < index) {
+					break;
+				} else {
+					if(removing) {
+						removeStartIt = it;
+					} else {
+						removeStartIt = it;
+						removeEndIt = it + 1;
+						removing = true;
+					}
+				}
+				if(list.items.size() > 0) {
+					it--;
+				}
+			} while(list.items.size() > 0);
+			if(removing) {
+				list.items.erase(removeStartIt, removeEndIt);
+			}
+			for(auto& node : reinsertNodes) {
+				list.items.insert(list.items.end(), std::move(node));
+			}
+		}
+		// update index markers
+		for(auto& indexMarker : list.indexMarkers) {
+			if(*indexMarker == (size_t)-1) {
+				continue;
+			} else if(*indexMarker >= endIndex) {
+				*indexMarker -= removeCount;
+			} else if(*indexMarker >= index) {
+				*indexMarker = (size_t)-1;
+			}
+		}
+		// update list size
+		list.itemsSize -= removeCount;
+	}
+
+	/*template<typename T>
+	void AsyncList<T>::Mutator::move(size_t index, size_t count, size_t newIndex) {
+		std::unique_lock<std::recursive_mutex> lock(list.mutex);
+		// TODO implement move
+	}*/
+
+	template<typename T>
+	void AsyncList<T>::Mutator::resize(size_t count) {
+		std::unique_lock<std::recursive_mutex> lock(list.mutex);
+		// remove list items above count
+		if(list.items.size() > 0) {
+			auto it = list.items.end() - 1;
+			bool removing = false;
+			auto removeStartIt = list.items.end();
+			auto removeEndIt = list.items.end();
+			do {
+				if(it->first >= count) {
+					if(removing) {
+						removeStartIt = it;
+					} else {
+						removeStartIt = it;
+						removeEndIt = it + 1;
+						removing = true;
+					}
+				} else {
+					break;
+				}
+				if(list.items.size() > 0) {
+					it--;
+				}
+			} while(list.items.size() > 0);
+			if(removing) {
+				list.items.erase(removeStartIt, removeEndIt);
+			}
+		}
+		// eliminate index markers above count
+		for(auto& indexMarker : list.indexMarkers) {
+			if(*indexMarker == (size_t)-1) {
+				continue;
+			} else if(*indexMarker >= count) {
+				*indexMarker = (size_t)-1;
+			}
+		}
+		// update list size
+		list.itemsSize = count;
+	}
+
+	template<typename T>
+	void AsyncList<T>::Mutator::invalidate(size_t index, size_t count) {
+		std::unique_lock<std::recursive_mutex> lock(list.mutex);
+		size_t endIndex = index + count;
+		if(endIndex >= list.itemsSize) {
+			endIndex = list.itemsSize;
+		}
+		for(auto it=list.items.lower_bound(index), end=list.items.end(); it!=end; it++) {
+			if(it->first >= endIndex) {
+				break;
+			} else {
+				it->second.valid = false;
+			}
+		}
 	}
 }
