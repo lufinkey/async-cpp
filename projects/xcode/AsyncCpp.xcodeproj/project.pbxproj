@@ -10,6 +10,9 @@
 		A50F74A42389D67B0061D9FD /* AsyncQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A50F74A22389D67B0061D9FD /* AsyncQueue.cpp */; };
 		A50F74A52389D67B0061D9FD /* AsyncQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A50F74A22389D67B0061D9FD /* AsyncQueue.cpp */; };
 		A50F74A62389D67B0061D9FD /* AsyncQueue.hpp in Headers */ = {isa = PBXBuildFile; fileRef = A50F74A32389D67B0061D9FD /* AsyncQueue.hpp */; };
+		A50F74A92389D93C0061D9FD /* AsyncList.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A50F74A72389D93C0061D9FD /* AsyncList.cpp */; };
+		A50F74AA2389D93C0061D9FD /* AsyncList.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A50F74A72389D93C0061D9FD /* AsyncList.cpp */; };
+		A50F74AB2389D93C0061D9FD /* AsyncList.hpp in Headers */ = {isa = PBXBuildFile; fileRef = A50F74A82389D93C0061D9FD /* AsyncList.hpp */; };
 		A53E4E7F2304D1C8000BB7D8 /* Common.hpp in Headers */ = {isa = PBXBuildFile; fileRef = A53E4E532304892D000BB7D8 /* Common.hpp */; };
 		A53E4E802304D1C8000BB7D8 /* DispatchQueue.hpp in Headers */ = {isa = PBXBuildFile; fileRef = A53E4E4F2304892D000BB7D8 /* DispatchQueue.hpp */; };
 		A53E4E812304D1C8000BB7D8 /* DispatchQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A53E4E512304892D000BB7D8 /* DispatchQueue.cpp */; };
@@ -95,6 +98,8 @@
 /* Begin PBXFileReference section */
 		A50F74A22389D67B0061D9FD /* AsyncQueue.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AsyncQueue.cpp; sourceTree = "<group>"; };
 		A50F74A32389D67B0061D9FD /* AsyncQueue.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = AsyncQueue.hpp; sourceTree = "<group>"; };
+		A50F74A72389D93C0061D9FD /* AsyncList.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AsyncList.cpp; sourceTree = "<group>"; };
+		A50F74A82389D93C0061D9FD /* AsyncList.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = AsyncList.hpp; sourceTree = "<group>"; };
 		A53E4E4B2304892D000BB7D8 /* PromiseErrorPtr.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = PromiseErrorPtr.hpp; sourceTree = "<group>"; };
 		A53E4E4C2304892D000BB7D8 /* Promise.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Promise.hpp; sourceTree = "<group>"; };
 		A53E4E4E2304892D000BB7D8 /* DispatchTimeoutResult.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DispatchTimeoutResult.hpp; sourceTree = "<group>"; };
@@ -172,6 +177,8 @@
 				A5B7A7CF233EE80200301FC0 /* Timer.cpp */,
 				A50F74A32389D67B0061D9FD /* AsyncQueue.hpp */,
 				A50F74A22389D67B0061D9FD /* AsyncQueue.cpp */,
+				A50F74A82389D93C0061D9FD /* AsyncList.hpp */,
+				A50F74A72389D93C0061D9FD /* AsyncList.cpp */,
 			);
 			path = async;
 			sourceTree = "<group>";
@@ -253,6 +260,7 @@
 				A5B7A7D2233EE80200301FC0 /* Timer.hpp in Headers */,
 				A53E4E802304D1C8000BB7D8 /* DispatchQueue.hpp in Headers */,
 				A53E4E7F2304D1C8000BB7D8 /* Common.hpp in Headers */,
+				A50F74AB2389D93C0061D9FD /* AsyncList.hpp in Headers */,
 				A53E4E822304D1C8000BB7D8 /* DispatchTimeoutResult.hpp in Headers */,
 				A50F74A62389D67B0061D9FD /* AsyncQueue.hpp in Headers */,
 			);
@@ -392,6 +400,7 @@
 				A53E4E872304D1C8000BB7D8 /* Promise.cpp in Sources */,
 				A53E4E812304D1C8000BB7D8 /* DispatchQueue.cpp in Sources */,
 				A53E4E842304D1C8000BB7D8 /* DispatchWorkItem.cpp in Sources */,
+				A50F74A92389D93C0061D9FD /* AsyncList.cpp in Sources */,
 				A50F74A42389D67B0061D9FD /* AsyncQueue.cpp in Sources */,
 				A5B7A7D1233EE80200301FC0 /* Timer.cpp in Sources */,
 			);
@@ -405,6 +414,7 @@
 				A53E4E952304D261000BB7D8 /* DispatchQueue.cpp in Sources */,
 				A53E4E962304D261000BB7D8 /* DispatchWorkItem.cpp in Sources */,
 				A53E4E972304D261000BB7D8 /* Promise.cpp in Sources */,
+				A50F74AA2389D93C0061D9FD /* AsyncList.cpp in Sources */,
 				A50F74A52389D67B0061D9FD /* AsyncQueue.cpp in Sources */,
 				A5B7A7D4233EE80E00301FC0 /* Timer.cpp in Sources */,
 			);
