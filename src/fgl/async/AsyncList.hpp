@@ -58,6 +58,11 @@ namespace fgl {
 			//virtual Promise<void> moveAsyncListItems(Mutator* mutator, size_t index, size_t count) = 0;
 		};
 		
+		struct ItemNode {
+			T item;
+			bool valid = true;
+		};
+		
 		struct Options {
 			Delegate* delegate = nullptr;
 			size_t chunkSize = 0;
@@ -69,7 +74,8 @@ namespace fgl {
 		AsyncList(const AsyncList&) = delete;
 		AsyncList(Options options);
 		
-		size_t getChunkSize() const;
+		inline const std::map<size_t,ItemNode>& getMap() const;
+		inline size_t getChunkSize() const;
 		
 		std::shared_ptr<size_t> watchIndex(size_t index);
 		std::shared_ptr<size_t> watchIndex(std::shared_ptr<size_t> index);
@@ -90,11 +96,6 @@ namespace fgl {
 		
 	private:
 		size_t chunkStartIndexForIndex(size_t index) const;
-		
-		struct ItemNode {
-			T item;
-			bool valid = true;
-		};
 		
 		mutable std::recursive_mutex mutex;
 		std::map<size_t,ItemNode> items;
@@ -132,6 +133,11 @@ namespace fgl {
 			};
 			initialItemsOffset++;
 		}
+	}
+
+	template<typename T>
+	const std::map<size_t,typename AsyncList<T>::ItemNode>& AsyncList<T>::getMap() const {
+		return items;
 	}
 
 	template<typename T>
