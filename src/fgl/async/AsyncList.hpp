@@ -374,7 +374,7 @@ namespace fgl {
 	Optional<size_t> AsyncList<T>::indexWhere(Callable predicate, bool ignoreValidity) const {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		for(auto& pair : items) {
-			if((ignoreValidity || pair->second.valid) && predicate(pair.second.item)) {
+			if((ignoreValidity || pair.second.valid) && predicate(pair.second.item)) {
 				return pair.first;
 			}
 		}
