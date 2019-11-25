@@ -139,7 +139,7 @@ namespace fgl {
 		};
 		std::shared_ptr<Task> task;
 		new Task(task, taskOptions, [=](auto task) {
-			return performWork(task, work);
+			return performWork<Work>(task, work);
 		});
 		typename Promise<void>::Resolver resolveTask;
 		typename Promise<void>::Rejecter rejectTask;
@@ -167,7 +167,7 @@ namespace fgl {
 
 	template<typename Work>
 	AsyncQueue::RunResult AsyncQueue::run(Work work) {
-		return run(RunOptions(), work);
+		return run<Work>(RunOptions(), work);
 	}
 
 	template<typename Work>
@@ -181,7 +181,7 @@ namespace fgl {
 				};
 			}
 		}
-		return run(options, work);
+		return run<Work>(options, work);
 	}
 
 
