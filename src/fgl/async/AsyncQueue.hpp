@@ -138,7 +138,7 @@ namespace fgl {
 			.tag=options.tag
 		};
 		std::shared_ptr<Task> task;
-		new Task(task, taskOptions, [=](auto task) {
+		new Task(task, taskOptions, [=](std::shared_ptr<Task> task) {
 			return performWork<Work>(task, work);
 		});
 		typename Promise<void>::Resolver resolveTask;

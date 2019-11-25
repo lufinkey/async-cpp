@@ -344,7 +344,7 @@ namespace fgl {
 							reject(std::logic_error("Failed to load all items"));
 							return;
 						}
-						ASYNC_CPP_LIST_PUSH(loadedItems, *it);
+						ASYNC_CPP_LIST_PUSH(loadedItems, it->second.item);
 						it++;
 						nextIndex++;
 					}

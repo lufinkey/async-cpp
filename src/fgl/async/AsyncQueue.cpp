@@ -106,4 +106,53 @@ namespace fgl {
 			taskQueuePromise = std::nullopt;
 		}
 	}
+
+
+
+	AsyncQueue::Task::Task(std::shared_ptr<Task>& ptr, Options options, Function<Promise<void>(std::shared_ptr<Task>)> executor)
+	: options(options), executor(executor), cancelled(false), done(false) {
+		ptr = std::shared_ptr<Task>(this);
+		self = ptr;
+	}
+
+	Promise<void> AsyncQueue::Task::perform() {
+		FGL_ASSERT(!promise.has_value(), "Cannot call Task::perform more than once");
+		auto self = this->self.lock();
+		promise = executor(self).then(nullptr, [=]() {
+			self->promise = std::nullopt;
+		});
+		executor = nullptr;
+		return promise.value();
+	}
+
+	const String& AsyncQueue::Task::getTag() const {
+		return options.tag;
+	}
+
+	const String& AsyncQueue::Task::getName() const {
+		return options.name;
+	}
+	
+	void AsyncQueue::Task::cancel() {
+		if(done) {
+			return;
+		}
+		cancelled = true;
+	}
+
+	bool AsyncQueue::Task::isCancelled() const {
+		return cancelled;
+	}
+
+	bool AsyncQueue::Task::isDone() const {
+		return done;
+	}
+	
+	AsyncQueue::Task::Status AsyncQueue::Task::getStatus() const {
+		return status;
+	}
+
+	void AsyncQueue::Task::setStatus(Status status) {
+		this->status = status;
+	}
 }
