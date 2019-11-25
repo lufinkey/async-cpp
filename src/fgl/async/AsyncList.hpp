@@ -269,7 +269,7 @@ namespace fgl {
 			watchIndex(indexMarker);
 		}
 		return Promise<Optional<T>>([&](auto resolve, auto reject) {
-			mutationQueue.run([=]() -> Promise<void> {
+			mutationQueue.run([=](auto task) -> Promise<void> {
 				if(options.trackIndexChanges) {
 					unwatchIndex(indexMarker);
 				}
@@ -315,7 +315,7 @@ namespace fgl {
 			watchIndex(indexMarker);
 		}
 		return Promise<LinkedList<T>>([=](auto resolve, auto reject) {
-			mutationQueue.run([=]() -> Promise<void> {
+			mutationQueue.run([=](auto task) -> Promise<void> {
 				if(options.trackIndexChanges) {
 					unwatchIndex(indexMarker);
 				}
