@@ -155,7 +155,7 @@ namespace fgl {
 		if(itemsSize.has_value()) {
 			return itemsSize.value();
 		} else if(items.size() > 0) {
-			return (items.end()-1)->first;
+			return (items.end()-1)->first + 1;
 		}
 		return 0;
 	}
