@@ -95,6 +95,9 @@ namespace fgl {
 		
 		Generator<LinkedList<T>,void> generateItems(size_t startIndex=0);
 		
+		template<typename Callable>
+		Optional<size_t> indexWhere(Callable predicate) const;
+		
 	private:
 		size_t chunkStartIndexForIndex(size_t index) const;
 		
@@ -347,6 +350,18 @@ namespace fgl {
 				std::rethrow_exception(std::current_exception());
 			}
 		});
+	}
+
+	template<typename T>
+	template<typename Callable>
+	Optional<size_t> AsyncList<T>::indexWhere(Callable predicate) const {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
+		for(auto& pair : items) {
+			if(predicate(pair.second)) {
+				return pair.first;
+			}
+		}
+		return std::nullopt;
 	}
 
 	template<typename T>
