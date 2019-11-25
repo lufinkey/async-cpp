@@ -94,11 +94,7 @@ namespace fgl {
 		Promise<void> waitForTasksWithTag(const String& tag) const;
 		
 	private:
-		template<typename Work, typename is_promise<typename lambda_traits<Work>::return_type>::null_type = nullptr>
-		Promise<void> performWork(std::shared_ptr<Task> task, Work work);
-		template<typename Work, typename is_generator<typename lambda_traits<Work>::return_type>::null_type = nullptr>
-		Promise<void> performWork(std::shared_ptr<Task> task, Work work);
-		template<typename Work, typename std::enable_if<std::is_same<typename lambda_traits<Work>::return_type,void>::value, std::nullptr_t>::type = nullptr>
+		template<typename Work>
 		Promise<void> performWork(std::shared_ptr<Task> task, Work work);
 		
 		template<typename GeneratorType>
@@ -186,13 +182,36 @@ namespace fgl {
 
 
 
-	template<typename Work, typename is_promise<typename lambda_traits<Work>::return_type>::null_type>
+	template<typename Work>
 	Promise<void> AsyncQueue::performWork(std::shared_ptr<Task> task, Work work) {
-		auto promise = work(task);
-		if constexpr(std::is_same<Promise<void>,decltype(promise)>::value) {
-			return promise;
+		if constexpr(is_promise<decltype(work(task))>::value) {
+			// promise
+			auto promise = work(task);
+			if constexpr(std::is_same<Promise<void>,decltype(promise)>::value) {
+				return promise;
+			} else {
+				return promise.toVoid();
+			}
+		} else if constexpr(is_generator<decltype(work(task))>::value) {
+			// generator
+			auto gen = work(task);
+			runGenerator(gen, [=]() {
+				return task->isCancelled();
+			});
+		} else if constexpr(std::is_same<decltype(work(task)),void>::value) {
+			return Promise<void>([&](auto resolve, auto reject) {
+				try {
+					work();
+				} catch(...) {
+					reject(std::current_exception());
+					return;
+				}
+				resolve();
+			});
 		} else {
-			return promise.toVoid();
+			static_assert(
+				(is_promise<decltype(work(task))>::value || is_generator<decltype(work(task))>::value || std::is_same<decltype(work(task)),void>::value),
+				"invalid lambda type");
 		}
 	}
 
@@ -203,33 +222,6 @@ namespace fgl {
 				return Promise<void>::resolve();
 			}
 			return runGenerator(gen,shouldStop);
-		});
-	}
-
-	template<typename Work, typename is_generator<typename lambda_traits<Work>::return_type>::null_type>
-	Promise<void> AsyncQueue::performWork(std::shared_ptr<Task> task, Work work) {
-		return Promise<void>([&](auto resolve, auto reject) {
-			auto gen = work(task);
-			runGenerator(gen, [=]() {
-				return task->isCancelled();
-			}).then(nullptr, [=]() {
-				resolve();
-			}, [=](std::exception_ptr error) {
-				reject(error);
-			});
-		});
-	}
-
-	template<typename Work, typename std::enable_if<std::is_same<typename lambda_traits<Work>::return_type,void>::value, std::nullptr_t>::type>
-	Promise<void> AsyncQueue::performWork(std::shared_ptr<Task> task, Work work) {
-		return Promise<void>([&](auto resolve, auto reject) {
-			try {
-				work();
-			} catch(...) {
-				reject(std::current_exception());
-				return;
-			}
-			resolve();
 		});
 	}
 }

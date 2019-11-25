@@ -155,7 +155,9 @@ namespace fgl {
 		if(itemsSize.has_value()) {
 			return itemsSize.value();
 		} else if(items.size() > 0) {
-			return (items.end()-1)->first + 1;
+			auto it = items.end();
+			it--;
+			return it->first + 1;
 		}
 		return 0;
 	}
@@ -364,11 +366,17 @@ namespace fgl {
 	Generator<LinkedList<T>,void> AsyncList<T>::generateItems(size_t startIndex) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto indexMarker = watchIndex(startIndex);
+		auto deleter = std::shared_ptr<int>(new int(0), [=](int* value) {
+			delete value;
+			if(indexMarker.use_count() > 1) {
+				unwatchIndex(indexMarker);
+			}
+		});
 		return generate<LinkedList<T>,LinkedList<T>>([=](auto yield) {
 			std::unique_lock<std::recursive_mutex> lock(mutex);
-			bool done = false;
+			auto _deleter = deleter;
 			try {
-				while(!done) {
+				while(true) {
 					size_t index = *indexMarker;
 					lock.unlock();
 					auto items = getItems(index, chunkSize).get();
