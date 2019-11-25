@@ -254,7 +254,7 @@ namespace fgl {
 		if(!ignoreValidity && !it->second.valid) {
 			return std::nullopt;
 		}
-		return it->second;
+		return it->second.item;
 	}
 
 	template<typename T>
@@ -262,7 +262,7 @@ namespace fgl {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto it = items.find(index);
 		if(it != items.end() && it->second.valid) {
-			return Promise<Optional<T>>::resolve(it->second);
+			return Promise<Optional<T>>::resolve(it->second.item);
 		}
 		auto indexMarker = std::make_shared<size_t>(index);
 		if(options.trackIndexChanges) {
@@ -275,7 +275,7 @@ namespace fgl {
 				}
 				size_t index = *indexMarker.get();
 				size_t chunkStartIndex = chunkStartIndexForIndex(index);
-				return delegate->loadAsyncListItems(mutator, chunkStartIndex, chunkSize)
+				return delegate->loadAsyncListItems(&mutator, chunkStartIndex, chunkSize)
 				.then(nullptr, [=]() {
 					resolve(itemAt(index));
 				}, reject);
@@ -286,9 +286,29 @@ namespace fgl {
 	template<typename T>
 	Promise<LinkedList<T>> AsyncList<T>::getItems(size_t index, size_t count, GetItemOptions options) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
-		auto it = items.find(index);
-		if(it != items.end() && it->second.valid) {
-			return Promise<Optional<T>>::resolve(it->second);
+		auto startIt = items.find(index);
+		if(startIt != items.end() && startIt->second.valid) {
+			LinkedList<T> loadedItems;
+			size_t nextIndex = index;
+			size_t endIndex = index + count;
+			if(itemsSize.has_value() && endIndex > itemsSize.value()) {
+				endIndex = itemsSize.value();
+			}
+			bool foundAllItems = false;
+			for(auto it=startIt, end=items.end(); it!=end; it++) {
+				if(it->first != nextIndex || !it->second.valid) {
+					break;
+				}
+				loadedItems.pushBack(it->second.item);
+				nextIndex++;
+				if(nextIndex >= endIndex) {
+					foundAllItems = true;
+					break;
+				}
+			}
+			if(foundAllItems) {
+				return Promise<LinkedList<T>>::resolve(loadedItems);
+			}
 		}
 		auto indexMarker = std::make_shared<size_t>(index);
 		if(options.trackIndexChanges) {
@@ -302,7 +322,7 @@ namespace fgl {
 				size_t index = *indexMarker.get();
 				size_t chunkStartIndex = chunkStartIndexForIndex(index);
 				size_t chunkEndIndex = chunkStartIndexForIndex(index+count);
-				return delegate->loadAsyncListItems(mutator, chunkStartIndex, chunkEndIndex-chunkStartIndex)
+				return delegate->loadAsyncListItems(&mutator, chunkStartIndex, chunkEndIndex-chunkStartIndex)
 				.then(nullptr, [=]() {
 					std::unique_lock<std::recursive_mutex> lock(mutex);
 					LinkedList<T> loadedItems;
