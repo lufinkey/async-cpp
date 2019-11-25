@@ -366,11 +366,16 @@ namespace fgl {
 	Generator<LinkedList<T>,void> AsyncList<T>::generateItems(size_t startIndex) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto indexMarker = watchIndex(startIndex);
+		struct MarkerNode {
+			std::shared_ptr<size_t> marker;
+		};
+		auto markerNode = new MarkerNode{ indexMarker };
 		auto deleter = std::shared_ptr<int>(new int(0), [=](int* value) {
 			delete value;
-			if(indexMarker.use_count() > 1) {
+			if(markerNode->marker.use_count() > 1) {
 				unwatchIndex(indexMarker);
 			}
+			delete markerNode;
 		});
 		return generate<LinkedList<T>,LinkedList<T>>([=](auto yield) {
 			std::unique_lock<std::recursive_mutex> lock(mutex);
