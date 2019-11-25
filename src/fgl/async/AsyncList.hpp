@@ -68,13 +68,14 @@ namespace fgl {
 			size_t chunkSize = 0;
 			ArrayList<T> initialItems;
 			size_t initialItemsOffset = 0;
-			size_t initialSize = 0;
+			Optional<size_t> initialSize;
 		};
 		
 		AsyncList(const AsyncList&) = delete;
 		AsyncList(Options options);
 		
 		inline const std::map<size_t,ItemNode>& getMap() const;
+		inline bool sizeIsKnown() const;
 		inline size_t size() const;
 		inline size_t getChunkSize() const;
 		
@@ -103,7 +104,7 @@ namespace fgl {
 		
 		mutable std::recursive_mutex mutex;
 		std::map<size_t,ItemNode> items;
-		size_t itemsSize;
+		Optional<size_t> itemsSize;
 		std::map<size_t,Promise<T>> itemPromises;
 		
 		size_t chunkSize;
@@ -145,8 +146,18 @@ namespace fgl {
 	}
 
 	template<typename T>
+	bool AsyncList<T>::sizeIsKnown() const {
+		return itemsSize.has_value();
+	}
+
+	template<typename T>
 	size_t AsyncList<T>::size() const {
-		return itemsSize;
+		if(itemsSize.has_value()) {
+			return itemsSize.value();
+		} else if(items.size() > 0) {
+			return (items.end()-1)->first;
+		}
+		return 0;
 	}
 
 	template<typename T>
@@ -293,19 +304,23 @@ namespace fgl {
 				size_t chunkEndIndex = chunkStartIndexForIndex(index+count);
 				return delegate->loadAsyncListItems(mutator, chunkStartIndex, chunkEndIndex-chunkStartIndex)
 				.then(nullptr, [=]() {
+					std::unique_lock<std::recursive_mutex> lock(mutex);
 					LinkedList<T> loadedItems;
-					if(index >= itemsSize) {
+					if(itemsSize.has_value() && index >= itemsSize.value()) {
+						lock.unlock();
 						resolve(loadedItems);
+						return;
 					}
 					auto it = items.find(index);
 					size_t nextIndex = index;
 					size_t endIndex = index + count;
-					if(endIndex > itemsSize) {
-						endIndex = itemsSize;
+					if(itemsSize.has_value() && endIndex > itemsSize.value()) {
+						endIndex = itemsSize.value();
 					}
 					size_t loadedItemCount = endIndex - index;
 					while(it != items.end() && nextIndex < endIndex) {
 						if(it->first != nextIndex) {
+							lock.unlock();
 							reject(std::logic_error("Failed to load all items"));
 							return;
 						}
@@ -313,10 +328,12 @@ namespace fgl {
 						it++;
 						nextIndex++;
 					}
-					if(loadedItems.size() < loadedItemCount) {
+					if(itemsSize.has_value() && loadedItems.size() < loadedItemCount) {
+						lock.unlock();
 						reject(std::logic_error("Failed to load all items"));
 						return;
 					}
+					lock.unlock();
 					resolve(loadedItems);
 				}, reject);
 			});
@@ -337,7 +354,7 @@ namespace fgl {
 					auto items = getItems(index, chunkSize).get();
 					lock.lock();
 					*indexMarker += items.size();
-					if(*indexMarker >= itemsSize) {
+					if(itemsSize.has_value() && *indexMarker >= itemsSize) {
 						unwatchIndex(indexMarker);
 						return items;
 					}
@@ -412,7 +429,9 @@ namespace fgl {
 		std::unique_lock<std::recursive_mutex> lock(list.mutex);
 		size_t insertCount = items.size();
 		// update list size
-		list.itemsSize += insertCount;
+		if(list.itemsSize.has_value()) {
+			list.itemsSize.value() += insertCount;
+		}
 		// update keys for elements above insert range
 		for(size_t i=(index+insertCount-1); i>=index && i!=(size_t)-1; i--) {
 			auto node = list.items.extract(i);
@@ -441,12 +460,12 @@ namespace fgl {
 	template<typename T>
 	void AsyncList<T>::Mutator::remove(size_t index, size_t count) {
 		std::unique_lock<std::recursive_mutex> lock(list.mutex);
-		if(index >= list->itemsSize) {
+		if(list.itemSize.has_value() && index >= list.itemsSize.value()) {
 			return;
 		}
 		size_t endIndex = index + count;
-		if(endIndex > list->itemsSize) {
-			endIndex = list->itemsSize;
+		if(list.itemSize.has_value() && endIndex > list.itemsSize.value()) {
+			endIndex = list.itemsSize.value();
 		}
 		size_t removeCount = endIndex - index;
 		if(removeCount == 0) {
@@ -500,7 +519,9 @@ namespace fgl {
 			}
 		}
 		// update list size
-		list.itemsSize -= removeCount;
+		if(list.itemsSize.has_value()) {
+			list.itemsSize.value() -= removeCount;
+		}
 	}
 
 	/*template<typename T>
@@ -513,7 +534,7 @@ namespace fgl {
 	void AsyncList<T>::Mutator::resize(size_t count) {
 		std::unique_lock<std::recursive_mutex> lock(list.mutex);
 		// remove list items above count
-		if(list.items.size() > 0) {
+		if(list.items.size() > 0 && (list.items.end()-1)->first >= count) {
 			auto it = list.items.end() - 1;
 			bool removing = false;
 			auto removeStartIt = list.items.end();
@@ -554,8 +575,8 @@ namespace fgl {
 	void AsyncList<T>::Mutator::invalidate(size_t index, size_t count) {
 		std::unique_lock<std::recursive_mutex> lock(list.mutex);
 		size_t endIndex = index + count;
-		if(endIndex >= list.itemsSize) {
-			endIndex = list.itemsSize;
+		if(list.itemsSize.has_value() && endIndex >= list.itemsSize) {
+			endIndex = list.itemsSize.value();
 		}
 		for(auto it=list.items.lower_bound(index), end=list.items.end(); it!=end; it++) {
 			if(it->first >= endIndex) {
