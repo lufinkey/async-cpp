@@ -60,17 +60,11 @@ namespace fgl {
 		
 	private:
 		enum class Type {
-			MAIN,
+			LOCAL,
 			BACKGROUND
 		};
-		enum class SystemType {
-			MAIN
-		};
-		static String labelForSystemType(SystemType);
-		static Options optionsForSystemType(SystemType);
-		static Type typeForSysemType(SystemType);
 		
-		DispatchQueue(SystemType);
+		DispatchQueue(Type type, String label, Options options);
 		
 		void notify();
 		void run();
@@ -98,7 +92,7 @@ namespace fgl {
 		std::condition_variable queueWaitCondition;
 		
 		DispatchQueue::Type type;
-		bool alive;
+		bool killed;
 		bool stopped;
 		
 		static DispatchQueue* mainQueue;

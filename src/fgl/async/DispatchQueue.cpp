@@ -17,20 +17,20 @@ namespace fgl {
 	: DispatchQueue(label, Options()) {
 		//
 	}
-	
+
 	DispatchQueue::DispatchQueue(String label, Options options)
-	: label(label), options(options), type(Type::BACKGROUND), alive(true), stopped(true) {
+	: DispatchQueue(Type::BACKGROUND, label, options) {
 		//
 	}
 	
-	DispatchQueue::DispatchQueue(SystemType systemType)
-	: label(labelForSystemType(systemType)), type(typeForSysemType(systemType)), alive(true), stopped(true) {
+	DispatchQueue::DispatchQueue(Type type, String label, Options options)
+	: label(label), options(options), type(type), killed(false), stopped(true) {
 		//
 	}
 	
 	DispatchQueue::~DispatchQueue() {
 		FGL_ASSERT((itemQueue.size() == 0 || scheduledItemQueue.size() == 0), "Trying to destroy DispatchQueue \""+label+"\" while unfinished items remain");
-		alive = false;
+		killed = true;
 		queueWaitCondition.notify_one();
 		if(thread.joinable()) {
 			thread.join();
@@ -39,39 +39,8 @@ namespace fgl {
 	
 	
 	
-	String DispatchQueue::labelForSystemType(SystemType type) {
-		switch(type) {
-			case SystemType::MAIN:
-				return "Main";
-			default:
-				FGL_ASSERT(false, "Unknown DispatchQueue::SystemType");
-		}
-	}
-	
-	DispatchQueue::Options DispatchQueue::optionsForSystemType(SystemType type) {
-		switch(type) {
-			case SystemType::MAIN:
-				return Options{
-					.keepThreadAlive = true
-				};
-			default:
-				FGL_ASSERT(false, "Unknown DispatchQueue::SystemType");
-		}
-	}
-	
-	DispatchQueue::Type DispatchQueue::typeForSysemType(SystemType type) {
-		switch(type) {
-			case SystemType::MAIN:
-				return Type::MAIN;
-			default:
-				FGL_ASSERT(false, "Unknown DispatchQueue::SystemType");
-		}
-	}
-	
-	
-	
 	void DispatchQueue::notify() {
-		if(stopped && type != Type::MAIN) {
+		if(stopped && type != Type::LOCAL) {
 			if(thread.joinable()) {
 				thread.join();
 			}
@@ -87,7 +56,7 @@ namespace fgl {
 	void DispatchQueue::run() {
 		localDispatchQueue = this;
 		stopped = false;
-		while(alive) {
+		while(!killed) {
 			std::unique_lock<std::mutex> lock(mutex);
 			
 			// get next work item
@@ -137,10 +106,11 @@ namespace fgl {
 				}
 			}
 		}
+		localDispatchQueue = nullptr;
 	}
 	
 	bool DispatchQueue::shouldWake() const {
-		if(!alive) {
+		if(killed) {
 			return true;
 		}
 		if(itemQueue.size() > 0) {
@@ -237,7 +207,9 @@ namespace fgl {
 	
 	DispatchQueue* DispatchQueue::getMain() {
 		if(mainQueue == nullptr && usesMainQueue()) {
-			mainQueue = new DispatchQueue(SystemType::MAIN);
+			mainQueue = new DispatchQueue(Type::LOCAL, "Main", {
+				.keepThreadAlive=true
+			});
 		}
 		return mainQueue;
 	}
