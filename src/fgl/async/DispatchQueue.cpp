@@ -7,6 +7,9 @@
 //
 
 #include <fgl/async/DispatchQueue.hpp>
+#ifdef __APPLE__
+#include <dispatch/dispatch.h>
+#endif
 
 namespace fgl {
 	DispatchQueue* DispatchQueue::mainQueue = nullptr;
@@ -24,56 +27,72 @@ namespace fgl {
 	}
 	
 	DispatchQueue::DispatchQueue(Type type, String label, Options options)
-	: label(label), options(options), type(type), killed(false), stopped(true) {
+	: data(new Data{
+		.label=label,
+		.options=options,
+		.type=type,
+		.killed=false,
+		.stopped=true
+	}) {
 		//
 	}
 	
 	DispatchQueue::~DispatchQueue() {
-		FGL_ASSERT((itemQueue.size() == 0 || scheduledItemQueue.size() == 0), "Trying to destroy DispatchQueue \""+label+"\" while unfinished items remain");
-		killed = true;
-		queueWaitCondition.notify_one();
-		if(thread.joinable()) {
-			thread.join();
+		auto& data = *this->data;
+		FGL_ASSERT((data.itemQueue.size() == 0 || data.scheduledItemQueue.size() == 0), "Trying to destroy DispatchQueue \""+data.label+"\" while unfinished items remain");
+		data.killed = true;
+		data.queueWaitCondition.notify_one();
+		if(data.thread.joinable()) {
+			data.thread.join();
 		}
+		delete this->data;
+	}
+
+
+
+	String DispatchQueue::getLabel() const {
+		return data->label;
 	}
 	
 	
 	
 	void DispatchQueue::notify() {
-		if(stopped && type != Type::LOCAL) {
-			if(thread.joinable()) {
-				thread.join();
+		auto& data = *this->data;
+		if(data.stopped && data.type != Type::LOCAL) {
+			if(data.thread.joinable()) {
+				data.thread.join();
 			}
-			thread = std::thread([=]() {
+			data.thread = std::thread([=]() {
 				this->run();
 			});
 		}
 		else {
-			queueWaitCondition.notify_one();
+			data.queueWaitCondition.notify_one();
 		}
 	}
 	
 	void DispatchQueue::run() {
 		localDispatchQueue = this;
-		stopped = false;
-		while(!killed) {
-			std::unique_lock<std::mutex> lock(mutex);
+		auto& data = *this->data;
+		data.stopped = false;
+		while(!data.killed) {
+			std::unique_lock<std::mutex> lock(data.mutex);
 			
 			// get next work item
 			DispatchWorkItem* workItem = nullptr;
 			Function<void()> onFinishItem = nullptr;
-			if(scheduledItemQueue.size() > 0) {
-				auto& item = scheduledItemQueue.front();
+			if(data.scheduledItemQueue.size() > 0) {
+				auto& item = data.scheduledItemQueue.front();
 				if(item.timeUntil().count() <= 0) {
 					workItem = item.workItem;
-					scheduledItemQueue.pop_front();
+					data.scheduledItemQueue.pop_front();
 				}
 			}
-			if(workItem == nullptr && itemQueue.size() > 0) {
-				auto& item = itemQueue.front();
+			if(workItem == nullptr && data.itemQueue.size() > 0) {
+				auto& item = data.itemQueue.front();
 				workItem = item.workItem;
 				onFinishItem = item.onFinish;
-				itemQueue.pop_front();
+				data.itemQueue.pop_front();
 			}
 			
 			if(workItem != nullptr) {
@@ -85,22 +104,24 @@ namespace fgl {
 				}
 			}
 			else {
-				if(scheduledItemQueue.size() > 0) {
+				if(data.scheduledItemQueue.size() > 0) {
 					// wait for next scheduled item
-					auto& nextItem = scheduledItemQueue.front();
+					auto& nextItem = data.scheduledItemQueue.front();
 					lock.unlock();
-					nextItem.wait(queueWaitCondition, [&]() { return shouldWake(); });
+					nextItem.wait(data.queueWaitCondition, [&]() {
+						return shouldWake();
+					});
 				}
-				else if(options.keepThreadAlive) {
+				else if(data.options.keepThreadAlive) {
 					// wait for any item
 					std::mutex waitMutex;
 					std::unique_lock<std::mutex> waitLock(waitMutex);
 					lock.unlock();
-					queueWaitCondition.wait(waitLock, [&]() { return shouldWake(); });
+					data.queueWaitCondition.wait(waitLock, [&]() { return shouldWake(); });
 				}
 				else {
 					// no more items, so stop the thread for now
-					stopped = true;
+					data.stopped = true;
 					lock.unlock();
 					break;
 				}
@@ -110,14 +131,15 @@ namespace fgl {
 	}
 	
 	bool DispatchQueue::shouldWake() const {
-		if(killed) {
+		auto& data = *this->data;
+		if(data.killed) {
 			return true;
 		}
-		if(itemQueue.size() > 0) {
+		if(data.itemQueue.size() > 0) {
 			return true;
 		}
-		if(scheduledItemQueue.size() > 0) {
-			auto& item = scheduledItemQueue.front();
+		if(data.scheduledItemQueue.size() > 0) {
+			auto& item = data.scheduledItemQueue.front();
 			if(item.timeUntil().count() <= 0) {
 				return true;
 			}
@@ -132,33 +154,35 @@ namespace fgl {
 	}
 	
 	void DispatchQueue::async(DispatchWorkItem* workItem) {
-		std::unique_lock<std::mutex> lock(mutex);
-		itemQueue.push_back({ .workItem=workItem });
+		auto& data = *this->data;
+		std::unique_lock<std::mutex> lock(data.mutex);
+		data.itemQueue.push_back({ .workItem=workItem });
 		notify();
 		lock.unlock();
 	}
 
 	void DispatchQueue::asyncAfter(Clock::time_point deadline, DispatchWorkItem* workItem) {
-		std::unique_lock<std::mutex> lock(mutex);
+		auto& data = *this->data;
+		std::unique_lock<std::mutex> lock(data.mutex);
 		
 		auto scheduledItem = ScheduledQueueItem{
 			.workItem=workItem,
 			.deadline=deadline
 		};
 		bool inserted = false;
-		for(auto it=scheduledItemQueue.begin(); it!=scheduledItemQueue.end(); it++) {
+		for(auto it=data.scheduledItemQueue.begin(), end=data.scheduledItemQueue.end(); it!=end; it++) {
 			auto& item = *it;
 			if(scheduledItem.timeUntil() <= item.timeUntil()) {
-				scheduledItemQueue.insert(it, scheduledItem);
+				data.scheduledItemQueue.insert(it, scheduledItem);
 				inserted = true;
 				break;
 			}
 		}
 		if(!inserted) {
-			scheduledItemQueue.push_back(scheduledItem);
+			data.scheduledItemQueue.push_back(scheduledItem);
 		}
-		lock.unlock();
 		notify();
+		lock.unlock();
 	}
 	
 	void DispatchQueue::sync(Function<void()> work) {
@@ -166,13 +190,14 @@ namespace fgl {
 	}
 	
 	void DispatchQueue::sync(DispatchWorkItem* workItem) {
+		auto& data = *this->data;
 		std::condition_variable cv;
 		std::mutex waitMutex;
 		std::unique_lock<std::mutex> waitLock(waitMutex);
 		bool finished = false;
 		
-		std::unique_lock<std::mutex> lock(mutex);
-		itemQueue.push_back({ .workItem=workItem, .onFinish=[&]() {
+		std::unique_lock<std::mutex> lock(data.mutex);
+		data.itemQueue.push_back({ .workItem=workItem, .onFinish=[&]() {
 			finished = true;
 			cv.notify_one();
 		} });

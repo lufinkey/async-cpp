@@ -32,16 +32,18 @@ namespace fgl {
 		DispatchQueue(String label, Options options);
 		~DispatchQueue();
 		
+		String getLabel() const;
+		
 		void async(Function<void()> work);
-		virtual void async(DispatchWorkItem* workItem);
+		void async(DispatchWorkItem* workItem);
 		template<typename Duration>
 		void asyncAfter(std::chrono::time_point<Clock,Duration> deadline, Function<void()> work);
 		template<typename Duration>
 		void asyncAfter(std::chrono::time_point<Clock,Duration> deadline, DispatchWorkItem* workItem);
-		virtual void asyncAfter(Clock::time_point deadline, DispatchWorkItem* workItem);
+		void asyncAfter(Clock::time_point deadline, DispatchWorkItem* workItem);
 		
 		void sync(Function<void()> work);
-		virtual void sync(DispatchWorkItem* workItem);
+		void sync(DispatchWorkItem* workItem);
 		template<typename T>
 		T sync(Function<T()> work);
 		
@@ -57,6 +59,10 @@ namespace fgl {
 		}
 		
 		static DispatchQueue* getLocal();
+		
+		#if defined(__APPLE__) && defined(DISPATCH_API_VERSION)
+		DispatchQueue(dispatch_queue_t);
+		#endif
 		
 	private:
 		enum class Type {
@@ -81,19 +87,23 @@ namespace fgl {
 			void wait(std::condition_variable& cv, Function<bool()> pred) const;
 		};
 		
-		String label;
-		Options options;
-		std::thread thread;
-		std::mutex mutex;
+		struct Data {
+			String label;
+			Options options;
+			std::thread thread;
+			std::mutex mutex;
+			
+			std::list<QueueItem> itemQueue;
+			std::list<ScheduledQueueItem> scheduledItemQueue;
+			
+			std::condition_variable queueWaitCondition;
+			
+			DispatchQueue::Type type;
+			bool killed;
+			bool stopped;
+		};
 		
-		std::list<QueueItem> itemQueue;
-		std::list<ScheduledQueueItem> scheduledItemQueue;
-		
-		std::condition_variable queueWaitCondition;
-		
-		DispatchQueue::Type type;
-		bool killed;
-		bool stopped;
+		Data* data;
 		
 		static DispatchQueue* mainQueue;
 		static bool mainQueueRunning;
