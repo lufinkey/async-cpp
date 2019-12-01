@@ -19,6 +19,8 @@
 namespace fgl {
 	class DispatchQueue {
 	public:
+		using Clock = std::chrono::steady_clock;
+		
 		struct Options {
 			bool keepThreadAlive = false;
 		};
@@ -31,14 +33,15 @@ namespace fgl {
 		~DispatchQueue();
 		
 		void async(Function<void()> work);
-		void async(DispatchWorkItem* workItem);
-		template<typename Clock, typename Duration>
+		virtual void async(DispatchWorkItem* workItem);
+		template<typename Duration>
 		void asyncAfter(std::chrono::time_point<Clock,Duration> deadline, Function<void()> work);
-		template<typename Clock, typename Duration>
+		template<typename Duration>
 		void asyncAfter(std::chrono::time_point<Clock,Duration> deadline, DispatchWorkItem* workItem);
+		virtual void asyncAfter(Clock::time_point deadline, DispatchWorkItem* workItem);
 		
 		void sync(Function<void()> work);
-		void sync(DispatchWorkItem* workItem);
+		virtual void sync(DispatchWorkItem* workItem);
 		template<typename T>
 		T sync(Function<T()> work);
 		
@@ -77,29 +80,11 @@ namespace fgl {
 			DispatchWorkItem* workItem;
 			std::function<void()> onFinish = nullptr;
 		};
-		
-		class ScheduledQueueItem {
-		public:
+		struct ScheduledQueueItem {
 			DispatchWorkItem* workItem;
-			
-			ScheduledQueueItem(DispatchWorkItem* workItem)
-			: workItem(workItem) {}
-			virtual ~ScheduledQueueItem() {}
-			
-			virtual std::chrono::nanoseconds timeUntil() const = 0;
-			virtual void wait(std::condition_variable& cv, Function<bool()> pred) const = 0;
-		};
-		
-		template<typename Clock, typename Duration>
-		class SpecificScheduledQueueItem: public ScheduledQueueItem {
-		public:
-			std::chrono::time_point<Clock,Duration> time;
-			
-			SpecificScheduledQueueItem(DispatchWorkItem* workItem, std::chrono::time_point<Clock,Duration> time)
-			: ScheduledQueueItem(workItem), time(time) {}
-			
-			virtual std::chrono::nanoseconds timeUntil() const override;
-			virtual void wait(std::condition_variable& cv, Function<bool()> pred) const override;
+			Clock::time_point deadline;
+			inline Clock::duration timeUntil() const;
+			void wait(std::condition_variable& cv, Function<bool()> pred) const;
 		};
 		
 		String label;
@@ -108,7 +93,7 @@ namespace fgl {
 		std::mutex mutex;
 		
 		std::list<QueueItem> itemQueue;
-		std::list<ScheduledQueueItem*> scheduledItemQueue;
+		std::list<ScheduledQueueItem> scheduledItemQueue;
 		
 		std::condition_variable queueWaitCondition;
 		
@@ -125,29 +110,14 @@ namespace fgl {
 	
 #pragma mark DispatchQueue implementation
 	
-	template<typename Clock, typename Duration>
+	template<typename Duration>
 	void DispatchQueue::asyncAfter(std::chrono::time_point<Clock,Duration> deadline, Function<void()> work) {
 		asyncAfter(deadline, new DispatchWorkItem({ .deleteAfterRunning=true }, work));
 	}
 	
-	template<typename Clock, typename Duration>
+	template<typename Duration>
 	void DispatchQueue::asyncAfter(std::chrono::time_point<Clock,Duration> deadline, DispatchWorkItem* workItem) {
-		std::unique_lock<std::mutex> lock(mutex);
-		auto scheduledItem = new SpecificScheduledQueueItem<Clock,Duration>(workItem, deadline);
-		bool inserted = false;
-		for(auto it=scheduledItemQueue.begin(); it!=scheduledItemQueue.end(); it++) {
-			auto item = *it;
-			if(scheduledItem->timeUntil() <= item->timeUntil()) {
-				scheduledItemQueue.insert(it, scheduledItem);
-				inserted = true;
-				break;
-			}
-		}
-		if(!inserted) {
-			scheduledItemQueue.push_back(scheduledItem);
-		}
-		lock.unlock();
-		notify();
+		asyncAfter(Clock::time_point(deadline), workItem);
 	}
 	
 	template<typename T>
@@ -168,19 +138,8 @@ namespace fgl {
 		}
 		return std::move(*result_ptr.get());
 	}
-	
-	template<typename Clock, typename Duration>
-	std::chrono::nanoseconds DispatchQueue::SpecificScheduledQueueItem<Clock,Duration>::timeUntil() const {
-		return std::chrono::duration_cast<std::chrono::microseconds>(time - Clock::now());
-	}
-	
-	template<typename Clock, typename Duration>
-	void DispatchQueue::SpecificScheduledQueueItem<Clock,Duration>::wait(std::condition_variable& cv, Function<bool()> pred) const {
-		std::mutex waitMutex;
-		std::unique_lock<std::mutex> waitLock(waitMutex);
-		if(pred()) {
-			return;
-		}
-		cv.wait_until(waitLock, time, pred);
+
+	DispatchQueue::Clock::duration DispatchQueue::ScheduledQueueItem::timeUntil() const {
+		return deadline - Clock::now();
 	}
 }

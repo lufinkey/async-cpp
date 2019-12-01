@@ -94,9 +94,9 @@ namespace fgl {
 			DispatchWorkItem* workItem = nullptr;
 			Function<void()> onFinishItem = nullptr;
 			if(scheduledItemQueue.size() > 0) {
-				auto item = scheduledItemQueue.front();
-				if(item->timeUntil().count() <= 0) {
-					workItem = item->workItem;
+				auto& item = scheduledItemQueue.front();
+				if(item.timeUntil().count() <= 0) {
+					workItem = item.workItem;
 					scheduledItemQueue.pop_front();
 				}
 			}
@@ -118,9 +118,9 @@ namespace fgl {
 			else {
 				if(scheduledItemQueue.size() > 0) {
 					// wait for next scheduled item
-					auto nextItem = scheduledItemQueue.front();
+					auto& nextItem = scheduledItemQueue.front();
 					lock.unlock();
-					nextItem->wait(queueWaitCondition, [&]() { return shouldWake(); });
+					nextItem.wait(queueWaitCondition, [&]() { return shouldWake(); });
 				}
 				else if(options.keepThreadAlive) {
 					// wait for any item
@@ -147,8 +147,8 @@ namespace fgl {
 			return true;
 		}
 		if(scheduledItemQueue.size() > 0) {
-			auto item = scheduledItemQueue.front();
-			if(item->timeUntil().count() <= 0) {
+			auto& item = scheduledItemQueue.front();
+			if(item.timeUntil().count() <= 0) {
 				return true;
 			}
 		}
@@ -166,6 +166,29 @@ namespace fgl {
 		itemQueue.push_back({ .workItem=workItem });
 		notify();
 		lock.unlock();
+	}
+
+	void DispatchQueue::asyncAfter(Clock::time_point deadline, DispatchWorkItem* workItem) {
+		std::unique_lock<std::mutex> lock(mutex);
+		
+		auto scheduledItem = ScheduledQueueItem{
+			.workItem=workItem,
+			.deadline=deadline
+		};
+		bool inserted = false;
+		for(auto it=scheduledItemQueue.begin(); it!=scheduledItemQueue.end(); it++) {
+			auto& item = *it;
+			if(scheduledItem.timeUntil() <= item.timeUntil()) {
+				scheduledItemQueue.insert(it, scheduledItem);
+				inserted = true;
+				break;
+			}
+		}
+		if(!inserted) {
+			scheduledItemQueue.push_back(scheduledItem);
+		}
+		lock.unlock();
+		notify();
 	}
 	
 	void DispatchQueue::sync(Function<void()> work) {
@@ -189,6 +212,17 @@ namespace fgl {
 		cv.wait(waitLock, [&]() {
 			return finished;
 		});
+	}
+
+
+
+	void DispatchQueue::ScheduledQueueItem::wait(std::condition_variable& cv, Function<bool()> pred) const {
+		std::mutex waitMutex;
+		std::unique_lock<std::mutex> waitLock(waitMutex);
+		if(pred()) {
+			return;
+		}
+		cv.wait_until(waitLock, deadline, pred);
 	}
 	
 	
