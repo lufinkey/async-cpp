@@ -99,7 +99,7 @@ namespace fgl {
 	: data(new NativeData{
 		.queue=queue
 	}){
-		//
+		dispatch_retain(queue);
 	}
 	#endif
 
@@ -144,7 +144,9 @@ namespace fgl {
 			delete data;
 		} else {
 			auto nativeData = std::get<NativeData*>(this->data);
-			#ifdef __ANDROID__
+			#if defined(__APPLE__)
+				dispatch_release(nativeData->queue);
+			#elif defined(__ANDROID__)
 				jniScope(nativeData->vm, [&](auto env) {
 					env->DeleteGlobalRef(nativeData->handler);
 				});
