@@ -61,7 +61,13 @@ namespace fgl {
 		[[noreturn]]
 		static void dispatchMain();
 		static DispatchQueue* getMain();
-		inline static bool usesMainQueue();
+		static bool usesMainQueue() {
+			#ifdef FGL_DISPATCH_USES_MAIN
+				return true;
+			#else
+				return false;
+			#endif
+		}
 		
 		static DispatchQueue* getLocal();
 
@@ -152,13 +158,5 @@ namespace fgl {
 
 	DispatchQueue::Clock::duration DispatchQueue::ScheduledQueueItem::timeUntil() const {
 		return deadline - Clock::now();
-	}
-
-	bool DispatchQueue::usesMainQueue() {
-		#ifdef FGL_DISPATCH_USES_MAIN
-			return true;
-		#else
-			return false;
-		#endif
 	}
 }
