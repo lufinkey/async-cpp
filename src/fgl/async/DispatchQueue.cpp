@@ -11,11 +11,13 @@
 #include <jni.h>
 #endif
 #include <fgl/async/DispatchQueue.hpp>
+#include <mutex>
 #ifdef __APPLE__
 #include <dispatch/dispatch.h>
 #endif
 
 namespace fgl {
+	std::mutex DispatchQueue_mainQueueMutex;
 	DispatchQueue* DispatchQueue::mainQueue = nullptr;
 	bool DispatchQueue_mainQueueRunning = false;
 	bool DispatchQueue_mainQueueEnabled = false;
@@ -450,6 +452,7 @@ namespace fgl {
 		FGL_ASSERT(usesMainQueue(), "enableMainQueue() must be called in order to use this function");
 		FGL_ASSERT(!DispatchQueue_mainQueueRunning, "main DispatchQueue has already been dispatched");
 		DispatchQueue_mainQueueRunning = true;
+		getMain();
 		#if defined(__APPLE__)
 			dispatch_main();
 		#elif defined(__ANDROID__)
@@ -462,6 +465,10 @@ namespace fgl {
 	
 	DispatchQueue* DispatchQueue::getMain() {
 		if(mainQueue == nullptr && usesMainQueue()) {
+			std::unique_lock<std::mutex> lock(DispatchQueue_mainQueueMutex);
+			if(mainQueue != nullptr) {
+				return mainQueue;
+			}
 			#if defined(__APPLE__)
 				mainQueue = new DispatchQueue(dispatch_get_main_queue());
 				mainQueue->async([]() {
