@@ -12,6 +12,12 @@ public class NativeRunnable implements Runnable {
 		callNativeFunction(func);
 	}
 
+	@Override
+	public void finalize() throws Throwable {
+		super.finalize();
+		destroyNativeFunction(func);
+	}
+
 	private native static void callNativeFunction(long func);
 	private native static void destroyNativeFunction(long func);
 }
