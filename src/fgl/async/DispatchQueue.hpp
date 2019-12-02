@@ -61,13 +61,8 @@ namespace fgl {
 		[[noreturn]]
 		static void dispatchMain();
 		static DispatchQueue* getMain();
-		static bool usesMainQueue() {
-			#ifdef FGL_DISPATCH_USES_MAIN
-				return true;
-			#else
-				return false;
-			#endif
-		}
+		static bool usesMainQueue();
+		static bool enableMainQueue();
 		
 		static DispatchQueue* getLocal();
 
@@ -119,7 +114,6 @@ namespace fgl {
 		std::variant<Data*,NativeData*> data;
 		
 		static DispatchQueue* mainQueue;
-		static bool mainQueueRunning;
 	};
 	
 	

@@ -17,7 +17,8 @@
 
 namespace fgl {
 	DispatchQueue* DispatchQueue::mainQueue = nullptr;
-	bool DispatchQueue::mainQueueRunning = false;
+	bool DispatchQueue_mainQueueRunning = false;
+	bool DispatchQueue_mainQueueEnabled = false;
 	thread_local DispatchQueue* localDispatchQueue = nullptr;
 
 
@@ -444,9 +445,9 @@ namespace fgl {
 	
 	
 	void DispatchQueue::dispatchMain() {
-		FGL_ASSERT(usesMainQueue(), "FGL_DISPATCH_USES_MAIN must be defined in order to use this function");
-		FGL_ASSERT(!mainQueueRunning, "main DispatchQueue has already been dispatched");
-		mainQueueRunning = true;
+		FGL_ASSERT(usesMainQueue(), "enableMainQueue() must be called in order to use this function");
+		FGL_ASSERT(!DispatchQueue_mainQueueRunning, "main DispatchQueue has already been dispatched");
+		DispatchQueue_mainQueueRunning = true;
 		#if defined(__APPLE__)
 			dispatch_main();
 		#elif defined(__ANDROID__)
@@ -488,6 +489,15 @@ namespace fgl {
 			#endif
 		}
 		return mainQueue;
+	}
+
+	bool DispatchQueue::usesMainQueue() {
+		return DispatchQueue_mainQueueEnabled;
+	}
+
+	bool DispatchQueue::enableMainQueue() {
+		DispatchQueue_mainQueueEnabled = true;
+		return true;
 	}
 	
 	DispatchQueue* DispatchQueue::getLocal() {
