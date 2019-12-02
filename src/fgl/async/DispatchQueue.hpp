@@ -13,8 +13,12 @@
 #include <memory>
 #include <mutex>
 #include <thread>
+#include <variant>
 #include <fgl/async/Common.hpp>
 #include <fgl/async/DispatchWorkItem.hpp>
+#ifdef __APPLE__
+#include <dispatch/dispatch.h>
+#endif
 
 namespace fgl {
 	class DispatchQueue {
@@ -30,6 +34,9 @@ namespace fgl {
 		
 		DispatchQueue(String label);
 		DispatchQueue(String label, Options options);
+		#ifdef __APPLE__
+		DispatchQueue(dispatch_queue_t);
+		#endif
 		~DispatchQueue();
 		
 		String getLabel() const;
@@ -50,19 +57,9 @@ namespace fgl {
 		[[noreturn]]
 		static void dispatchMain();
 		static DispatchQueue* getMain();
-		static bool usesMainQueue() {
-			#ifdef FGL_DISPATCH_USES_MAIN
-				return true;
-			#else
-				return false;
-			#endif
-		}
+		static bool usesMainQueue();
 		
 		static DispatchQueue* getLocal();
-		
-		#if defined(__APPLE__) && defined(DISPATCH_API_VERSION)
-		DispatchQueue(dispatch_queue_t);
-		#endif
 		
 	private:
 		enum class Type {
@@ -103,7 +100,17 @@ namespace fgl {
 			bool stopped;
 		};
 		
-		Data* data;
+		#ifdef __APPLE__
+		struct NativeData {
+			dispatch_queue_t queue;
+		};
+		#else
+		struct NativeData {
+			//
+		};
+		#endif
+		
+		std::variant<Data*,NativeData*> data;
 		
 		static DispatchQueue* mainQueue;
 		static bool mainQueueRunning;
@@ -145,5 +152,13 @@ namespace fgl {
 
 	DispatchQueue::Clock::duration DispatchQueue::ScheduledQueueItem::timeUntil() const {
 		return deadline - Clock::now();
+	}
+
+	bool DispatchQueue::usesMainQueue() {
+		#ifdef FGL_DISPATCH_USES_MAIN
+			return true;
+		#else
+			return false;
+		#endif
 	}
 }
