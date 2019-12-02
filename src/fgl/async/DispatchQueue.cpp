@@ -20,7 +20,11 @@ namespace fgl {
 	std::mutex DispatchQueue_mainQueueMutex;
 	DispatchQueue* DispatchQueue::mainQueue = nullptr;
 	bool DispatchQueue_mainQueueRunning = false;
-	bool DispatchQueue_mainQueueEnabled = false;
+	#ifdef FGL_DISPATCH_USES_MAIN
+		bool DispatchQueue_mainQueueEnabled = true;
+	#else
+		bool DispatchQueue_mainQueueEnabled = false;
+	#endif
 	thread_local DispatchQueue* localDispatchQueue = nullptr;
 
 
