@@ -316,7 +316,7 @@ namespace fgl {
 	template<typename Result>
 	Promise<Result> async(Function<Result()> executor);
 	template<typename Result>
-	Result await(Promise<Result> promise);
+	inline Result await(Promise<Result> promise);
 	
 	
 	
