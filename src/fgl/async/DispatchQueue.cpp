@@ -478,6 +478,9 @@ namespace fgl {
 					jobject looper = env->CallStaticObjectMethod(looperClass, Looper_getMainLooper);
 					mainQueue = new DispatchQueue(env, looper);
 				});
+				mainQueue->async([]() {
+					localDispatchQueue = mainQueue;
+				});
 			#else
 				mainQueue = new DispatchQueue(Type::LOCAL, "Main", {
 					.keepThreadAlive=true
