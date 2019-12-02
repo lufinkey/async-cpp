@@ -57,7 +57,7 @@ namespace fgl {
 		[[noreturn]]
 		static void dispatchMain();
 		static DispatchQueue* getMain();
-		static bool usesMainQueue();
+		inline static bool usesMainQueue();
 		
 		static DispatchQueue* getLocal();
 		
