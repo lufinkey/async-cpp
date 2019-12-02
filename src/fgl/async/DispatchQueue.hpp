@@ -21,6 +21,8 @@
 #endif
 
 namespace fgl {
+	struct _DispatchQueueNativeData;
+
 	class DispatchQueue {
 	public:
 		using Clock = std::chrono::steady_clock;
@@ -34,8 +36,10 @@ namespace fgl {
 		
 		DispatchQueue(String label);
 		DispatchQueue(String label, Options options);
-		#ifdef __APPLE__
+		#if defined(__APPLE__)
 		DispatchQueue(dispatch_queue_t);
+		#elif defined(__ANDROID__) && defined(JNIEXPORT)
+		DispatchQueue(JNIEnv* env, jobject looper);
 		#endif
 		~DispatchQueue();
 		
@@ -60,6 +64,10 @@ namespace fgl {
 		inline static bool usesMainQueue();
 		
 		static DispatchQueue* getLocal();
+
+		#ifdef JNIEXPORT
+		static void jniScope(JavaVM* vm, Function<void(JNIEnv*)> work);
+		#endif
 		
 	private:
 		enum class Type {
@@ -100,15 +108,7 @@ namespace fgl {
 			bool stopped;
 		};
 		
-		#ifdef __APPLE__
-		struct NativeData {
-			dispatch_queue_t queue;
-		};
-		#else
-		struct NativeData {
-			//
-		};
-		#endif
+		using NativeData = _DispatchQueueNativeData;
 		
 		std::variant<Data*,NativeData*> data;
 		
