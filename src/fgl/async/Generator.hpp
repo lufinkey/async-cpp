@@ -117,13 +117,15 @@ namespace fgl {
 	};
 
 
+	template<typename Yield>
+	using GenerateYielder = typename Generator<Yield,void>::template _block<Yield,void>::type;
 
 	template<typename Yield, typename Return,
 		typename std::enable_if<
 			std::is_same<Return,Yield>::value
 			|| std::is_same<Return,Optional<Yield>>::value
 			|| std::is_same<Return,void>::value,std::nullptr_t>::type = nullptr>
-	Generator<Yield,void> generate(Function<Return(Function<void(Yield)> yield)> executor);
+	Generator<Yield,void> generate(Function<Return(GenerateYielder<Yield> yield)> executor);
 
 
 
@@ -365,7 +367,7 @@ namespace fgl {
 		std::is_same<Return,Yield>::value
 		|| std::is_same<Return,Optional<Yield>>::value
 		|| std::is_same<Return,void>::value,std::nullptr_t>::type>
-	Generator<Yield,void> generate(Function<Return(Function<void(Yield)> yield)> executor) {
+	Generator<Yield,void> generate(Function<Return(GenerateYielder<Yield> yield)> executor) {
 		using YieldResult = typename Generator<Yield,void>::YieldResult;
 		struct ResultDefer {
 			typename Promise<YieldResult>::Resolver resolve;
