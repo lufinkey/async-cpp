@@ -195,7 +195,7 @@ namespace fgl {
 		} else if constexpr(is_generator<decltype(work(task))>::value) {
 			// generator
 			auto gen = work(task);
-			runGenerator(gen, [=]() {
+			return runGenerator(gen, [=]() {
 				return task->isCancelled();
 			});
 		} else if constexpr(std::is_same<decltype(work(task)),void>::value) {
