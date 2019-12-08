@@ -41,22 +41,38 @@ namespace fgl {
 		std::thread([=]() {
 			auto self = strongSelf;
 			std::unique_lock<std::recursive_mutex> lock(mutex);
-			while(valid) {
+			bool shouldInvalidate = false;
+			while(valid && !shouldInvalidate) {
 				lock.unlock();
 				waiter->wait();
 				lock.lock();
 				if(valid) {
 					if(!rescheduleWaiter) {
-						valid = false;
+						shouldInvalidate = true;
 						waiter->cancel();
 					}
-					lock.unlock();
 					if(work) {
-						work(self);
+						if(queue != nullptr) {
+							queue->async([=]() {
+								std::unique_lock<std::recursive_mutex> lock(mutex);
+								if(!valid) {
+									return;
+								} else if(shouldInvalidate) {
+									valid = false;
+								}
+								work(self);
+							});
+						} else {
+							if(shouldInvalidate) {
+								valid = false;
+							}
+							work(self);
+						}
+					} else if(shouldInvalidate) {
+						valid = false;
 					}
-					lock.lock();
 				}
-				if(valid && rescheduleWaiter) {
+				if(valid && !shouldInvalidate && rescheduleWaiter) {
 					rescheduleWaiter();
 				}
 			}
