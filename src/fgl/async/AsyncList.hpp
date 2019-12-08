@@ -366,20 +366,8 @@ namespace fgl {
 	Generator<LinkedList<T>,void> AsyncList<T>::generateItems(size_t startIndex) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto indexMarker = watchIndex(startIndex);
-		struct MarkerNode {
-			std::shared_ptr<size_t> marker;
-		};
-		auto markerNode = new MarkerNode{ indexMarker };
-		auto deleter = std::shared_ptr<int>(new int(0), [=](int* value) {
-			delete value;
-			if(markerNode->marker.use_count() > 1) {
-				unwatchIndex(indexMarker);
-			}
-			delete markerNode;
-		});
-		return generate<LinkedList<T>,LinkedList<T>>([=](auto yield) {
+		return generate<LinkedList<T>>([=](auto yield) {
 			std::unique_lock<std::recursive_mutex> lock(mutex);
-			auto _deleter = deleter;
 			try {
 				while(true) {
 					size_t index = *indexMarker;
@@ -395,6 +383,9 @@ namespace fgl {
 					yield(items);
 					lock.lock();
 				}
+			} catch(GenerateDestroyedNotifier&) {
+				unwatchIndex(indexMarker);
+				std::rethrow_exception(std::current_exception());
 			} catch(...) {
 				unwatchIndex(indexMarker);
 				std::rethrow_exception(std::current_exception());

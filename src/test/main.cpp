@@ -75,7 +75,7 @@ int main(int argc, const char* argv[]) {
 	auto result = await(promise);
 	printf("got result: %s\n", result.c_str());
 	
-	auto gen = generate<int,int>([](auto yield) {
+	auto gen = generate<int>([](auto yield) {
 		printf("we're gonna yield 4\n");
 		yield(4);
 		printf("we're gonna yield 5\n");

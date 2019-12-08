@@ -69,7 +69,7 @@ namespace fgl {
 		template<typename T>
 		using Mapper = typename _block<Yield,T>::type;
 		
-		explicit Generator(YieldReturner yieldReturner);
+		explicit Generator(YieldReturner yieldReturner, Function<void()> destructor=nullptr);
 		
 		template<typename _Next=Next,
 			typename std::enable_if<(std::is_same<_Next,Next>::value && !std::is_same<_Next,void>::value), std::nullptr_t>::type = nullptr>
@@ -97,7 +97,8 @@ namespace fgl {
 		
 		class Continuer {
 		public:
-			Continuer(std::shared_ptr<Continuer>& ptr, YieldReturner yieldReturner);
+			Continuer(std::shared_ptr<Continuer>& ptr, YieldReturner yieldReturner, Function<void()> destructor=nullptr);
+			~Continuer();
 			
 			template<typename _Next=Next,
 				typename std::enable_if<(std::is_same<_Next,Next>::value && !std::is_same<_Next,void>::value), std::nullptr_t>::type = nullptr>
@@ -110,6 +111,7 @@ namespace fgl {
 		private:
 			std::weak_ptr<Continuer> self;
 			YieldReturner yieldReturner;
+			Function<void()> destructor;
 			Optional<Promise<void>> nextPromise;
 			std::recursive_mutex mutex;
 			State state;
@@ -119,23 +121,20 @@ namespace fgl {
 	};
 
 
+	struct GenerateDestroyedNotifier;
 	template<typename Yield>
 	using GenerateYielder = typename Generator<Yield,void>::template _block<Yield,void>::type;
 
-	template<typename Yield, typename Return,
-		typename std::enable_if<
-			std::is_same<Return,Yield>::value
-			|| std::is_same<Return,Optional<Yield>>::value
-			|| std::is_same<Return,void>::value,std::nullptr_t>::type = nullptr>
-	Generator<Yield,void> generate(Function<Return(GenerateYielder<Yield> yield)> executor);
+	template<typename Yield>
+	Generator<Yield,void> generate(Function<Yield(GenerateYielder<Yield> yield)> executor);
 
 
 
 #pragma mark Generator implementation
 
 	template<typename Yield, typename Next>
-	Generator<Yield,Next>::Generator(YieldReturner yieldReturner) {
-		new Continuer(this->continuer, yieldReturner);
+	Generator<Yield,Next>::Generator(YieldReturner yieldReturner, Function<void()> destructor) {
+		new Continuer(this->continuer, yieldReturner, destructor);
 	}
 
 	template<typename Yield, typename Next>
@@ -245,10 +244,17 @@ namespace fgl {
 
 
 	template<typename Yield, typename Next>
-	Generator<Yield,Next>::Continuer::Continuer(std::shared_ptr<Continuer>& ptr, YieldReturner yieldReturner)
-	: yieldReturner(yieldReturner), state(State::WAITING) {
+	Generator<Yield,Next>::Continuer::Continuer(std::shared_ptr<Continuer>& ptr, YieldReturner yieldReturner, Function<void()> destructor)
+	: yieldReturner(yieldReturner), destructor(destructor), state(State::WAITING) {
 		ptr = std::shared_ptr<Continuer>(this);
 		self = ptr;
+	}
+
+	template<typename Yield, typename Next>
+	Generator<Yield,Next>::Continuer::~Continuer() {
+		if(destructor) {
+			destructor();
+		}
 	}
 
 	template<typename Yield, typename Next>
@@ -362,14 +368,14 @@ namespace fgl {
 	}
 
 
+	struct GenerateDestroyedNotifier {
+	private:
+		bool unused;
+	};
 
 
-	template<typename Yield, typename Return,
-	typename std::enable_if<
-		std::is_same<Return,Yield>::value
-		|| std::is_same<Return,Optional<Yield>>::value
-		|| std::is_same<Return,void>::value,std::nullptr_t>::type>
-	Generator<Yield,void> generate(Function<Return(GenerateYielder<Yield> yield)> executor) {
+	template<typename Yield>
+	Generator<Yield,void> generate(Function<Yield(GenerateYielder<Yield> yield)> executor) {
 		using YieldResult = typename Generator<Yield,void>::YieldResult;
 		struct ResultDefer {
 			typename Promise<YieldResult>::Resolver resolve;
@@ -379,6 +385,7 @@ namespace fgl {
 			std::mutex mutex;
 			std::condition_variable cv;
 			Optional<ResultDefer> yieldDefer;
+			bool destroyed = false;
 		};
 		auto sharedData = std::make_shared<SharedData>();
 		std::thread([=]() {
@@ -392,76 +399,39 @@ namespace fgl {
 				if(threadId != std::this_thread::get_id()) {
 					throw std::runtime_error("Cannot call yield from a different thread than the executor");
 				}
+				if(sharedData->destroyed) {
+					throw GenerateDestroyedNotifier();
+				}
 				std::unique_lock<std::mutex> lock(sharedData->mutex);
 				auto defer = sharedData->yieldDefer;
 				sharedData->yieldDefer = std::nullopt;
 				lock.unlock();
 				defer->resolve(YieldResult{.value=yieldValue,.done=false});
 				sharedData->cv.wait(waitLock, [&]() {
-					return sharedData->yieldDefer.has_value();
+					return sharedData->yieldDefer.has_value() || sharedData->destroyed;
 				});
+				if(sharedData->destroyed) {
+					throw GenerateDestroyedNotifier();
+				}
 			};
-			if constexpr(std::is_same<Return,void>::value) {
-				try {
-					executor(yielder);
-				} catch(...) {
-					std::unique_lock<std::mutex> lock(sharedData->mutex);
-					auto defer = sharedData->yieldDefer;
-					sharedData->yieldDefer = std::nullopt;
-					lock.unlock();
-					defer->reject(std::current_exception());
-					return;
-				}
-				{
-					std::unique_lock<std::mutex> lock(sharedData->mutex);
-					auto defer = sharedData->yieldDefer;
-					sharedData->yieldDefer = std::nullopt;
-					lock.unlock();
-					defer->resolve(YieldResult{.value=std::nullopt,.done=true});
-				}
-			} else if constexpr(std::is_same<Return,Optional<Yield>>::value) {
-				Optional<Yield> returnVal;
-				try {
-					returnVal = executor(yielder);
-				} catch(...) {
-					std::unique_lock<std::mutex> lock(sharedData->mutex);
-					auto defer = sharedData->yieldDefer;
-					sharedData->yieldDefer = std::nullopt;
-					lock.unlock();
-					defer->reject(std::current_exception());
-					return;
-				}
-				{
-					std::unique_lock<std::mutex> lock(sharedData->mutex);
-					auto defer = sharedData->yieldDefer;
-					sharedData->yieldDefer = std::nullopt;
-					lock.unlock();
-					if constexpr(!std::is_same<Optionalized<Yield>,Optional<Yield>>::value) {
-						defer->resolve(YieldResult{.value=returnVal.value_or(std::nullopt),.done=true});
-					} else {
-						defer->resolve(YieldResult{.value=returnVal,.done=true});
-					}
-				}
-			} else {
-				std::unique_ptr<Return> returnVal;
-				try {
-					returnVal = std::make_unique<Return>(executor(yielder));
-				} catch(...) {
-					std::unique_lock<std::mutex> lock(sharedData->mutex);
-					auto defer = sharedData->yieldDefer;
-					sharedData->yieldDefer = std::nullopt;
-					lock.unlock();
-					defer->reject(std::current_exception());
-					return;
-				}
-				{
-					std::unique_lock<std::mutex> lock(sharedData->mutex);
-					auto defer = sharedData->yieldDefer;
-					sharedData->yieldDefer = std::nullopt;
-					lock.unlock();
-					defer->resolve(YieldResult{.value=Optional<Return>(std::move(*returnVal.get())),.done=true});
-				}
+			std::unique_ptr<Yield> returnVal;
+			try {
+				returnVal = std::make_unique<Yield>(executor(yielder));
+			} catch(GenerateDestroyedNotifier&) {
+				return;
+			} catch(...) {
+				std::unique_lock<std::mutex> lock(sharedData->mutex);
+				auto defer = sharedData->yieldDefer;
+				sharedData->yieldDefer = std::nullopt;
+				lock.unlock();
+				defer->reject(std::current_exception());
+				return;
 			}
+			std::unique_lock<std::mutex> lock(sharedData->mutex);
+			auto defer = sharedData->yieldDefer;
+			sharedData->yieldDefer = std::nullopt;
+			lock.unlock();
+			defer->resolve(YieldResult{.value=Optionalized<Yield>(std::move(*returnVal.get())),.done=true});
 		}).detach();
 		return Generator<Yield,void>([=]() -> Promise<YieldResult> {
 			return Promise<YieldResult>([&](auto resolve, auto reject) {
@@ -470,6 +440,9 @@ namespace fgl {
 				lock.unlock();
 				sharedData->cv.notify_one();
 			});
+		}, [=]() {
+			sharedData->destroyed = true;
+			sharedData->cv.notify_one();
 		});
 	}
 }
