@@ -66,6 +66,8 @@ namespace fgl {
 		};
 		
 		using YieldReturner = typename _block<Next,Promise<YieldResult>>::type;
+		template<typename T>
+		using Mapper = typename _block<Yield,T>::type;
 		
 		explicit Generator(YieldReturner yieldReturner);
 		
@@ -78,13 +80,13 @@ namespace fgl {
 		inline Promise<YieldResult> next();
 		
 		template<typename NewYield>
-		Generator<NewYield,Next> map(DispatchQueue* queue, Function<NewYield(Yield)> transform);
+		Generator<NewYield,Next> map(DispatchQueue* queue, Mapper<NewYield> transform);
 		template<typename NewYield>
-		Generator<NewYield,Next> map(Function<NewYield(Yield)> transform);
+		Generator<NewYield,Next> map(Mapper<NewYield> transform);
 		template<typename NewYield>
-		Generator<NewYield,Next> mapAsync(DispatchQueue* queue, Function<Promise<NewYield>(Yield)> transform);
+		Generator<NewYield,Next> mapAsync(DispatchQueue* queue, Mapper<Promise<NewYield>> transform);
 		template<typename NewYield>
-		Generator<NewYield,Next> mapAsync(Function<Promise<NewYield>(Yield)> transform);
+		Generator<NewYield,Next> mapAsync(Mapper<Promise<NewYield>> transform);
 		
 	private:
 		enum class State {
@@ -154,7 +156,7 @@ namespace fgl {
 
 	template<typename Yield, typename Next>
 	template<typename NewYield>
-	Generator<NewYield,Next> Generator<Yield,Next>::map(DispatchQueue* queue, Function<NewYield(Yield)> transform) {
+	Generator<NewYield,Next> Generator<Yield,Next>::map(DispatchQueue* queue, Mapper<NewYield> transform) {
 		using NewYieldResult = typename Generator<NewYield,Next>::YieldResult;
 		auto resultTransform = [=](auto yieldResult) {
 			if constexpr(std::is_same<Optionalized<Yield>,Yield>::value) {
@@ -190,13 +192,13 @@ namespace fgl {
 
 	template<typename Yield, typename Next>
 	template<typename NewYield>
-	Generator<NewYield,Next> Generator<Yield,Next>::map(Function<NewYield(Yield)> transform) {
+	Generator<NewYield,Next> Generator<Yield,Next>::map(Mapper<NewYield> transform) {
 		return map<NewYield>(nullptr, transform);
 	}
 
 	template<typename Yield, typename Next>
 	template<typename NewYield>
-	Generator<NewYield,Next> Generator<Yield,Next>::mapAsync(DispatchQueue* queue, Function<Promise<NewYield>(Yield)> transform) {
+	Generator<NewYield,Next> Generator<Yield,Next>::mapAsync(DispatchQueue* queue, Mapper<Promise<NewYield>> transform) {
 		using NewYieldResult = typename Generator<NewYield,Next>::YieldResult;
 		auto resultTransform = [=](auto yieldResult) {
 			if constexpr(std::is_same<Optionalized<Yield>,Yield>::value) {
@@ -236,7 +238,7 @@ namespace fgl {
 
 	template<typename Yield, typename Next>
 	template<typename NewYield>
-	Generator<NewYield,Next> Generator<Yield,Next>::mapAsync(Function<Promise<NewYield>(Yield)> transform) {
+	Generator<NewYield,Next> Generator<Yield,Next>::mapAsync(Mapper<Promise<NewYield>> transform) {
 		return mapAsync(nullptr, transform);
 	}
 
