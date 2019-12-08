@@ -399,14 +399,16 @@ namespace fgl {
 				if(threadId != std::this_thread::get_id()) {
 					throw std::runtime_error("Cannot call yield from a different thread than the executor");
 				}
-				if(sharedData->destroyed) {
-					throw GenerateDestroyedNotifier();
-				}
 				std::unique_lock<std::mutex> lock(sharedData->mutex);
 				auto defer = sharedData->yieldDefer;
 				sharedData->yieldDefer = std::nullopt;
 				lock.unlock();
-				defer->resolve(YieldResult{.value=yieldValue,.done=false});
+				if(defer) {
+					defer->resolve(YieldResult{.value=yieldValue,.done=false});
+				}
+				if(sharedData->destroyed) {
+					throw GenerateDestroyedNotifier();
+				}
 				sharedData->cv.wait(waitLock, [&]() {
 					return sharedData->yieldDefer.has_value() || sharedData->destroyed;
 				});
