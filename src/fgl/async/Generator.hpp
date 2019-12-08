@@ -424,6 +424,9 @@ namespace fgl {
 				auto defer = sharedData->yieldDefer;
 				sharedData->yieldDefer = std::nullopt;
 				lock.unlock();
+				if(!defer) {
+					throw std::logic_error("Generator continued running after GenerateDestroyedNotifier was thrown");
+				}
 				defer->reject(std::current_exception());
 				return;
 			}
@@ -431,6 +434,9 @@ namespace fgl {
 			auto defer = sharedData->yieldDefer;
 			sharedData->yieldDefer = std::nullopt;
 			lock.unlock();
+			if(!defer) {
+				throw std::logic_error("Generator continued running after GenerateDestroyedNotifier was thrown");
+			}
 			defer->resolve(YieldResult{.value=Optionalized<Yield>(std::move(*returnVal.get())),.done=true});
 		}).detach();
 		return Generator<Yield,void>([=]() -> Promise<YieldResult> {
