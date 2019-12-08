@@ -236,7 +236,7 @@ namespace fgl {
 	
 	template<typename Rep, typename Period>
 	Timer::Timer(std::shared_ptr<Timer>& ptr, std::chrono::duration<Rep,Period> interval, DispatchQueue* queue, Function<void(SharedTimer)> work)
-	: waiter(nullptr), work(work), valid(true) {
+	: waiter(nullptr), queue(queue), work(work), valid(true) {
 		ptr = SharedTimer(this);
 		self = ptr;
 		waiter = new SpecialWaiter<std::chrono::steady_clock,std::chrono::steady_clock::duration>(std::chrono::steady_clock::now() + interval);
