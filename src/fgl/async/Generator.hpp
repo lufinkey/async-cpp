@@ -395,27 +395,52 @@ namespace fgl {
 				return sharedData->yieldDefer.has_value();
 			});
 			auto threadId = std::this_thread::get_id();
-			auto yielder = [&](Yield yieldValue) {
-				if(threadId != std::this_thread::get_id()) {
-					throw std::runtime_error("Cannot call yield from a different thread than the executor");
-				}
-				std::unique_lock<std::mutex> lock(sharedData->mutex);
-				auto defer = sharedData->yieldDefer;
-				sharedData->yieldDefer = std::nullopt;
-				lock.unlock();
-				if(defer) {
-					defer->resolve(YieldResult{.value=yieldValue,.done=false});
-				}
-				if(sharedData->destroyed) {
-					throw GenerateDestroyedNotifier();
-				}
-				sharedData->cv.wait(waitLock, [&]() {
-					return sharedData->yieldDefer.has_value() || sharedData->destroyed;
-				});
-				if(sharedData->destroyed) {
-					throw GenerateDestroyedNotifier();
-				}
-			};
+			GenerateYielder<Yield> yielder;
+			if constexpr(std::is_same<Yield,void>::value) {
+				yielder = [&]() {
+					if(threadId != std::this_thread::get_id()) {
+						throw std::runtime_error("Cannot call yield from a different thread than the executor");
+					}
+					std::unique_lock<std::mutex> lock(sharedData->mutex);
+					auto defer = sharedData->yieldDefer;
+					sharedData->yieldDefer = std::nullopt;
+					lock.unlock();
+					if(defer) {
+						defer->resolve(YieldResult{.done=false});
+					}
+					if(sharedData->destroyed) {
+						throw GenerateDestroyedNotifier();
+					}
+					sharedData->cv.wait(waitLock, [&]() {
+						return sharedData->yieldDefer.has_value() || sharedData->destroyed;
+					});
+					if(sharedData->destroyed) {
+						throw GenerateDestroyedNotifier();
+					}
+				};
+			} else {
+				yielder = [&](Yield yieldValue) {
+					if(threadId != std::this_thread::get_id()) {
+						throw std::runtime_error("Cannot call yield from a different thread than the executor");
+					}
+					std::unique_lock<std::mutex> lock(sharedData->mutex);
+					auto defer = sharedData->yieldDefer;
+					sharedData->yieldDefer = std::nullopt;
+					lock.unlock();
+					if(defer) {
+						defer->resolve(YieldResult{.value=yieldValue,.done=false});
+					}
+					if(sharedData->destroyed) {
+						throw GenerateDestroyedNotifier();
+					}
+					sharedData->cv.wait(waitLock, [&]() {
+						return sharedData->yieldDefer.has_value() || sharedData->destroyed;
+					});
+					if(sharedData->destroyed) {
+						throw GenerateDestroyedNotifier();
+					}
+				};
+			}
 			std::unique_ptr<Yield> returnVal;
 			try {
 				returnVal = std::make_unique<Yield>(executor(yielder));
@@ -439,7 +464,7 @@ namespace fgl {
 			if(!defer) {
 				throw std::logic_error("Generator continued running after GenerateDestroyedNotifier was thrown");
 			}
-			defer->resolve(YieldResult{.value=Optionalized<Yield>(std::move(*returnVal.get())),.done=true});
+			defer->resolve(YieldResult{.value=std::move(*returnVal.get()),.done=true});
 		}).detach();
 		return Generator<Yield,void>([=]() -> Promise<YieldResult> {
 			return Promise<YieldResult>([&](auto resolve, auto reject) {
