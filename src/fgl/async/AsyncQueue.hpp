@@ -201,7 +201,7 @@ namespace fgl {
 		} else if constexpr(std::is_same<decltype(work(task)),void>::value) {
 			return Promise<void>([&](auto resolve, auto reject) {
 				try {
-					work();
+					work(task);
 				} catch(...) {
 					reject(std::current_exception());
 					return;
