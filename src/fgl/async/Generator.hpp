@@ -523,11 +523,11 @@ namespace fgl {
 			return Generator<Yield,Next>([=]() {
 				if(sharedItems->size() == 0) {
 					if constexpr(std::is_same<Yield,void>::value) {
-						return Promise<Yield>::resolve(YieldResult{
+						return Promise<YieldResult>::resolve(YieldResult{
 							.done=true
 						});
 					} else {
-						return Promise<Yield>::resolve(YieldResult{
+						return Promise<YieldResult>::resolve(YieldResult{
 							.value=std::nullopt,
 							.done=true
 						});
@@ -553,11 +553,11 @@ namespace fgl {
 			return Generator<Yield,Next>([=](Next nextVal) {
 				if(sharedItems->size() == 0) {
 					if constexpr(std::is_same<Yield,void>::value) {
-						return Promise<Yield>::resolve(YieldResult{
+						return Promise<YieldResult>::resolve(YieldResult{
 							.done=true
 						});
 					} else {
-						return Promise<Yield>::resolve(YieldResult{
+						return Promise<YieldResult>::resolve(YieldResult{
 							.value=std::nullopt,
 							.done=true
 						});
