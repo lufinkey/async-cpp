@@ -128,6 +128,9 @@ namespace fgl {
 	template<typename Yield>
 	Generator<Yield,void> generate(Function<Yield(GenerateYielder<Yield> yield)> executor);
 
+	template<typename Yield, typename Next=void>
+	Generator<Yield,Next> generate_items(LinkedList<typename Generator<Yield,Next>::template _block<Next,Promise<Yield>>::type> items);
+
 
 
 #pragma mark Generator implementation
@@ -504,5 +507,47 @@ namespace fgl {
 			sharedData->destroyed = true;
 			sharedData->cv.notify_one();
 		});
+	}
+
+
+
+	template<typename Yield, typename Next>
+	Generator<Yield,Next> generate_items(LinkedList<typename Generator<Yield,Next>::template _block<Next,Promise<Yield>>::type> items) {
+		using Gen = Generator<Yield,Next>;
+		using YieldResult = typename Gen::YieldResult;
+		auto sharedItems = std::make_shared(items);
+		if constexpr(std::is_same<Next,void>::value) {
+			return Generator<Yield,Next>([=]() {
+				if(sharedItems->size() == 0) {
+					return Promise<Yield>::resolve(YieldResult{
+						.value=std::nullopt,
+						.done=true
+					});
+				}
+				auto nextFunc = sharedItems->extractFront();
+				return nextFunc().template map<YieldResult>([=](auto yieldVal) {
+					return YieldResult{
+						.value=yieldVal,
+						.done=(sharedItems->size() == 0)
+					};
+				});
+			});
+		} else {
+			return Generator<Yield,Next>([=](Next nextVal) {
+				if(sharedItems->size() == 0) {
+					return Promise<Yield>::resolve(YieldResult{
+						.value=std::nullopt,
+						.done=true
+					});
+				}
+				auto nextFunc = sharedItems->extractFront();
+				return nextFunc(nextVal).template map<YieldResult>([=](auto yieldVal) {
+					return YieldResult{
+						.value=yieldVal,
+						.done=(sharedItems->size() == 0)
+					};
+				});
+			});
+		}
 	}
 }
