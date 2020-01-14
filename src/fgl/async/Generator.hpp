@@ -522,34 +522,62 @@ namespace fgl {
 		if constexpr(std::is_same<Next,void>::value) {
 			return Generator<Yield,Next>([=]() {
 				if(sharedItems->size() == 0) {
-					return Promise<Yield>::resolve(YieldResult{
-						.value=std::nullopt,
-						.done=true
-					});
+					if constexpr(std::is_same<Yield,void>::value) {
+						return Promise<Yield>::resolve(YieldResult{
+							.done=true
+						});
+					} else {
+						return Promise<Yield>::resolve(YieldResult{
+							.value=std::nullopt,
+							.done=true
+						});
+					}
 				}
 				auto nextFunc = sharedItems->extractFront();
-				return nextFunc().template map<YieldResult>(nullptr, [=](auto yieldVal) {
-					return YieldResult{
-						.value=yieldVal,
-						.done=(sharedItems->size() == 0)
-					};
-				});
+				if constexpr(std::is_same<Yield,void>::value) {
+					return nextFunc().template map<YieldResult>(nullptr, [=]() {
+						return YieldResult{
+							.done=(sharedItems->size() == 0)
+						};
+					});
+				} else {
+					return nextFunc().template map<YieldResult>(nullptr, [=](auto yieldVal) {
+						return YieldResult{
+							.value=yieldVal,
+							.done=(sharedItems->size() == 0)
+						};
+					});
+				}
 			});
 		} else {
 			return Generator<Yield,Next>([=](Next nextVal) {
 				if(sharedItems->size() == 0) {
-					return Promise<Yield>::resolve(YieldResult{
-						.value=std::nullopt,
-						.done=true
-					});
+					if constexpr(std::is_same<Yield,void>::value) {
+						return Promise<Yield>::resolve(YieldResult{
+							.done=true
+						});
+					} else {
+						return Promise<Yield>::resolve(YieldResult{
+							.value=std::nullopt,
+							.done=true
+						});
+					}
 				}
 				auto nextFunc = sharedItems->extractFront();
-				return nextFunc(nextVal).template map<YieldResult>(nullptr, [=](auto yieldVal) {
-					return YieldResult{
-						.value=yieldVal,
-						.done=(sharedItems->size() == 0)
-					};
-				});
+				if constexpr(std::is_same<Yield,void>::value) {
+					return nextFunc(nextVal).template map<YieldResult>(nullptr, [=](auto yieldVal) {
+						return YieldResult{
+							.done=(sharedItems->size() == 0)
+						};
+					});
+				} else {
+					return nextFunc(nextVal).template map<YieldResult>(nullptr, [=](auto yieldVal) {
+						return YieldResult{
+							.value=yieldVal,
+							.done=(sharedItems->size() == 0)
+						};
+					});
+				}
 			});
 		}
 	}
