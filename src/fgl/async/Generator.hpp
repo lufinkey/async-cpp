@@ -128,8 +128,10 @@ namespace fgl {
 	template<typename Yield>
 	Generator<Yield,void> generate(Function<Yield(GenerateYielder<Yield> yield)> executor);
 
+	template<typename Yield, typename Next>
+	using GenerateItemExecutor = typename Generator<Yield,Next>::template _block<Next,Promise<Yield>>::type;
 	template<typename Yield, typename Next=void>
-	Generator<Yield,Next> generate_items(LinkedList<typename Generator<Yield,Next>::template _block<Next,Promise<Yield>>::type> items);
+	Generator<Yield,Next> generate_items(LinkedList<GenerateItemExecutor<Yield,Next>> items);
 
 
 
@@ -511,11 +513,12 @@ namespace fgl {
 
 
 
+
 	template<typename Yield, typename Next>
-	Generator<Yield,Next> generate_items(LinkedList<typename Generator<Yield,Next>::template _block<Next,Promise<Yield>>::type> items) {
+	Generator<Yield,Next> generate_items(LinkedList<GenerateItemExecutor<Yield,Next>> items) {
 		using Gen = Generator<Yield,Next>;
 		using YieldResult = typename Gen::YieldResult;
-		auto sharedItems = std::make_shared(items);
+		auto sharedItems = std::make_shared<LinkedList<GenerateItemExecutor<Yield,Next>>>(items);
 		if constexpr(std::is_same<Next,void>::value) {
 			return Generator<Yield,Next>([=]() {
 				if(sharedItems->size() == 0) {
