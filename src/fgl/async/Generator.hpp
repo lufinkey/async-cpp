@@ -525,7 +525,7 @@ namespace fgl {
 					});
 				}
 				auto nextFunc = sharedItems->extractFront();
-				return nextFunc().template map<YieldResult>([=](auto yieldVal) {
+				return nextFunc().template map<YieldResult>(nullptr, [=](auto yieldVal) {
 					return YieldResult{
 						.value=yieldVal,
 						.done=(sharedItems->size() == 0)
@@ -541,7 +541,7 @@ namespace fgl {
 					});
 				}
 				auto nextFunc = sharedItems->extractFront();
-				return nextFunc(nextVal).template map<YieldResult>([=](auto yieldVal) {
+				return nextFunc(nextVal).template map<YieldResult>(nullptr, [=](auto yieldVal) {
 					return YieldResult{
 						.value=yieldVal,
 						.done=(sharedItems->size() == 0)
