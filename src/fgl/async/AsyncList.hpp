@@ -499,7 +499,7 @@ namespace fgl {
 		if(list.items.size() > 0) {
 			using node_type = typename decltype(list->items)::node_type;
 			std::list<node_type> reinsertNodes;
-			auto it = list.items.end() - 1;
+			auto it = std::prev(list.items.end(), 1);
 			bool removing = false;
 			auto removeStartIt = list.items.end();
 			auto removeEndIt = list.items.end();
@@ -517,7 +517,7 @@ namespace fgl {
 						removeStartIt = it;
 					} else {
 						removeStartIt = it;
-						removeEndIt = it + 1;
+						removeEndIt = std::next(it, 1);
 						removing = true;
 					}
 				}
@@ -558,8 +558,8 @@ namespace fgl {
 	void AsyncList<T>::Mutator::resize(size_t count) {
 		std::unique_lock<std::recursive_mutex> lock(list.mutex);
 		// remove list items above count
-		if(list.items.size() > 0 && (list.items.end()-1)->first >= count) {
-			auto it = list.items.end() - 1;
+		if(list.items.size() > 0 && std::prev(list.items.end(),1)->first >= count) {
+			auto it = std::prev(list.items.end(),1);
 			bool removing = false;
 			auto removeStartIt = list.items.end();
 			auto removeEndIt = list.items.end();
@@ -569,7 +569,7 @@ namespace fgl {
 						removeStartIt = it;
 					} else {
 						removeStartIt = it;
-						removeEndIt = it + 1;
+						removeEndIt = std::next(it, 1);
 						removing = true;
 					}
 				} else {
