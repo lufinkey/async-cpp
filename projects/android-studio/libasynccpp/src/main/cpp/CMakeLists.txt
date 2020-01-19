@@ -9,7 +9,8 @@ set( ASYNCCPP_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../../../../.." )
 include_directories(
 		"${CMAKE_CURRENT_SOURCE_DIR}"
 		"${ASYNCCPP_ROOT}/src"
-		"${ASYNCCPP_ROOT}/../data-cpp/src")
+		"${ASYNCCPP_ROOT}/../data-cpp/src"
+		"${ASYNCCPP_ROOT}/../nodejs-embed/src")
 
 file(GLOB_RECURSE ASYNCCPP_SOURCES ../../../../../../src/fgl/*.cpp)
 
