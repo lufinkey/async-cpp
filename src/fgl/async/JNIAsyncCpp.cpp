@@ -15,13 +15,17 @@ namespace fgl {
 	JavaVM* getAsyncCppJavaVM() {
 		return mainAsyncCppJavaVM;
 	}
+
+	void setAsyncCppJavaVM(JavaVM* javaVm) {
+		mainAsyncCppJavaVM = javaVm;
+	}
 }
 
 extern "C"
 JNIEXPORT
 jint JNICALL JNI_OnLoad_AsyncCpp(JavaVM* vm, void* reserved) {
 	fgl::mainAsyncCppJavaVM = vm;
-	return JNI_VERSION_1_8;
+	return JNI_VERSION_1_6;
 }
 
 #endif

@@ -11,6 +11,7 @@
 
 namespace fgl {
 	JavaVM* getAsyncCppJavaVM();
+	void setAsyncCppJavaVM(JavaVM*);
 }
 
 #endif
