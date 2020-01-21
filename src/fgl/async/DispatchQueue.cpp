@@ -9,6 +9,7 @@
 
 #ifdef __ANDROID__
 #include <jni.h>
+#include <fgl/async/JNIAsyncCpp.hpp>
 #endif
 #include <fgl/async/DispatchQueue.hpp>
 #include <mutex>
@@ -479,13 +480,10 @@ namespace fgl {
 					localDispatchQueue = mainQueue;
 				});
 			#elif defined(__ANDROID__)
-				JavaVM* vms[1];
-				jsize vmsSize = 0;
-				JNI_GetCreatedJavaVMs(vms, 1, &vmsSize);
-				if(vmsSize == 0) {
-					throw std::runtime_error("No Java VMs found");
+				JavaVM* vm = getAsyncCppJavaVM();
+				if(vm == nullptr) {
+					throw std::runtime_error("Java VM not found");
 				}
-				JavaVM* vm = vms[0];
 				DispatchQueue::jniScope(vm, [&](auto env) {
 					jclass looperClass = env->FindClass("android/os/Looper");
 					jmethodID Looper_getMainLooper = env->GetStaticMethodID(looperClass, "getMainLooper", "()Landroid/os/Looper;");
