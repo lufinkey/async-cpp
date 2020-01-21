@@ -81,7 +81,3 @@ namespace fgl {
 		#endif
 	#endif
 }
-
-#ifdef _HAS_FGL_DATA
-	#undef _HAS_FGL_DATA
-#endif
