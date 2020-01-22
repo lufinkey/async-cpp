@@ -8,6 +8,7 @@
 
 #ifdef __ANDROID__
 #include <fgl/async/JNIAsyncCpp.hpp>
+#include <android/log.h>
 
 namespace fgl {
 	JavaVM* mainAsyncCppJavaVM = nullptr;
@@ -23,7 +24,8 @@ namespace fgl {
 
 extern "C"
 JNIEXPORT
-jint JNICALL JNI_OnLoad_AsyncCpp(JavaVM* vm, void* reserved) {
+jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved) {
+	__android_log_print(ANDROID_LOG_DEBUG, "AsyncCpp", "JNI module loaded");
 	fgl::mainAsyncCppJavaVM = vm;
 	return JNI_VERSION_1_6;
 }

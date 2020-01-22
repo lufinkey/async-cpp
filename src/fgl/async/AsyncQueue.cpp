@@ -10,8 +10,12 @@
 
 namespace fgl {
 	AsyncQueue::AsyncQueue(Options options)
-	: options(options) {
+	: options(options), aliveStatus(std::make_shared<AliveStatus>()) {
 		//
+	}
+
+	AsyncQueue::~AsyncQueue() {
+		aliveStatus->alive = false;
 	}
 
 	size_t AsyncQueue::taskCount() const {

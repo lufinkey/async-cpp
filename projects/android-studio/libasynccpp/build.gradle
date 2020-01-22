@@ -16,6 +16,8 @@ android {
 		externalNativeBuild {
 			cmake {
 				targets 'AsyncCpp'
+				cppFlags "-std=c++17"
+				arguments "-DANDROID_STL=c++_shared"
 			}
 		}
 	}
@@ -24,6 +26,7 @@ android {
 		debug {
 			minifyEnabled false
 			debuggable true
+			jniDebuggable true
 		}
 		release {
 			minifyEnabled false

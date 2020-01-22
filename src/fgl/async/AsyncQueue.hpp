@@ -59,6 +59,7 @@ namespace fgl {
 		
 		
 		AsyncQueue(Options options = Options{.cancelUnfinishedTasks=false});
+		~AsyncQueue();
 		
 		size_t taskCount() const;
 		
@@ -95,7 +96,7 @@ namespace fgl {
 		
 	private:
 		template<typename Work>
-		Promise<void> performWork(std::shared_ptr<Task> task, Work work);
+		static Promise<void> performWork(std::shared_ptr<Task> task, Work work);
 		
 		template<typename GeneratorType>
 		static Promise<void> runGenerator(GeneratorType generator, Function<bool()> shouldStop);
@@ -111,6 +112,11 @@ namespace fgl {
 		LinkedList<TaskNode> taskQueue;
 		Optional<Promise<void>> taskQueuePromise;
 		mutable std::recursive_mutex mutex;
+
+		struct AliveStatus {
+			bool alive = true;
+		};
+		std::shared_ptr<AliveStatus> aliveStatus;
 	};
 
 
@@ -144,17 +150,24 @@ namespace fgl {
 			rejectTask = reject;
 		});
 		ASYNC_CPP_LIST_PUSH(taskQueue, TaskNode{ .task=task, .promise=taskPromise });
+		auto aliveStatus = this->aliveStatus;
 		taskQueuePromise = taskQueuePromise.value_or(Promise<void>::resolve()).then([=]() -> Promise<void> {
 			if(task->isCancelled()) {
-				removeTask(task);
+				if(aliveStatus->alive) {
+					removeTask(task);
+				}
 				resolveTask();
 				return Promise<void>::resolve();
 			}
 			return task->perform().then([=]() {
-				removeTask(task);
+				if(aliveStatus->alive) {
+					removeTask(task);
+				}
 				resolveTask();
 			}, [=](std::exception_ptr error) {
-				removeTask(task);
+				if(aliveStatus->alive) {
+					removeTask(task);
+				}
 				rejectTask(error);
 			});
 		});

@@ -14,7 +14,7 @@ include_directories(
 
 file(GLOB_RECURSE ASYNCCPP_SOURCES ../../../../../../src/fgl/*.cpp)
 
-add_library(AsyncCpp STATIC
+add_library(AsyncCpp SHARED
 		AsyncCpp_android.cpp
 		${ASYNCCPP_SOURCES})
 

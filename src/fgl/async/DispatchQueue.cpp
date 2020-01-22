@@ -45,6 +45,11 @@ namespace fgl {
 		jmethodID Handler_postDelayed;
 		jmethodID Looper_getThread;
 		jmethodID Thread_getName;
+
+		jobject newNativeRunnable(JNIEnv* env, std::function<void(JNIEnv*,std::vector<jobject>)> func) {
+			auto nativeFunc = new std::function<void(JNIEnv*,std::vector<jobject>)>(func);
+			return env->NewObject(nativeRunnableClass, NativeRunnable_init, (jlong)nativeFunc);
+		}
 	};
 	#else
 	struct _DispatchQueueNativeData {
@@ -121,7 +126,8 @@ namespace fgl {
 		jclass handlerClass = env->FindClass("android/os/Handler");
 		jclass looperClass = env->FindClass("android/os/Looper");
 		jclass threadClass = env->FindClass("java/lang/Thread");
-		jclass nativeRunnableClass = env->FindClass("Lcom/lufinkey/libasynccpp/NativeRunnable;");
+		jclass nativeRunnableClass = env->FindClass("com/lufinkey/libasynccpp/NativeRunnable");
+		nativeRunnableClass = (jclass)env->NewGlobalRef(nativeRunnableClass);
 		jmethodID handlerInit = env->GetMethodID(handlerClass, "<init>", "(Landroid/os/Looper;)V");
 		jobject handler = env->NewObject(handlerClass, handlerInit, looper);
 		handler = env->NewGlobalRef(handler);
@@ -154,8 +160,9 @@ namespace fgl {
 			#if defined(__APPLE__)
 				dispatch_release(nativeData->queue);
 			#elif defined(__ANDROID__)
-				jniScope(nativeData->vm, [&](auto env) {
+				jniScope(nativeData->vm, [=](auto env) {
 					env->DeleteGlobalRef(nativeData->handler);
+					env->DeleteGlobalRef(nativeData->nativeRunnableClass);
 				});
 			#endif
 			delete nativeData;
@@ -307,18 +314,17 @@ namespace fgl {
 			notify();
 			lock.unlock();
 		} else {
-			auto& nativeData = *std::get<NativeData*>(this->data);
+			auto nativeData = std::get<NativeData*>(this->data);
 		#if defined(__APPLE__)
-			dispatch_async(nativeData.queue, ^{
+			dispatch_async(nativeData->queue, ^{
 				workItem->perform();
 			});
 		#elif defined(__ANDROID__)
-			jniScope(nativeData.vm, [&](auto env) {
-				jobject runnable = env->NewObject(nativeData.nativeRunnableClass, nativeData.NativeRunnable_init,
-					new std::function<void(JNIEnv*,std::vector<jobject>)>([=](auto env, auto args) {
-						workItem->perform();
-					}));
-				jboolean success = env->CallBooleanMethod(nativeData.handler, nativeData.Handler_post, runnable);
+			jniScope(nativeData->vm, [=](auto env) {
+				jobject runnable = nativeData->newNativeRunnable(env, [=](auto env, auto args) {
+					workItem->perform();
+				});
+				jboolean success = env->CallBooleanMethod(nativeData->handler, nativeData->Handler_post, runnable);
 				if(!success) {
 					throw std::runtime_error("unable to add item to DispatchQueue: Handler.post failed");
 				}
@@ -353,13 +359,13 @@ namespace fgl {
 			notify();
 			lock.unlock();
 		} else {
-			auto& nativeData = *std::get<NativeData*>(this->data);
+			auto nativeData = std::get<NativeData*>(this->data);
 		#if defined(__APPLE__)
 			auto nanoseconds = std::chrono::nanoseconds(deadline - Clock::now()).count();
 			if(nanoseconds < 0) {
 				nanoseconds = 0;
 			}
-			dispatch_after(dispatch_time(DISPATCH_TIME_NOW, nanoseconds), nativeData.queue, ^{
+			dispatch_after(dispatch_time(DISPATCH_TIME_NOW, nanoseconds), nativeData->queue, ^{
 				workItem->perform();
 			});
 		#elif defined(__ANDROID__)
@@ -367,12 +373,11 @@ namespace fgl {
 			if(milliseconds < 0) {
 				milliseconds = 0;
 			}
-			jniScope(nativeData.vm, [&](auto env) {
-				jobject runnable = env->NewObject(nativeData.nativeRunnableClass, nativeData.NativeRunnable_init,
-					new std::function<void(JNIEnv*,std::vector<jobject>)>([=](auto env, auto args) {
-						workItem->perform();
-					}));
-				jboolean success = env->CallBooleanMethod(nativeData.handler, nativeData.Handler_postDelayed, runnable, (jlong)milliseconds);
+			jniScope(nativeData->vm, [=](auto env) {
+				jobject runnable = nativeData->newNativeRunnable(env, [=](auto env, auto args) {
+					workItem->perform();
+				});
+				jboolean success = env->CallBooleanMethod(nativeData->handler, nativeData->Handler_postDelayed, runnable, (jlong)milliseconds);
 				if(!success) {
 					throw std::runtime_error("unable to add item to DispatchQueue: Handler.postDelayed failed");
 				}
@@ -407,9 +412,9 @@ namespace fgl {
 				return finished;
 			});
 		} else {
-			auto& nativeData = *std::get<NativeData*>(this->data);
+			auto nativeData = std::get<NativeData*>(this->data);
 		#if defined(__APPLE__)
-			dispatch_sync(nativeData.queue, ^{
+			dispatch_sync(nativeData->queue, ^{
 				workItem->perform();
 			});
 		#elif defined(__ANDROID__)
@@ -418,14 +423,13 @@ namespace fgl {
 			std::unique_lock<std::mutex> waitLock(waitMutex);
 			bool finished = false;
 
-			jniScope(nativeData.vm, [&](auto env) {
-				jobject runnable = env->NewObject(nativeData.nativeRunnableClass, nativeData.NativeRunnable_init,
-					new std::function<void(JNIEnv*,std::vector<jobject>)>([&](auto env, auto args) {
-						workItem->perform();
-						finished = true;
-						cv.notify_one();
-					}));
-				jboolean success = env->CallBooleanMethod(nativeData.handler, nativeData.Handler_post, runnable);
+			jniScope(nativeData->vm, [&](auto env) {
+				jobject runnable = nativeData->newNativeRunnable(env, [&](auto env, auto args) {
+					workItem->perform();
+					finished = true;
+					cv.notify_one();
+				});
+				jboolean success = env->CallBooleanMethod(nativeData->handler, nativeData->Handler_post, runnable);
 				if(!success) {
 					throw std::runtime_error("unable to add item to DispatchQueue: Handler.post failed");
 				}

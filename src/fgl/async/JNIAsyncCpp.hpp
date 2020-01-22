@@ -6,6 +6,8 @@
 //  Copyright © 2020 Luis Finke. All rights reserved.
 //
 
+#pragma once
+
 #ifdef __ANDROID__
 #include <jni.h>
 
