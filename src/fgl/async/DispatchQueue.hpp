@@ -60,11 +60,11 @@ namespace fgl {
 		
 		[[noreturn]]
 		static void dispatchMain();
-		static DispatchQueue* getMain();
+		static DispatchQueue* main();
 		static bool usesMainQueue();
 		static bool enableMainQueue();
 		
-		static DispatchQueue* getLocal();
+		static DispatchQueue* local();
 
 		#ifdef JNIEXPORT
 		static void jniScope(JavaVM* vm, Function<void(JNIEnv*)> work);

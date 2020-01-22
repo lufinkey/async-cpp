@@ -461,7 +461,7 @@ namespace fgl {
 		FGL_ASSERT(usesMainQueue(), "enableMainQueue() must be called in order to use this function");
 		FGL_ASSERT(!DispatchQueue_mainQueueRunning, "main DispatchQueue has already been dispatched");
 		DispatchQueue_mainQueueRunning = true;
-		getMain();
+		DispatchQueue::main();
 		#if defined(__APPLE__)
 			dispatch_main();
 		#elif defined(__ANDROID__)
@@ -472,7 +472,7 @@ namespace fgl {
 		#endif
 	}
 	
-	DispatchQueue* DispatchQueue::getMain() {
+	DispatchQueue* DispatchQueue::main() {
 		if(mainQueue == nullptr && usesMainQueue()) {
 			std::unique_lock<std::mutex> lock(DispatchQueue_mainQueueMutex);
 			if(mainQueue != nullptr) {
@@ -515,7 +515,7 @@ namespace fgl {
 		return true;
 	}
 	
-	DispatchQueue* DispatchQueue::getLocal() {
+	DispatchQueue* DispatchQueue::local() {
 		return localDispatchQueue;
 	}
 }

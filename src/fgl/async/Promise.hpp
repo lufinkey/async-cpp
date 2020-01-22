@@ -1709,7 +1709,7 @@ namespace fgl {
 				if(onresolve) {
 					if constexpr(std::is_same<Result,void>::value) {
 						resolvers.push_back([=]() {
-							if(thenQueue != nullptr) {
+							if(thenQueue != nullptr && thenQueue != DispatchQueue::local()) {
 								thenQueue->async([=]() {
 									onresolve();
 								});
@@ -1720,7 +1720,7 @@ namespace fgl {
 					}
 					else {
 						resolvers.push_back([=](auto result) {
-							if(thenQueue != nullptr) {
+							if(thenQueue != nullptr && thenQueue != DispatchQueue::local()) {
 								thenQueue->async([=]() {
 									onresolve(result);
 								});
@@ -1732,7 +1732,7 @@ namespace fgl {
 				}
 				if(onreject) {
 					rejecters.push_back([=](auto error) {
-						if(catchQueue != nullptr) {
+						if(catchQueue != nullptr && thenQueue != DispatchQueue::local()) {
 							catchQueue->async([=]() {
 								onreject(error);
 							});
@@ -1747,7 +1747,7 @@ namespace fgl {
 			case State::RESOLVED: {
 				lock.unlock();
 				if(onresolve) {
-					if(thenQueue != nullptr) {
+					if(thenQueue != nullptr && thenQueue != DispatchQueue::local()) {
 						auto self = this->self.lock();
 						thenQueue->async([=]() {
 							auto future = self->future;
@@ -1776,7 +1776,7 @@ namespace fgl {
 			case State::REJECTED: {
 				lock.unlock();
 				if(onreject) {
-					if(catchQueue != nullptr) {
+					if(catchQueue != nullptr && catchQueue != DispatchQueue::local()) {
 						auto self = this->self.lock();
 						catchQueue->async([=]() {
 							auto future = self->future;
