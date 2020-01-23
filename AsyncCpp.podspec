@@ -43,6 +43,9 @@ Pod::Spec.new do |s|
 		'HEADER_SEARCH_PATHS' => '"$(PODS_ROOT)/DataCpp/src" "$(PODS_ROOT)/AsyncCpp/src"',
 		'CLANG_CXX_LANGUAGE_STANDARD' => 'gnu++17'
 	}
+	s.user_target_xcconfig = {
+		'FRAMEWORK_SEARCH_PATHS' => "${PODS_ROOT}/AsyncCpp/src"
+	}
 	# s.frameworks = 'UIKit', 'MapKit'
 	s.dependency 'DataCpp' # git@github.com:lufinkey/data-cpp.git
 end
