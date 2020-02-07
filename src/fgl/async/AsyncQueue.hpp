@@ -230,7 +230,7 @@ namespace fgl {
 
 	template<typename GeneratorType>
 	Promise<void> AsyncQueue::runGenerator(GeneratorType gen, Function<bool()> shouldStop) {
-		return gen.next().then(nullptr, [=](typename GeneratorType::YieldResult yieldResult) -> Promise<void> {
+		return gen.next().then([=](typename GeneratorType::YieldResult yieldResult) -> Promise<void> {
 			if(yieldResult.done || shouldStop()) {
 				return Promise<void>::resolve();
 			}
