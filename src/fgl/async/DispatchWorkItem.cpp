@@ -40,7 +40,12 @@ namespace fgl {
 		ranOnce = true;
 		lock.unlock();
 		
-		work();
+		std::exception_ptr error;
+		try {
+			work();
+		} catch(...) {
+			error = std::current_exception();
+		}
 		
 		std::list<Function<void()>> notifyItems;
 		lock.lock();
@@ -53,6 +58,8 @@ namespace fgl {
 		if(options.deleteAfterRunning) {
 			delete this;
 		}
+		
+		std::rethrow_exception(error);
 	}
 	
 	void DispatchWorkItem::notify(DispatchQueue* queue, Function<void()> work) {
