@@ -244,7 +244,7 @@ namespace fgl {
 			if(it->first != nextIndex) {
 				return loadedItems;
 			}
-			ASYNC_CPP_LIST_PUSH(loadedItems, it->second);
+			ASYNC_CPP_LIST_PUSH(loadedItems, it->second.item);
 			it++;
 			nextIndex++;
 		}
