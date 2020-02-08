@@ -85,7 +85,12 @@ namespace fgl {
 		
 		bool isItemLoaded(size_t index, bool ignoreValidity = false) const;
 		bool areItemsLoaded(size_t index, size_t count, bool ignoreValidity = false) const;
-		LinkedList<T> getLoadedItems(size_t startIndex = 0, bool ignoreValidity = false) const;
+		struct GetLoadedItemsOptions {
+			size_t startIndex = 0;
+			size_t limit = (size_t)-1;
+			bool ignoreValidity = false;
+		};
+		LinkedList<T> getLoadedItems(GetLoadedItemsOptions options = GetLoadedItemsOptions()) const;
 		
 		Optional<T> itemAt(size_t index, bool ignoreValidity = false) const;
 		struct GetItemOptions {
@@ -227,13 +232,13 @@ namespace fgl {
 	}
 
 	template<typename T>
-	LinkedList<T> AsyncList<T>::getLoadedItems(size_t startIndex, bool ignoreValidity) const {
+	LinkedList<T> AsyncList<T>::getLoadedItems(GetLoadedItemsOptions options) const {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		LinkedList<T> loadedItems;
-		auto it = items.find(startIndex);
-		size_t nextIndex = startIndex;
-		while(it != items.end()) {
-			if(!ignoreValidity && !it->second.valid) {
+		auto it = items.find(options.startIndex);
+		size_t nextIndex = options.startIndex;
+		while(it != items.end() && loadedItems.size() < options.limit) {
+			if(!options.ignoreValidity && !it->second.valid) {
 				return loadedItems;
 			}
 			if(it->first != nextIndex) {
