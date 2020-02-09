@@ -55,7 +55,7 @@ Promise<Result> waitFor(unsigned int milliseconds, Result returnValue) {
 }
 
 
-int main(int argc, const char* argv[]) {
+void runTests() {
 	auto promise = waitFor(2000, 23).then([](int result) {
 		printf("result 1: %i\n", result);
 		return waitFor(5000, 16);
@@ -92,6 +92,11 @@ int main(int argc, const char* argv[]) {
 		printf("we got gen result %i. done? %i, has value? %i, value? %i\n", genCounter, (int)genResult.done, (int)genResult.value.has_value(), genResult.value.value_or(-1));
 		genCounter++;
 	}
-	
+}
+
+
+int main(int argc, const char* argv[]) {
+	runTests();
+	std::this_thread::sleep_for(std::chrono::seconds(4));
 	return 0;
 }
