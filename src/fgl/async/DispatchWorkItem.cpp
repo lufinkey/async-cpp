@@ -59,7 +59,9 @@ namespace fgl {
 			delete this;
 		}
 		
-		std::rethrow_exception(error);
+		if(error) {
+			std::rethrow_exception(error);
+		}
 	}
 	
 	void DispatchWorkItem::notify(DispatchQueue* queue, Function<void()> work) {
