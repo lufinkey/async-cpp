@@ -20,7 +20,7 @@
 
 namespace fgl {
 	template<typename T>
-	class AsyncList: std::enable_shared_from_this<AsyncList<T>> {
+	class AsyncList: public std::enable_shared_from_this<AsyncList<T>> {
 	public:
 		class Mutator {
 			friend class AsyncList<T>;
@@ -451,8 +451,9 @@ namespace fgl {
 
 	template<typename T>
 	Promise<void> AsyncList<T>::mutate(Function<Promise<void>(Mutator*)> executor) {
+		auto self = this->shared_from_this();
 		return mutationQueue.run([=](auto task) -> Promise<void> {
-			return executor(&mutator);
+			return executor(&mutator).then([self]() {});
 		}).promise;
 	}
 

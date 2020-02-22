@@ -16,11 +16,7 @@
 namespace fgl {
 	class AsyncQueue {
 	public:
-		struct Options {
-			bool cancelUnfinishedTasks = false;
-		};
-		
-		class Task {
+		class Task: public std::enable_shared_from_this<Task> {
 			friend class AsyncQueue;
 		public:
 			struct Options {
@@ -44,11 +40,10 @@ namespace fgl {
 			void setStatus(Status);
 			
 		private:
-			Task(std::shared_ptr<Task>& ptr, Options options, Function<Promise<void>(std::shared_ptr<Task>)> executor);
+			Task(Options options, Function<Promise<void>(std::shared_ptr<Task>)> executor);
 			
 			Promise<void> perform();
 			
-			std::weak_ptr<Task> self;
 			Options options;
 			Function<Promise<void>(std::shared_ptr<Task>)> executor;
 			Optional<Promise<void>> promise;
@@ -57,8 +52,12 @@ namespace fgl {
 			bool done;
 		};
 		
+		struct Options {
+			DispatchQueue* dispatchQueue = getDefaultPromiseQueue();
+			bool cancelUnfinishedTasks = false;
+		};
 		
-		AsyncQueue(Options options = Options{.cancelUnfinishedTasks=false});
+		AsyncQueue(Options options = Options{.dispatchQueue=getDefaultPromiseQueue(),.cancelUnfinishedTasks=false});
 		~AsyncQueue();
 		
 		size_t taskCount() const;
@@ -139,8 +138,7 @@ namespace fgl {
 			.name=options.name,
 			.tag=options.tag
 		};
-		std::shared_ptr<Task> task;
-		new Task(task, taskOptions, [=](std::shared_ptr<Task> task) {
+		auto task = std::make_shared<Task>(taskOptions, [=](std::shared_ptr<Task> task) {
 			return performWork<Work>(task, work);
 		});
 		typename Promise<void>::Resolver resolveTask;
