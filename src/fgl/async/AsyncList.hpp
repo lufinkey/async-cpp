@@ -11,6 +11,7 @@
 #include <cmath>
 #include <list>
 #include <map>
+#include <memory>
 #include <variant>
 #include <fgl/async/Common.hpp>
 #include <fgl/async/Promise.hpp>
@@ -19,7 +20,7 @@
 
 namespace fgl {
 	template<typename T>
-	class AsyncList {
+	class AsyncList: std::enable_shared_from_this<AsyncList<T>> {
 	public:
 		class Mutator {
 			friend class AsyncList<T>;
@@ -71,6 +72,8 @@ namespace fgl {
 			Optional<size_t> initialSize;
 		};
 		
+		static std::shared_ptr<AsyncList<T>> new$(Options options);
+		
 		AsyncList(const AsyncList&) = delete;
 		AsyncList(Options options);
 		
@@ -104,6 +107,9 @@ namespace fgl {
 		template<typename Callable>
 		Optional<size_t> indexWhere(Callable predicate, bool ignoreValidity = false) const;
 		
+		Promise<void> mutate(Function<Promise<void>(Mutator*)> executor);
+		Promise<void> mutate(Function<void(Mutator*)> executor);
+		
 	private:
 		size_t chunkStartIndexForIndex(size_t index) const;
 		
@@ -124,6 +130,11 @@ namespace fgl {
 
 
 #pragma mark AsyncList implementation
+
+	template<typename T>
+	std::shared_ptr<AsyncList<T>> AsyncList<T>::new$(Options options) {
+		return std::make_shared<AsyncList<T>>(options);
+	}
 
 	template<typename T>
 	AsyncList<T>::AsyncList(Options options)
@@ -275,16 +286,17 @@ namespace fgl {
 		if(options.trackIndexChanges) {
 			watchIndex(indexMarker);
 		}
-		return Promise<Optional<T>>([&](auto resolve, auto reject) {
-			mutationQueue.run([=](auto task) -> Promise<void> {
+		auto self = this->shared_from_this();
+		return Promise<Optional<T>>([=](auto resolve, auto reject) {
+			self->mutationQueue.run([=](auto task) -> Promise<void> {
 				if(options.trackIndexChanges) {
-					unwatchIndex(indexMarker);
+					self->unwatchIndex(indexMarker);
 				}
 				size_t index = *indexMarker.get();
-				size_t chunkStartIndex = chunkStartIndexForIndex(index);
-				return delegate->loadAsyncListItems(&mutator, chunkStartIndex, chunkSize)
+				size_t chunkStartIndex = self->chunkStartIndexForIndex(index);
+				return self->delegate->loadAsyncListItems(&self->mutator, chunkStartIndex, chunkSize)
 				.then(nullptr, [=]() {
-					resolve(itemAt(index));
+					resolve(self->itemAt(index));
 				}, reject);
 			});
 		});
@@ -321,17 +333,18 @@ namespace fgl {
 		if(options.trackIndexChanges) {
 			watchIndex(indexMarker);
 		}
+		auto self = this->shared_from_this();
 		return Promise<LinkedList<T>>([=](auto resolve, auto reject) {
-			mutationQueue.run([=](auto task) -> Promise<void> {
+			self->mutationQueue.run([=](auto task) -> Promise<void> {
 				if(options.trackIndexChanges) {
-					unwatchIndex(indexMarker);
+					self->unwatchIndex(indexMarker);
 				}
 				size_t index = *indexMarker.get();
-				size_t chunkStartIndex = chunkStartIndexForIndex(index);
-				size_t chunkEndIndex = chunkStartIndexForIndex(index+count);
-				return delegate->loadAsyncListItems(&mutator, chunkStartIndex, chunkEndIndex-chunkStartIndex)
+				size_t chunkStartIndex = self->chunkStartIndexForIndex(index);
+				size_t chunkEndIndex = self->chunkStartIndexForIndex(index+count);
+				return self->delegate->loadAsyncListItems(&mutator, chunkStartIndex, chunkEndIndex-chunkStartIndex)
 				.then(nullptr, [=]() {
-					std::unique_lock<std::recursive_mutex> lock(mutex);
+					std::unique_lock<std::recursive_mutex> lock(self->mutex);
 					LinkedList<T> loadedItems;
 					if(itemsSize.has_value() && index >= itemsSize.value()) {
 						lock.unlock();
@@ -371,8 +384,9 @@ namespace fgl {
 	Generator<LinkedList<T>,void> AsyncList<T>::generateItems(size_t startIndex) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto indexMarker = watchIndex(startIndex);
+		auto self = this->shared_from_this();
 		return generate<LinkedList<T>>([=](auto yield) {
-			std::unique_lock<std::recursive_mutex> lock(mutex);
+			std::unique_lock<std::recursive_mutex> lock(self->mutex);
 			try {
 				while(true) {
 					size_t index = *indexMarker;
@@ -381,7 +395,7 @@ namespace fgl {
 					lock.lock();
 					*indexMarker += items.size();
 					if(itemsSize.has_value() && *indexMarker >= itemsSize) {
-						unwatchIndex(indexMarker);
+						self->unwatchIndex(indexMarker);
 						return items;
 					}
 					lock.unlock();
@@ -389,10 +403,10 @@ namespace fgl {
 					lock.lock();
 				}
 			} catch(GenerateDestroyedNotifier&) {
-				unwatchIndex(indexMarker);
+				self->unwatchIndex(indexMarker);
 				std::rethrow_exception(std::current_exception());
 			} catch(...) {
-				unwatchIndex(indexMarker);
+				self->unwatchIndex(indexMarker);
 				std::rethrow_exception(std::current_exception());
 			}
 		});
@@ -432,6 +446,24 @@ namespace fgl {
 	const AsyncList<T>* AsyncList<T>::Mutator::getList() const {
 		return &list;
 	}
+
+
+
+	template<typename T>
+	Promise<void> AsyncList<T>::mutate(Function<Promise<void>(Mutator*)> executor) {
+		return mutationQueue.run([=](auto task) -> Promise<void> {
+			return executor(&mutator);
+		}).promise;
+	}
+
+	template<typename T>
+	Promise<void> AsyncList<T>::mutate(Function<void(Mutator*)> executor) {
+		return mutationQueue.run([=](auto task) -> void {
+			return executor(&mutator);
+		}).promise;
+	}
+
+
 
 	template<typename T>
 	template<typename Work>
