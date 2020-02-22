@@ -95,10 +95,10 @@ namespace fgl {
 		
 	private:
 		template<typename Work>
-		static Promise<void> performWork(std::shared_ptr<Task> task, Work work);
+		static Promise<void> performWork(DispatchQueue* dispatchQueue, std::shared_ptr<Task> task, Work work);
 		
 		template<typename GeneratorType>
-		static Promise<void> runGenerator(GeneratorType generator, Function<bool()> shouldStop);
+		static Promise<void> runGenerator(DispatchQueue* dispatchQueue, GeneratorType generator, Function<bool()> shouldStop);
 		
 		void removeTask(std::shared_ptr<Task> task);
 		
@@ -138,8 +138,9 @@ namespace fgl {
 			.name=options.name,
 			.tag=options.tag
 		};
+		auto dispatchQueue = this->options.dispatchQueue;
 		auto task = std::make_shared<Task>(taskOptions, [=](std::shared_ptr<Task> task) {
-			return performWork<Work>(task, work);
+			return performWork<Work>(dispatchQueue, task, work);
 		});
 		typename Promise<void>::Resolver resolveTask;
 		typename Promise<void>::Rejecter rejectTask;
@@ -149,7 +150,7 @@ namespace fgl {
 		});
 		ASYNC_CPP_LIST_PUSH(taskQueue, TaskNode{ .task=task, .promise=taskPromise });
 		auto aliveStatus = this->aliveStatus;
-		taskQueuePromise = taskQueuePromise.value_or(Promise<void>::resolve()).then([=]() -> Promise<void> {
+		taskQueuePromise = taskQueuePromise.value_or(Promise<void>::resolve()).then(dispatchQueue, [=]() -> Promise<void> {
 			if(task->isCancelled()) {
 				if(aliveStatus->alive) {
 					removeTask(task);
@@ -157,7 +158,7 @@ namespace fgl {
 				resolveTask();
 				return Promise<void>::resolve();
 			}
-			return task->perform().then([=]() {
+			return task->perform().then(dispatchQueue, [=]() {
 				if(aliveStatus->alive) {
 					removeTask(task);
 				}
@@ -194,7 +195,7 @@ namespace fgl {
 
 
 	template<typename Work>
-	Promise<void> AsyncQueue::performWork(std::shared_ptr<Task> task, Work work) {
+	Promise<void> AsyncQueue::performWork(DispatchQueue* dispatchQueue, std::shared_ptr<Task> task, Work work) {
 		if constexpr(is_promise<decltype(work(task))>::value) {
 			// promise
 			auto promise = work(task);
@@ -206,7 +207,7 @@ namespace fgl {
 		} else if constexpr(is_generator<decltype(work(task))>::value) {
 			// generator
 			auto gen = work(task);
-			return runGenerator(gen, [=]() {
+			return runGenerator(dispatchQueue, gen, [=]() {
 				return task->isCancelled();
 			});
 		} else if constexpr(std::is_same<decltype(work(task)),void>::value) {
@@ -227,12 +228,12 @@ namespace fgl {
 	}
 
 	template<typename GeneratorType>
-	Promise<void> AsyncQueue::runGenerator(GeneratorType gen, Function<bool()> shouldStop) {
-		return gen.next().then([=](typename GeneratorType::YieldResult yieldResult) -> Promise<void> {
+	Promise<void> AsyncQueue::runGenerator(DispatchQueue* dispatchQueue, GeneratorType gen, Function<bool()> shouldStop) {
+		return gen.next().then(dispatchQueue, [=](typename GeneratorType::YieldResult yieldResult) -> Promise<void> {
 			if(yieldResult.done || shouldStop()) {
 				return Promise<void>::resolve();
 			}
-			return runGenerator(gen,shouldStop);
+			return runGenerator(dispatchQueue,gen,shouldStop);
 		});
 	}
 }
