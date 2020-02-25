@@ -67,6 +67,7 @@ namespace fgl {
 		struct Options {
 			Delegate* delegate = nullptr;
 			size_t chunkSize = 0;
+			std::map<size_t,T> initialItemsMap;
 			ArrayList<T> initialItems;
 			size_t initialItemsOffset = 0;
 			Optional<size_t> initialSize;
@@ -149,12 +150,18 @@ namespace fgl {
 		}
 		
 		// set initial items
+		for(auto& pair : options.initialItemsMap) {
+			items.insert_or_assign(pair.first, ItemNode{
+				.item=pair.second,
+				.valid=true
+			});
+		}
 		size_t initialItemsOffset = options.initialItemsOffset;
 		for(auto& item : options.initialItems) {
-			items[initialItemsOffset] = ItemNode{
+			items.insert_or_assign(initialItemsOffset, ItemNode{
 				.item = item,
 				.valid = true
-			};
+			});
 			initialItemsOffset++;
 		}
 	}
