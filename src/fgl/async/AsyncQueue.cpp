@@ -113,14 +113,15 @@ namespace fgl {
 
 
 
-	AsyncQueue::Task::Task(Options options, Function<Promise<void>(std::shared_ptr<Task>)> executor)
+	AsyncQueue::Task::Task(std::shared_ptr<Task>& ptr, Options options, Function<Promise<void>(std::shared_ptr<Task>)> executor)
 	: options(options), executor(executor), cancelled(false), done(false) {
-		//
+		ptr = std::shared_ptr<Task>(this);
+		weakSelf = ptr;
 	}
 
 	Promise<void> AsyncQueue::Task::perform() {
 		FGL_ASSERT(!promise.has_value(), "Cannot call Task::perform more than once");
-		auto self = shared_from_this();
+		auto self = weakSelf.lock();
 		promise = executor(self).then(nullptr, [=]() {
 			self->promise = std::nullopt;
 		});

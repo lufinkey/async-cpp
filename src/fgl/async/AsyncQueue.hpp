@@ -16,7 +16,7 @@
 namespace fgl {
 	class AsyncQueue {
 	public:
-		class Task: public std::enable_shared_from_this<Task> {
+		class Task {
 			friend class AsyncQueue;
 		public:
 			struct Options {
@@ -40,10 +40,11 @@ namespace fgl {
 			void setStatus(Status);
 			
 		private:
-			Task(Options options, Function<Promise<void>(std::shared_ptr<Task>)> executor);
+			Task(std::shared_ptr<Task>& ptr, Options options, Function<Promise<void>(std::shared_ptr<Task>)> executor);
 			
 			Promise<void> perform();
 			
+			std::weak_ptr<Task> weakSelf;
 			Options options;
 			Function<Promise<void>(std::shared_ptr<Task>)> executor;
 			Optional<Promise<void>> promise;
@@ -139,7 +140,8 @@ namespace fgl {
 			.tag=options.tag
 		};
 		auto dispatchQueue = this->options.dispatchQueue;
-		auto task = std::make_shared<Task>(taskOptions, [=](std::shared_ptr<Task> task) {
+		std::shared_ptr<Task> task;
+		new Task(task, taskOptions, [=](std::shared_ptr<Task> task) {
 			return performWork<Work>(dispatchQueue, task, work);
 		});
 		typename Promise<void>::Resolver resolveTask;
