@@ -107,6 +107,9 @@ namespace fgl {
 		template<typename Callable>
 		Optional<size_t> indexWhere(Callable predicate, bool ignoreValidity = false) const;
 		
+		void forValidInRange(size_t startIndex, size_t endIndex, Function<void(T&)> executor);
+		void forValidInRange(size_t startIndex, size_t endIndex, Function<void(const T&)> executor) const;
+		
 		Promise<void> mutate(Function<Promise<void>(Mutator*)> executor);
 		Promise<void> mutate(Function<void(Mutator*)> executor);
 		
@@ -430,21 +433,30 @@ namespace fgl {
 	}
 
 
-
 	template<typename T>
-	AsyncList<T>::Mutator::Mutator(AsyncList<T>& list)
-	: list(list) {
-		//
+	void AsyncList<T>::forValidInRange(size_t startIndex, size_t endIndex, Function<void(T&)> executor) {
+		auto startIt = items.lower_bound(startIndex);
+		if(startIt == items.end() || startIt->first >= endIndex) {
+			return;
+		}
+		for(auto it=startIt; it!=items.end() && it->first < endIndex; it++) {
+			if(it->second.valid) {
+				executor(it->second.item);
+			}
+		}
 	}
 
 	template<typename T>
-	AsyncList<T>* AsyncList<T>::Mutator::getList() {
-		return &list;
-	}
-
-	template<typename T>
-	const AsyncList<T>* AsyncList<T>::Mutator::getList() const {
-		return &list;
+	void AsyncList<T>::forValidInRange(size_t startIndex, size_t endIndex, Function<void(const T&)> executor) const {
+		auto startIt = items.lower_bound(startIndex);
+		if(startIt == items.end() || startIt->first >= endIndex) {
+			return;
+		}
+		for(auto it=startIt; it!=items.end() && it->first < endIndex; it++) {
+			if(it->second.valid) {
+				executor(it->second.item);
+			}
+		}
 	}
 
 
@@ -462,6 +474,24 @@ namespace fgl {
 		return mutationQueue.run([=](auto task) -> void {
 			return executor(&mutator);
 		}).promise;
+	}
+
+
+
+	template<typename T>
+	AsyncList<T>::Mutator::Mutator(AsyncList<T>& list)
+	: list(list) {
+		//
+	}
+
+	template<typename T>
+	AsyncList<T>* AsyncList<T>::Mutator::getList() {
+		return &list;
+	}
+
+	template<typename T>
+	const AsyncList<T>* AsyncList<T>::Mutator::getList() const {
+		return &list;
 	}
 
 
