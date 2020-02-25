@@ -107,8 +107,8 @@ namespace fgl {
 		template<typename Callable>
 		Optional<size_t> indexWhere(Callable predicate, bool ignoreValidity = false) const;
 		
-		void forValidInRange(size_t startIndex, size_t endIndex, Function<void(T&)> executor);
-		void forValidInRange(size_t startIndex, size_t endIndex, Function<void(const T&)> executor) const;
+		void forValidInRange(size_t startIndex, size_t endIndex, Function<void(T&,size_t)> executor);
+		void forValidInRange(size_t startIndex, size_t endIndex, Function<void(const T&,size_t)> executor) const;
 		
 		Promise<void> mutate(Function<Promise<void>(Mutator*)> executor);
 		Promise<void> mutate(Function<void(Mutator*)> executor);
@@ -434,27 +434,27 @@ namespace fgl {
 
 
 	template<typename T>
-	void AsyncList<T>::forValidInRange(size_t startIndex, size_t endIndex, Function<void(T&)> executor) {
+	void AsyncList<T>::forValidInRange(size_t startIndex, size_t endIndex, Function<void(T&,size_t)> executor) {
 		auto startIt = items.lower_bound(startIndex);
 		if(startIt == items.end() || startIt->first >= endIndex) {
 			return;
 		}
 		for(auto it=startIt; it!=items.end() && it->first < endIndex; it++) {
 			if(it->second.valid) {
-				executor(it->second.item);
+				executor(it->second.item, it->first);
 			}
 		}
 	}
 
 	template<typename T>
-	void AsyncList<T>::forValidInRange(size_t startIndex, size_t endIndex, Function<void(const T&)> executor) const {
+	void AsyncList<T>::forValidInRange(size_t startIndex, size_t endIndex, Function<void(const T&,size_t)> executor) const {
 		auto startIt = items.lower_bound(startIndex);
 		if(startIt == items.end() || startIt->first >= endIndex) {
 			return;
 		}
 		for(auto it=startIt; it!=items.end() && it->first < endIndex; it++) {
 			if(it->second.valid) {
-				executor(it->second.item);
+				executor(it->second.item, it->first);
 			}
 		}
 	}
