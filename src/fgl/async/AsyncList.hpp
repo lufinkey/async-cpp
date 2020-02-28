@@ -120,7 +120,6 @@ namespace fgl {
 		mutable std::recursive_mutex mutex;
 		std::map<size_t,ItemNode> items;
 		Optional<size_t> itemsSize;
-		std::map<size_t,Promise<T>> itemPromises;
 		
 		size_t chunkSize;
 		std::list<std::shared_ptr<size_t>> indexMarkers;
