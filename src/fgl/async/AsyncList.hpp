@@ -33,6 +33,7 @@ namespace fgl {
 			template<typename Work>
 			void lock(Work work);
 			void apply(size_t index, LinkedList<T> items);
+			void applyAndResize(size_t index, size_t size, LinkedList<T> items);
 			void insert(size_t index, LinkedList<T> items);
 			void remove(size_t index, size_t count);
 			//void move(size_t index, size_t count, size_t newIndex);
@@ -520,6 +521,13 @@ namespace fgl {
 			};
 			i++;
 		}
+	}
+
+	template<typename T>
+	void AsyncList<T>::Mutator::applyAndResize(size_t index, size_t size, LinkedList<T> items) {
+		std::unique_lock<std::recursive_mutex> lock(list.mutex);
+		apply(index, items);
+		resize(size);
 	}
 
 	template<typename T>
