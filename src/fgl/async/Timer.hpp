@@ -161,7 +161,7 @@ namespace fgl {
 	}
 	
 	template<typename Rep, typename Period>
-	static SharedTimer withTimeout(std::chrono::duration<Rep,Period> timeout, DispatchQueue* queue, Function<void(SharedTimer)> work) {
+	SharedTimer Timer::withTimeout(std::chrono::duration<Rep,Period> timeout, DispatchQueue* queue, Function<void(SharedTimer)> work) {
 		std::shared_ptr<Timer> ptr;
 		using Clock = std::chrono::steady_clock;
 		new Timer(ptr, (Clock::now() + timeout), queue, work);
@@ -176,7 +176,7 @@ namespace fgl {
 	}
 	
 	template<typename Rep, typename Period>
-	static SharedTimer withTimeout(std::chrono::duration<Rep,Period> timeout, DispatchQueue* queue, Function<void()> work) {
+	SharedTimer Timer::withTimeout(std::chrono::duration<Rep,Period> timeout, DispatchQueue* queue, Function<void()> work) {
 		return withTimeout(timeout, queue, (work ? [=](SharedTimer) {
 			work();
 		} : Function<void(SharedTimer)>()));
@@ -185,28 +185,28 @@ namespace fgl {
 
 	
 	template<typename Rep, typename Period>
-	static SharedTimer withInterval(std::chrono::duration<Rep,Period> interval, Function<void(SharedTimer)> work) {
+	SharedTimer Timer::withInterval(std::chrono::duration<Rep,Period> interval, Function<void(SharedTimer)> work) {
 		std::shared_ptr<Timer> ptr;
 		new Timer(ptr, interval, nullptr, work);
 		return ptr;
 	}
 	
 	template<typename Rep, typename Period>
-	static SharedTimer withInterval(std::chrono::duration<Rep,Period> interval, DispatchQueue* queue, Function<void(SharedTimer)> work) {
+	SharedTimer Timer::withInterval(std::chrono::duration<Rep,Period> interval, DispatchQueue* queue, Function<void(SharedTimer)> work) {
 		std::shared_ptr<Timer> ptr;
 		new Timer(ptr, interval, queue, work);
 		return ptr;
 	}
 
 	template<typename Rep, typename Period>
-	static SharedTimer withInterval(std::chrono::duration<Rep,Period> interval, Function<void()> work) {
+	SharedTimer Timer::withInterval(std::chrono::duration<Rep,Period> interval, Function<void()> work) {
 		return withInterval(interval, (work ? [=](SharedTimer) {
 			work();
 		} : Function<void(SharedTimer)>()));
 	}
 	
 	template<typename Rep, typename Period>
-	static SharedTimer withInterval(std::chrono::duration<Rep,Period> interval, DispatchQueue* queue, Function<void()> work) {
+	SharedTimer Timer::withInterval(std::chrono::duration<Rep,Period> interval, DispatchQueue* queue, Function<void()> work) {
 		return withInterval(interval, queue, (work ? [=](SharedTimer) {
 			work();
 		} : Function<void(SharedTimer)>()));
