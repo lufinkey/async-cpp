@@ -69,6 +69,7 @@ namespace fgl {
 		template<typename T>
 		using Mapper = typename _block<Yield,T>::type;
 		
+		Generator();
 		explicit Generator(YieldReturner yieldReturner, Function<void()> destructor=nullptr);
 		
 		template<typename _Next=Next,
@@ -136,6 +137,11 @@ namespace fgl {
 
 
 #pragma mark Generator implementation
+
+	template<typename Yield, typename Next>
+	Generator<Yield,Next>::Generator() {
+		new Continuer(this->continuer, nullptr, nullptr);
+	}
 
 	template<typename Yield, typename Next>
 	Generator<Yield,Next>::Generator(YieldReturner yieldReturner, Function<void()> destructor) {
@@ -250,7 +256,7 @@ namespace fgl {
 
 	template<typename Yield, typename Next>
 	Generator<Yield,Next>::Continuer::Continuer(std::shared_ptr<Continuer>& ptr, YieldReturner yieldReturner, Function<void()> destructor)
-	: yieldReturner(yieldReturner), destructor(destructor), state(State::WAITING) {
+	: yieldReturner(yieldReturner), destructor(destructor), state(yieldReturner ? State::WAITING : State::FINISHED) {
 		ptr = std::shared_ptr<Continuer>(this);
 		self = ptr;
 	}
