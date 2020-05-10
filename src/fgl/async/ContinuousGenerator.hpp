@@ -27,6 +27,25 @@ namespace fgl {
 
 
 
+	template<typename GeneratorType>
+	struct is_continuous_generator {
+		static constexpr bool value = false;
+	};
+	
+	template<typename Yield, typename Next>
+	struct is_continuous_generator<ContinuousGenerator<Yield,Next>> {
+		static constexpr bool value = true;
+		typedef Yield yield_type;
+		typedef Next next_type;
+		typedef ContinuousGenerator<Yield,Next> generator_type;
+		typedef std::nullptr_t null_type;
+	};
+
+	template<typename GeneratorType>
+	using IsContinuousGenerator = typename is_continuous_generator<GeneratorType>::generator_type;
+
+
+
 	template<typename Yield>
 	struct ContinuousGeneratorResult {
 		Optionalized<Yield> result;
