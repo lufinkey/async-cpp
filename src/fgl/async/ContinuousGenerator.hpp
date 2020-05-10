@@ -117,7 +117,7 @@ namespace fgl {
 					} else {
 						return YieldResult{
 							.value=ContinuousGeneratorResult<Yield>{
-								.result=std::move(yieldResult.result)
+								.result=std::move(yieldResult.value)
 							},
 							.done=yieldResult.done
 						};
