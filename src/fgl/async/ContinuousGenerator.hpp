@@ -165,7 +165,7 @@ namespace fgl {
 	template<typename _Next,
 		typename std::enable_if<(std::is_same<_Next,Next>::value && !std::is_same<_Next,void>::value), std::nullptr_t>::type>
 	Promise<typename ContinuousGenerator<Yield,Next>::YieldResult> ContinuousGenerator<Yield,Next>::next(_Next nextValue) {
-		return BaseGenerator::next(std::move(nextValue)).template map<YieldResult>([=](auto yieldResult) {
+		return BaseGenerator::next(std::move(nextValue)).template map<YieldResult>([=](BaseYieldResult yieldResult) {
 			if(yieldResult.value) {
 				if(yieldResult.value->error) {
 					std::rethrow_exception(yieldResult.value->error);
@@ -188,7 +188,7 @@ namespace fgl {
 	template<typename _Next,
 		typename std::enable_if<(std::is_same<_Next,Next>::value && std::is_same<_Next,void>::value), std::nullptr_t>::type>
 	Promise<typename ContinuousGenerator<Yield,Next>::YieldResult> ContinuousGenerator<Yield,Next>::next() {
-		return BaseGenerator::next().template map<YieldResult>([=](auto yieldResult) {
+		return BaseGenerator::next().template map<YieldResult>([=](BaseYieldResult yieldResult) {
 			if(yieldResult.value) {
 				if(yieldResult.value->error) {
 					std::rethrow_exception(yieldResult.value->error);
