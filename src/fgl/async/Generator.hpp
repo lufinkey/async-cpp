@@ -11,10 +11,10 @@
 #include <condition_variable>
 #include <thread>
 #include <fgl/async/Common.hpp>
+#include <fgl/async/LambdaTraits.hpp>
 #include <fgl/async/Promise.hpp>
 
 namespace fgl {
-
 	template<typename Yield, typename Next>
 	class Generator;
 	
@@ -37,37 +37,30 @@ namespace fgl {
 
 
 
+	template<typename _Yield>
+	struct GeneratorYieldResult {
+		Optionalized<_Yield> value;
+		bool done = false;
+	};
+	
+	template<>
+	struct GeneratorYieldResult<void> {
+		bool done = false;
+	};
+
+
+
 	template<typename Yield, typename Next>
 	class Generator {
 	public:
-		typedef Yield YieldType;
-		typedef Next NextType;
+		using YieldType = Yield;
+		using NextType = Next;
 		
-		template<typename _Yield>
-		struct _YieldResult {
-			Optionalized<_Yield> value;
-			bool done = false;
-		};
+		using YieldResult = GeneratorYieldResult<Yield>;
 		
-		template<>
-		struct _YieldResult<void> {
-			bool done = false;
-		};
-		
-		using YieldResult = _YieldResult<Yield>;
-		
-		template<typename Arg, typename Return>
-		struct _block {
-			using type = Function<Return(Arg)>;
-		};
-		template<typename Return>
-		struct _block<void, Return> {
-			using type = Function<Return()>;
-		};
-		
-		using YieldReturner = typename _block<Next,Promise<YieldResult>>::type;
+		using YieldReturner = typename lambda_block<Next,Promise<YieldResult>>::type;
 		template<typename T>
-		using Mapper = typename _block<Yield,T>::type;
+		using Mapper = typename lambda_block<Yield,T>::type;
 		
 		Generator();
 		explicit Generator(YieldReturner yieldReturner, Function<void()> destructor=nullptr);
@@ -124,7 +117,7 @@ namespace fgl {
 
 	struct GenerateDestroyedNotifier;
 	template<typename Yield>
-	using GenerateYielder = typename Generator<Yield,void>::template _block<Yield,void>::type;
+	using GenerateYielder = typename lambda_block<Yield,void>::type;
 
 	template<typename Yield>
 	Generator<Yield,void> generate(Function<Yield(GenerateYielder<Yield> yield)> executor);

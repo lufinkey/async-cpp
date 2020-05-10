@@ -72,19 +72,10 @@ namespace fgl {
 	public:
 		typedef Result ResultType;
 		
-		template<typename Arg, typename Return>
-		struct _block {
-			using type = Function<Return(Arg)>;
-		};
-		template<typename Return>
-		struct _block<void, Return> {
-			using type = Function<Return()>;
-		};
-		
-		using Resolver = typename _block<Result,void>::type;
+		using Resolver = typename lambda_block<Result,void>::type;
 		using Rejecter = Function<void(PromiseErrorPtr)>;
 		template<typename Return>
-		using Then = typename _block<Result,Return>::type;
+		using Then = typename lambda_block<Result,Return>::type;
 		template<typename ErrorType, typename Return>
 		using Catch = Function<Return(ErrorType)>;
 

@@ -38,6 +38,16 @@ namespace fgl {
 	template<class Ret, class Cls, class... Args>
 	struct lambda_traits<Ret(Cls::*)(Args...) const>: lambda_detail<Ret,Cls,std::false_type,Args...>
 	{};
+
+
+	template<typename Arg, typename Return>
+	struct lambda_block {
+		using type = Function<Return(Arg)>;
+	};
+	template<typename Return>
+	struct lambda_block<void, Return> {
+		using type = Function<Return()>;
+	};
 }
 
 #endif /* LambdaTraits_h */

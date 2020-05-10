@@ -27,6 +27,9 @@
 		A53E4E972304D261000BB7D8 /* Promise.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A53E4E542304892D000BB7D8 /* Promise.cpp */; };
 		A53E4EA62304D2E1000BB7D8 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A53E4EA52304D2E1000BB7D8 /* main.cpp */; };
 		A53E4EAB23050152000BB7D8 /* libAsyncCpp-macOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A53E4E7B2304D166000BB7D8 /* libAsyncCpp-macOS.a */; };
+		A598D10624672B8E00C2B1BF /* ContinuousGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A598D10424672B8E00C2B1BF /* ContinuousGenerator.cpp */; };
+		A598D10724672B8E00C2B1BF /* ContinuousGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A598D10424672B8E00C2B1BF /* ContinuousGenerator.cpp */; };
+		A598D10824672B8E00C2B1BF /* ContinuousGenerator.hpp in Headers */ = {isa = PBXBuildFile; fileRef = A598D10524672B8E00C2B1BF /* ContinuousGenerator.hpp */; };
 		A5B7A7892335679100301FC0 /* libDataCpp-macOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A5B7A7802335676200301FC0 /* libDataCpp-macOS.a */; };
 		A5B7A7D1233EE80200301FC0 /* Timer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A5B7A7CF233EE80200301FC0 /* Timer.cpp */; };
 		A5B7A7D2233EE80200301FC0 /* Timer.hpp in Headers */ = {isa = PBXBuildFile; fileRef = A5B7A7D0233EE80200301FC0 /* Timer.hpp */; };
@@ -115,6 +118,8 @@
 		A53E4EA52304D2E1000BB7D8 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		A53E4EAD23062B08000BB7D8 /* LambdaTraits.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = LambdaTraits.hpp; sourceTree = "<group>"; };
 		A564DF942309082B0018787F /* async.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = async.hpp; sourceTree = "<group>"; };
+		A598D10424672B8E00C2B1BF /* ContinuousGenerator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ContinuousGenerator.cpp; sourceTree = "<group>"; };
+		A598D10524672B8E00C2B1BF /* ContinuousGenerator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ContinuousGenerator.hpp; sourceTree = "<group>"; };
 		A5B7A7792335676200301FC0 /* DataCpp.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = DataCpp.xcodeproj; path = "../../../data-cpp/projects/xcode/DataCpp.xcodeproj"; sourceTree = "<group>"; };
 		A5B7A7CF233EE80200301FC0 /* Timer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Timer.cpp; sourceTree = "<group>"; };
 		A5B7A7D0233EE80200301FC0 /* Timer.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Timer.hpp; sourceTree = "<group>"; };
@@ -173,6 +178,8 @@
 				A53E4E542304892D000BB7D8 /* Promise.cpp */,
 				A5B9737E23824A8C00FB3F1C /* Generator.hpp */,
 				A5B9737D23824A8C00FB3F1C /* Generator.cpp */,
+				A598D10524672B8E00C2B1BF /* ContinuousGenerator.hpp */,
+				A598D10424672B8E00C2B1BF /* ContinuousGenerator.cpp */,
 				A5B7A7D0233EE80200301FC0 /* Timer.hpp */,
 				A5B7A7CF233EE80200301FC0 /* Timer.cpp */,
 				A50F74A32389D67B0061D9FD /* AsyncQueue.hpp */,
@@ -256,6 +263,7 @@
 				A53E4E862304D1C8000BB7D8 /* Promise.hpp in Headers */,
 				A53E4E852304D1C8000BB7D8 /* PromiseErrorPtr.hpp in Headers */,
 				A5B9738123824A8C00FB3F1C /* Generator.hpp in Headers */,
+				A598D10824672B8E00C2B1BF /* ContinuousGenerator.hpp in Headers */,
 				A53E4E832304D1C8000BB7D8 /* DispatchWorkItem.hpp in Headers */,
 				A5B7A7D2233EE80200301FC0 /* Timer.hpp in Headers */,
 				A53E4E802304D1C8000BB7D8 /* DispatchQueue.hpp in Headers */,
@@ -402,6 +410,7 @@
 				A53E4E842304D1C8000BB7D8 /* DispatchWorkItem.cpp in Sources */,
 				A50F74A92389D93C0061D9FD /* AsyncList.cpp in Sources */,
 				A50F74A42389D67B0061D9FD /* AsyncQueue.cpp in Sources */,
+				A598D10624672B8E00C2B1BF /* ContinuousGenerator.cpp in Sources */,
 				A5B7A7D1233EE80200301FC0 /* Timer.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -416,6 +425,7 @@
 				A53E4E972304D261000BB7D8 /* Promise.cpp in Sources */,
 				A50F74AA2389D93C0061D9FD /* AsyncList.cpp in Sources */,
 				A50F74A52389D67B0061D9FD /* AsyncQueue.cpp in Sources */,
+				A598D10724672B8E00C2B1BF /* ContinuousGenerator.cpp in Sources */,
 				A5B7A7D4233EE80E00301FC0 /* Timer.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
