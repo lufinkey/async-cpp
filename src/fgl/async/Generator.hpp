@@ -37,9 +37,9 @@ namespace fgl {
 
 
 
-	template<typename _Yield>
+	template<typename Yield>
 	struct GeneratorYieldResult {
-		Optionalized<_Yield> value;
+		Optionalized<Yield> value;
 		bool done = false;
 	};
 	

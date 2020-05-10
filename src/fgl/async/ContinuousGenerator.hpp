@@ -63,6 +63,7 @@ namespace fgl {
 	class ContinuousGenerator: Generator<ContinuousGeneratorResult<Yield>,Next> {
 	public:
 		using BaseGenerator = Generator<ContinuousGeneratorResult<Yield>,Next>;
+		using BaseYieldResult = typename BaseGenerator::YieldResult;
 		
 		using YieldType = Yield;
 		using NextType = Next;
@@ -107,55 +108,53 @@ namespace fgl {
 	: BaseGenerator(([=]() {
 		if constexpr(std::is_same<Next,void>::value) {
 			return [=]() {
-				try {
-					auto yieldResult = yieldReturner();
+				return yieldReturner().template map<BaseYieldResult>([=](YieldResult yieldResult) {
 					if constexpr(std::is_same<Yield,void>::value) {
-						return YieldResult{
+						return BaseYieldResult{
 							.value=ContinuousGeneratorResult<Yield>{},
 							.done=yieldResult.done
 						};
 					} else {
-						return YieldResult{
+						return BaseYieldResult{
 							.value=ContinuousGeneratorResult<Yield>{
 								.result=std::move(yieldResult.value)
 							},
 							.done=yieldResult.done
 						};
 					}
-				} catch(...) {
-					return YieldResult{
+				}).except([=](std::exception_ptr error) {
+					return BaseYieldResult{
 						.value=ContinuousGeneratorResult<Yield>{
-							.error=std::current_exception()
+							.error=error
 						},
 						.done=false
 					};
-				}
+				});
 			};
 		} else {
 			return [=](Next next) {
-				try {
-					auto yieldResult = yieldReturner(std::move(next));
+				return yieldReturner(std::move(next)).template map<BaseYieldResult>([=](YieldResult yieldResult) {
 					if constexpr(std::is_same<Yield,void>::value) {
-						return YieldResult{
+						return BaseYieldResult{
 							.value=ContinuousGeneratorResult<Yield>{},
 							.done=yieldResult.done
 						};
 					} else {
-						return YieldResult{
+						return BaseYieldResult{
 							.value=ContinuousGeneratorResult<Yield>{
-								.result=std::move(yieldResult.result)
+								.result=std::move(yieldResult.value)
 							},
 							.done=yieldResult.done
 						};
 					}
-				} catch(...) {
-					return YieldResult{
+				}).except([=](std::exception_ptr error) {
+					return BaseYieldResult{
 						.value=ContinuousGeneratorResult<Yield>{
-							.error=std::current_exception()
+							.error=error
 						},
 						.done=false
 					};
-				}
+				});
 			};
 		}
 	})(), destructor) {
