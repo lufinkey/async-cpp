@@ -123,7 +123,7 @@ namespace fgl {
 	Generator<Yield,void> generate(Function<Yield(GenerateYielder<Yield> yield)> executor);
 
 	template<typename Yield, typename Next>
-	using GenerateItemExecutor = typename Generator<Yield,Next>::template _block<Next,Promise<Yield>>::type;
+	using GenerateItemExecutor = typename lambda_block<Next,Promise<Yield>>::type;
 	template<typename Yield, typename Next=void>
 	Generator<Yield,Next> generate_items(LinkedList<GenerateItemExecutor<Yield,Next>> items);
 
