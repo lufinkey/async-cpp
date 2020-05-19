@@ -75,6 +75,8 @@ namespace fgl {
 		using Mapper = typename lambda_block<Yield,T>::type;
 		
 		ContinuousGenerator();
+		ContinuousGenerator(const BaseGenerator&);
+		ContinuousGenerator(BaseGenerator&&);
 		explicit ContinuousGenerator(YieldReturner yieldReturner, Function<void()> destructor=nullptr);
 		
 		template<typename _Next=Next,
@@ -100,6 +102,18 @@ namespace fgl {
 	template<typename Yield, typename Next>
 	ContinuousGenerator<Yield,Next>::ContinuousGenerator()
 	: Generator<ContinuousGeneratorResult<Yield>,Next>() {
+		//
+	}
+
+	template<typename Yield, typename Next>
+	ContinuousGenerator<Yield,Next>::ContinuousGenerator(const BaseGenerator& gen)
+	: BaseGenerator(gen) {
+		//
+	}
+
+	template<typename Yield, typename Next>
+	ContinuousGenerator<Yield,Next>::ContinuousGenerator(BaseGenerator&& gen)
+	: BaseGenerator(gen) {
 		//
 	}
 
