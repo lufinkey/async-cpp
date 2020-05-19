@@ -402,7 +402,7 @@ namespace fgl {
 			std::unique_lock<std::recursive_mutex> lock(self->mutex);
 			size_t index = *indexMarker;
 			lock.unlock();
-			return getItems(index, chunkSize).template map<YieldResult>([=]() {
+			return getItems(index, chunkSize).template map<YieldResult>([=](auto items) {
 				std::unique_lock<std::recursive_mutex> lock(self->mutex);
 				*indexMarker += items.size();
 				if(itemsSize.has_value() && *indexMarker >= itemsSize) {
@@ -412,7 +412,6 @@ namespace fgl {
 						.done=true
 					};
 				}
-				lock.unlock();
 				return YieldResult{
 					.value=items,
 					.done=false
