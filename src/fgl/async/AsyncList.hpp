@@ -354,8 +354,16 @@ namespace fgl {
 				size_t index = *indexMarker.get();
 				size_t chunkStartIndex = self->chunkStartIndexForIndex(index);
 				size_t chunkEndIndex = self->chunkStartIndexForIndex(index+count);
-				return self->delegate->loadAsyncListItems(&mutator, chunkStartIndex, chunkEndIndex-chunkStartIndex)
-				.then(nullptr, [=]() {
+				if(chunkEndIndex < (index+count)) {
+					chunkEndIndex += chunkSize;
+				}
+				auto promise = Promise<void>::resolve();
+				for(size_t loadStartIndex = chunkStartIndex; loadStartIndex < chunkEndIndex; loadStartIndex += chunkSize) {
+					promise = promise.then([=]() {
+						return self->delegate->loadAsyncListItems(&self->mutator, loadStartIndex, self->chunkSize);
+					});
+				}
+				return promise.then([=]() {
 					std::unique_lock<std::recursive_mutex> lock(self->mutex);
 					LinkedList<T> loadedItems;
 					if(itemsSize.has_value() && index >= itemsSize.value()) {
