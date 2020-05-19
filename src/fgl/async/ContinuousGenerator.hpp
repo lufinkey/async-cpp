@@ -232,7 +232,7 @@ namespace fgl {
 	template<typename Yield, typename Next>
 	template<typename NewYield>
 	ContinuousGenerator<NewYield,Next> ContinuousGenerator<Yield,Next>::map(DispatchQueue* queue, Mapper<NewYield> transform) {
-		return BaseGenerator::template map<NewYield>(queue, [=](BaseYieldResult genResult) {
+		return BaseGenerator::template map<NewYield>(queue, [=](ContinuousGeneratorResult<Yield> genResult) {
 			if(genResult.error) {
 				return ContinuousGeneratorResult<NewYield>{
 					.error=genResult.error
@@ -266,7 +266,7 @@ namespace fgl {
 	template<typename Yield, typename Next>
 	template<typename NewYield>
 	ContinuousGenerator<NewYield,Next> ContinuousGenerator<Yield,Next>::mapAsync(DispatchQueue* queue, Mapper<Promise<NewYield>> transform) {
-		return BaseGenerator::template mapAsync<NewYield>(queue, [=](BaseYieldResult genResult) {
+		return BaseGenerator::template mapAsync<NewYield>(queue, [=](ContinuousGeneratorResult<Yield> genResult) {
 			if(genResult.error) {
 				return ContinuousGeneratorResult<NewYield>{
 					.error=genResult.error
