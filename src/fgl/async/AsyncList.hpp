@@ -15,13 +15,15 @@
 #include <variant>
 #include <fgl/async/Common.hpp>
 #include <fgl/async/Promise.hpp>
-#include <fgl/async/Generator.hpp>
+#include <fgl/async/ContinuousGenerator.hpp>
 #include <fgl/async/AsyncQueue.hpp>
 
 namespace fgl {
 	template<typename T>
 	class AsyncList: public std::enable_shared_from_this<AsyncList<T>> {
 	public:
+		using ItemGenerator = ContinuousGenerator<LinkedList<T>,void>;
+		
 		class Mutator {
 			friend class AsyncList<T>;
 		public:
@@ -104,7 +106,7 @@ namespace fgl {
 		Promise<Optional<T>> getItem(size_t index, GetItemOptions options = GetItemOptions());
 		Promise<LinkedList<T>> getItems(size_t index, size_t count, GetItemOptions options = GetItemOptions());
 		
-		Generator<LinkedList<T>,void> generateItems(size_t startIndex=0);
+		ItemGenerator generateItems(size_t startIndex=0);
 		
 		template<typename Callable>
 		Optional<size_t> indexWhere(Callable predicate, bool ignoreValidity = false) const;
@@ -391,34 +393,33 @@ namespace fgl {
 	}
 	
 	template<typename T>
-	Generator<LinkedList<T>,void> AsyncList<T>::generateItems(size_t startIndex) {
+	typename AsyncList<T>::ItemGenerator AsyncList<T>::generateItems(size_t startIndex) {
+		using YieldResult = typename ItemGenerator::YieldResult;
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto indexMarker = watchIndex(startIndex);
 		auto self = this->shared_from_this();
-		return generate<LinkedList<T>>([=](auto yield) {
+		return ItemGenerator([=]() {
 			std::unique_lock<std::recursive_mutex> lock(self->mutex);
-			try {
-				while(true) {
-					size_t index = *indexMarker;
-					lock.unlock();
-					auto items = getItems(index, chunkSize).get();
-					lock.lock();
-					*indexMarker += items.size();
-					if(itemsSize.has_value() && *indexMarker >= itemsSize) {
-						self->unwatchIndex(indexMarker);
-						return items;
-					}
-					lock.unlock();
-					yield(items);
-					lock.lock();
+			size_t index = *indexMarker;
+			lock.unlock();
+			return getItems(index, chunkSize).template map<YieldResult>([=]() {
+				std::unique_lock<std::recursive_mutex> lock(self->mutex);
+				*indexMarker += items.size();
+				if(itemsSize.has_value() && *indexMarker >= itemsSize) {
+					self->unwatchIndex(indexMarker);
+					return YieldResult{
+						.value=items,
+						.done=true
+					};
 				}
-			} catch(GenerateDestroyedNotifier&) {
-				self->unwatchIndex(indexMarker);
-				std::rethrow_exception(std::current_exception());
-			} catch(...) {
-				self->unwatchIndex(indexMarker);
-				std::rethrow_exception(std::current_exception());
-			}
+				lock.unlock();
+				return YieldResult{
+					.value=items,
+					.done=false
+				};
+			});
+		}, [=]() {
+			self->unwatchIndex(indexMarker);
 		});
 	}
 
