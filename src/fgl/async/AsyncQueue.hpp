@@ -150,7 +150,7 @@ namespace fgl {
 			resolveTask = resolve;
 			rejectTask = reject;
 		});
-		ASYNC_CPP_LIST_PUSH(taskQueue, TaskNode{ .task=task, .promise=taskPromise });
+		taskQueue.push_back(TaskNode{ .task=task, .promise=taskPromise });
 		auto aliveStatus = this->aliveStatus;
 		taskQueuePromise = taskQueuePromise.value_or(Promise<void>::resolve()).then(dispatchQueue, [=]() -> Promise<void> {
 			if(task->isCancelled()) {

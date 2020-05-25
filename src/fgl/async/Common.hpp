@@ -70,14 +70,4 @@ namespace fgl {
 			}
 		#endif
 	#endif
-	
-	#ifdef ASYNC_CPP_STANDALONE
-		#ifndef ASYNC_CPP_LIST_PUSH
-			#define ASYNC_CPP_LIST_PUSH(list, ...) list.push_back(__VA_ARGS__)
-		#endif
-	#else
-		#ifndef ASYNC_CPP_LIST_PUSH
-			#define ASYNC_CPP_LIST_PUSH(list, ...) list.pushBack(__VA_ARGS__)
-		#endif
-	#endif
 }

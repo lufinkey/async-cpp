@@ -267,7 +267,7 @@ namespace fgl {
 			if(it->first != nextIndex) {
 				return loadedItems;
 			}
-			ASYNC_CPP_LIST_PUSH(loadedItems, it->second.item);
+			loadedItems.push_back(it->second.item);
 			it++;
 			nextIndex++;
 		}
@@ -384,7 +384,7 @@ namespace fgl {
 							reject(std::logic_error("Failed to load all items"));
 							return;
 						}
-						ASYNC_CPP_LIST_PUSH(loadedItems, it->second.item);
+						loadedItems.push_back(it->second.item);
 						it++;
 						nextIndex++;
 					}

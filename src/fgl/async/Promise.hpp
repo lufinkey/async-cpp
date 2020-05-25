@@ -1275,7 +1275,7 @@ namespace fgl {
 					ArrayList<Result> results;
 					results.reserve(promiseCount);
 					for(auto& pair : sharedInfo.results) {
-						ASYNC_CPP_LIST_PUSH(results, std::move(pair.second));
+						results.push_back(std::move(pair.second));
 					}
 					sharedInfo.results.clear();
 					sharedInfo.results.shrink_to_fit();

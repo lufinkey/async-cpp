@@ -45,7 +45,7 @@ namespace fgl {
 		LinkedList<std::shared_ptr<AsyncQueue::Task>> tasks;
 		for(auto& taskNode : taskQueue) {
 			if(taskNode.task->getTag() == tag) {
-				ASYNC_CPP_LIST_PUSH(tasks, taskNode.task);
+				tasks.push_back(taskNode.task);
 			}
 		}
 		return tasks;
@@ -92,7 +92,7 @@ namespace fgl {
 		LinkedList<Promise<void>> promises;
 		for(auto& taskNode : taskQueue) {
 			if(taskNode.task->getTag() == tag) {
-				ASYNC_CPP_LIST_PUSH(promises, taskNode.promise);
+				promises.push_back(taskNode.promise);
 			}
 		}
 		return Promise<void>::all(ArrayList<Promise<void>>(std::make_move_iterator(promises.begin()), std::make_move_iterator(promises.end())));
