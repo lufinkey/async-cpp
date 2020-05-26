@@ -509,7 +509,7 @@ namespace fgl {
 		typename std::enable_if<(is_promise<Return>::value && std::is_same<Return,Promise<NextResult>>::value), std::nullptr_t>::type>
 	Promise<NextResult> Promise<Result>::then(DispatchQueue* queue, OnResolve onresolve) {
 		#ifdef DEBUG_PROMISE_NAMING
-		auto thenName = String::join(ArrayList<String>{
+		auto thenName = String::join({
 			this->continuer->getName(),
 			" -> then<", typeid(NextResult).name(), ">(queue,onresolve)"
 		});
@@ -535,7 +535,7 @@ namespace fgl {
 		typename std::enable_if<(is_promise<Return>::value && std::is_same<Return,Promise<NextResult>>::value), std::nullptr_t>::type>
 	Promise<NextResult> Promise<Result>::then(OnResolve onresolve) {
 		#ifdef DEBUG_PROMISE_NAMING
-		auto thenName = String::join(ArrayList<String>{
+		auto thenName = String::join({
 			this->continuer->getName(),
 			" -> then<", typeid(NextResult).name(), ">(onresolve)"
 		});
@@ -648,7 +648,7 @@ namespace fgl {
 	Promise<Result> Promise<Result>::except(DispatchQueue* queue, OnReject onreject) {
 		#ifdef DEBUG_PROMISE_NAMING
 		using ErrorType = typename std::remove_reference<typename std::remove_cv<typename lambda_traits<OnReject>::template arg<0>::type>::type>::type;
-		auto exceptName = String::join(ArrayList<String>{
+		auto exceptName = String::join({
 			this->continuer->getName(),
 			" -> except<", typeid(ErrorType).name(), ">(queue,onreject)"
 		});
@@ -669,7 +669,7 @@ namespace fgl {
 	Promise<Result> Promise<Result>::except(OnReject onreject) {
 		#ifdef DEBUG_PROMISE_NAMING
 		using ErrorType = typename std::remove_reference<typename std::remove_cv<typename lambda_traits<OnReject>::template arg<0>::type>::type>::type;
-		auto exceptName = String::join(ArrayList<String>{
+		auto exceptName = String::join({
 			this->continuer->getName(),
 			" -> except<", typeid(ErrorType).name(), ">(onreject)"
 		});
@@ -810,7 +810,7 @@ namespace fgl {
 	template<typename NextResult>
 	Promise<NextResult> Promise<Result>::map(DispatchQueue* queue, Then<NextResult> transform) {
 		#ifdef DEBUG_PROMISE_NAMING
-		auto mapName = String::join(ArrayList<String>{
+		auto mapName = String::join({
 			this->continuer->getName(),
 			" -> map<", typeid(NextResult).name(), ">(queue,transform)"
 		});
@@ -830,7 +830,7 @@ namespace fgl {
 	template<typename NextResult>
 	Promise<NextResult> Promise<Result>::map(Then<NextResult> transform) {
 		#ifdef DEBUG_PROMISE_NAMING
-		auto mapName = String::join(ArrayList<String>{
+		auto mapName = String::join({
 			this->continuer->getName(),
 			" -> map<", typeid(NextResult).name(), ">(queue,transform)"
 		});
@@ -879,7 +879,7 @@ namespace fgl {
 	template<typename Rep, typename Period>
 	Promise<Result> Promise<Result>::delay(DispatchQueue* queue, std::chrono::duration<Rep,Period> delay) {
 		#ifdef DEBUG_PROMISE_NAMING
-		auto delayName = String::join(ArrayList<String>{
+		auto delayName = String::join({
 			this->continuer->getName(),
 			" -> delay(queue,", String::stream(delay.count()), ")"
 		});
@@ -899,7 +899,7 @@ namespace fgl {
 	template<typename Rep, typename Period>
 	Promise<Result> Promise<Result>::delay(std::chrono::duration<Rep,Period> delay) {
 		#ifdef DEBUG_PROMISE_NAMING
-		auto delayName = String::join(ArrayList<String>{
+		auto delayName = String::join({
 			this->continuer->getName(),
 			" -> delay(", String::stream(delay.count()), ")"
 		});
@@ -1044,7 +1044,7 @@ namespace fgl {
 	template<typename Rep, typename Period, typename OnTimeout, typename _>
 	Promise<Result> Promise<Result>::timeout(DispatchQueue* queue, std::chrono::duration<Rep,Period> timeout, OnTimeout onTimeout) {
 		#ifdef DEBUG_PROMISE_NAMING
-		auto timeoutName = String::join(ArrayList<String>{
+		auto timeoutName = String::join({
 			this->continuer->getName(),
 			" -> timeout(queue,", String::stream(timeout.count()), ",ontimeout)"
 		});
@@ -1064,7 +1064,7 @@ namespace fgl {
 	template<typename Rep, typename Period, typename OnTimeout, typename _>
 	Promise<Result> Promise<Result>::timeout(std::chrono::duration<Rep,Period> timeout, OnTimeout onTimeout) {
 		#ifdef DEBUG_PROMISE_NAMING
-		auto timeoutName = String::join(ArrayList<String>{
+		auto timeoutName = String::join({
 			this->continuer->getName(),
 			" -> timeout(", String::stream(timeout.count()), ",ontimeout)"
 		});
@@ -1166,7 +1166,7 @@ namespace fgl {
 		typename std::enable_if<(std::is_convertible<_Result,Result>::value && !std::is_same<_Result,void>::value), std::nullptr_t>::type>
 	Promise<Result> Promise<Result>::resolve(_Result result) {
 		#ifdef DEBUG_PROMISE_NAMING
-		auto resolveName = String::join(ArrayList<String>{
+		auto resolveName = String::join({
 			"resolve<", typeid(Result).name(), ">"
 		});
 		#else
@@ -1312,7 +1312,7 @@ namespace fgl {
 		typename std::enable_if<(std::is_same<_Result,Result>::value && !std::is_same<_Result,void>::value), std::nullptr_t>::type>
 	Promise<ArrayList<Result>> Promise<Result>::all(ArrayList<Promise<_Result>> promises) {
 		#ifdef DEBUG_PROMISE_NAMING
-		auto allName = String::join(ArrayList<String>{
+		auto allName = String::join({
 			"all<", typeid(Result).name(), ">{ ",
 			String::join(promises.map([&](auto& promise) {
 				return promise.getName();
@@ -1384,7 +1384,7 @@ namespace fgl {
 		typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<_Result,void>::value), std::nullptr_t>::type>
 	Promise<void> Promise<Result>::all(ArrayList<Promise<_Result>> promises) {
 		#ifdef DEBUG_PROMISE_NAMING
-		auto allName = String::join(ArrayList<String>{
+		auto allName = String::join({
 			"all{ ",
 			String::join(promises.template map<String>([&](auto& promise) {
 				return promise.getName();
@@ -1448,7 +1448,7 @@ namespace fgl {
 		typename std::enable_if<(std::is_same<_Result,Result>::value && !std::is_same<_Result,void>::value), std::nullptr_t>::type>
 	Promise<Result> Promise<Result>::race(ArrayList<Promise<_Result>> promises) {
 		#ifdef DEBUG_PROMISE_NAMING
-		auto raceName = String::join(ArrayList<String>{
+		auto raceName = String::join({
 			"race<", typeid(Result).name(), ">{ ",
 			String::join(promises.map([&](auto& promise) {
 				return promise.getName();
@@ -1512,7 +1512,7 @@ namespace fgl {
 		typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<_Result,void>::value), std::nullptr_t>::type>
 	Promise<void> Promise<Result>::race(ArrayList<Promise<_Result>> promises) {
 		#ifdef DEBUG_PROMISE_NAMING
-		auto raceName = String::join(ArrayList<String>{
+		auto raceName = String::join({
 			"race{ ",
 			String::join(promises.map([&](auto& promise) {
 				return promise.getName();
@@ -1580,7 +1580,7 @@ namespace fgl {
 	template<typename Rep, typename Period, typename AfterDelay, typename _>
 	Promise<Result> Promise<Result>::delayed(std::chrono::duration<Rep,Period> delay, DispatchQueue* queue, AfterDelay afterDelay) {
 		#ifdef DEBUG_PROMISE_NAMING
-		auto delayedName = String::join(ArrayList<String>{
+		auto delayedName = String::join({
 			"delayed(", String::stream(delay.count()), ",queue,afterdelay)"
 		});
 		#else
@@ -1599,7 +1599,7 @@ namespace fgl {
 	template<typename Rep, typename Period, typename AfterDelay, typename _>
 	Promise<Result> Promise<Result>::delayed(std::chrono::duration<Rep,Period> delay, AfterDelay afterDelay) {
 		#ifdef DEBUG_PROMISE_NAMING
-		auto delayedName = String::join(ArrayList<String>{
+		auto delayedName = String::join({
 			"delayed(", String::stream(delay.count()), ",afterdelay)"
 		});
 		#else
