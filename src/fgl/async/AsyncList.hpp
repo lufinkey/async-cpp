@@ -112,7 +112,7 @@ namespace fgl {
 		Optional<size_t> indexWhere(Callable predicate, bool ignoreValidity = false) const;
 		
 		void forEach(Function<void(T&,size_t)> executor, bool onlyValidItems = true);
-		void forEach(Function<void(const T&,size_t)> executor, bool onlyValidItems = true);
+		void forEach(Function<void(const T&,size_t)> executor, bool onlyValidItems = true) const;
 		void forEachInRange(size_t startIndex, size_t endIndex, Function<void(T&,size_t)> executor, bool onlyValidItems = true);
 		void forEachInRange(size_t startIndex, size_t endIndex, Function<void(const T&,size_t)> executor, bool onlyValidItems = true) const;
 		
@@ -467,7 +467,7 @@ namespace fgl {
 	}
 
 	template<typename T>
-	void AsyncList<T>::forEach(Function<void(const T&,size_t)> executor, bool onlyValidItems) {
+	void AsyncList<T>::forEach(Function<void(const T&,size_t)> executor, bool onlyValidItems) const {
 		if(onlyValidItems) {
 			for(auto& pair : items) {
 				if(pair.second.valid) {
