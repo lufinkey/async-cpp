@@ -111,8 +111,10 @@ namespace fgl {
 		template<typename Callable>
 		Optional<size_t> indexWhere(Callable predicate, bool ignoreValidity = false) const;
 		
-		void forValidInRange(size_t startIndex, size_t endIndex, Function<void(T&,size_t)> executor);
-		void forValidInRange(size_t startIndex, size_t endIndex, Function<void(const T&,size_t)> executor) const;
+		void forEach(Function<void(T&,size_t)> executor, bool onlyValidItems = true);
+		void forEach(Function<void(const T&,size_t)> executor, bool onlyValidItems = true);
+		void forEachInRange(size_t startIndex, size_t endIndex, Function<void(T&,size_t)> executor, bool onlyValidItems = true);
+		void forEachInRange(size_t startIndex, size_t endIndex, Function<void(const T&,size_t)> executor, bool onlyValidItems = true) const;
 		
 		Promise<void> mutate(Function<Promise<void>(Mutator*)> executor);
 		Promise<void> mutate(Function<void(Mutator*)> executor);
@@ -448,27 +450,70 @@ namespace fgl {
 	}
 
 
+
 	template<typename T>
-	void AsyncList<T>::forValidInRange(size_t startIndex, size_t endIndex, Function<void(T&,size_t)> executor) {
+	void AsyncList<T>::forEach(Function<void(T&,size_t)> executor, bool onlyValidItems) {
+		if(onlyValidItems) {
+			for(auto& pair : items) {
+				if(pair.second.valid) {
+					executor(pair.second.item, pair.first);
+				}
+			}
+		} else {
+			for(auto& pair : items) {
+				executor(pair.second.item, pair.first);
+			}
+		}
+	}
+
+	template<typename T>
+	void AsyncList<T>::forEach(Function<void(const T&,size_t)> executor, bool onlyValidItems) {
+		if(onlyValidItems) {
+			for(auto& pair : items) {
+				if(pair.second.valid) {
+					executor(pair.second.item, pair.first);
+				}
+			}
+		} else {
+			for(auto& pair : items) {
+				executor(pair.second.item, pair.first);
+			}
+		}
+	}
+
+	template<typename T>
+	void AsyncList<T>::forEachInRange(size_t startIndex, size_t endIndex, Function<void(T&,size_t)> executor, bool onlyValidItems) {
 		auto startIt = items.lower_bound(startIndex);
 		if(startIt == items.end() || startIt->first >= endIndex) {
 			return;
 		}
-		for(auto it=startIt; it!=items.end() && it->first < endIndex; it++) {
-			if(it->second.valid) {
+		if(onlyValidItems) {
+			for(auto it=startIt; it!=items.end() && it->first < endIndex; it++) {
+				if(it->second.valid) {
+					executor(it->second.item, it->first);
+				}
+			}
+		} else {
+			for(auto it=startIt; it!=items.end() && it->first < endIndex; it++) {
 				executor(it->second.item, it->first);
 			}
 		}
 	}
 
 	template<typename T>
-	void AsyncList<T>::forValidInRange(size_t startIndex, size_t endIndex, Function<void(const T&,size_t)> executor) const {
+	void AsyncList<T>::forEachInRange(size_t startIndex, size_t endIndex, Function<void(const T&,size_t)> executor, bool onlyValidItems) const {
 		auto startIt = items.lower_bound(startIndex);
 		if(startIt == items.end() || startIt->first >= endIndex) {
 			return;
 		}
-		for(auto it=startIt; it!=items.end() && it->first < endIndex; it++) {
-			if(it->second.valid) {
+		if(onlyValidItems) {
+			for(auto it=startIt; it!=items.end() && it->first < endIndex; it++) {
+				if(it->second.valid) {
+					executor(it->second.item, it->first);
+				}
+			}
+		} else {
+			for(auto it=startIt; it!=items.end() && it->first < endIndex; it++) {
 				executor(it->second.item, it->first);
 			}
 		}
