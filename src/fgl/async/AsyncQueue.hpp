@@ -53,6 +53,11 @@ namespace fgl {
 			bool done;
 		};
 		
+		struct TaskNode {
+			std::shared_ptr<Task> task;
+			Promise<void> promise;
+		};
+		
 		struct Options {
 			DispatchQueue* dispatchQueue = getDefaultPromiseQueue();
 			bool cancelUnfinishedTasks = false;
@@ -67,10 +72,6 @@ namespace fgl {
 		std::shared_ptr<Task> getTaskWithTag(const String& tag);
 		LinkedList<std::shared_ptr<Task>> getTasksWithTag(const String& tag);
 		
-		struct RunResult {
-			std::shared_ptr<Task> task;
-			Promise<void> promise;
-		};
 		struct RunOptions {
 			String name;
 			String tag;
@@ -80,12 +81,12 @@ namespace fgl {
 			bool cancelAll = false;
 		};
 		template<typename Work>
-		RunResult run(RunOptions options, Work work);
+		TaskNode run(RunOptions options, Work work);
 		template<typename Work>
-		RunResult run(Work work);
+		TaskNode run(Work work);
 		
 		template<typename Work>
-		RunResult runSingle(RunOptions options, Work work);
+		TaskNode runSingle(RunOptions options, Work work);
 		
 		void cancelAllTasks();
 		void cancelTasksWithTag(const String& tag);
@@ -103,11 +104,6 @@ namespace fgl {
 		
 		void removeTask(std::shared_ptr<Task> task);
 		
-		struct TaskNode {
-			std::shared_ptr<Task> task;
-			Promise<void> promise;
-		};
-		
 		Options options;
 		LinkedList<TaskNode> taskQueue;
 		Optional<Promise<void>> taskQueuePromise;
@@ -124,7 +120,7 @@ namespace fgl {
 #pragma mark AsyncQueue implementation
 
 	template<typename Work>
-	AsyncQueue::RunResult AsyncQueue::run(RunOptions options, Work work) {
+	AsyncQueue::TaskNode AsyncQueue::run(RunOptions options, Work work) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		if(this->options.cancelUnfinishedTasks || options.cancelAll) {
 			cancelAllTasks();
@@ -150,7 +146,8 @@ namespace fgl {
 			resolveTask = resolve;
 			rejectTask = reject;
 		});
-		taskQueue.push_back(TaskNode{ .task=task, .promise=taskPromise });
+		auto taskNode = TaskNode{ .task=task, .promise=taskPromise };
+		taskQueue.push_back(taskNode);
 		auto aliveStatus = this->aliveStatus;
 		taskQueuePromise = taskQueuePromise.value_or(Promise<void>::resolve()).then(dispatchQueue, [=]() -> Promise<void> {
 			if(task->isCancelled()) {
@@ -172,23 +169,20 @@ namespace fgl {
 				rejectTask(error);
 			});
 		});
-		return RunResult{ .task=task, .promise=taskPromise };
+		return taskNode;
 	}
 
 	template<typename Work>
-	AsyncQueue::RunResult AsyncQueue::run(Work work) {
+	AsyncQueue::TaskNode AsyncQueue::run(Work work) {
 		return run<Work>(RunOptions(), work);
 	}
 
 	template<typename Work>
-	AsyncQueue::RunResult AsyncQueue::runSingle(RunOptions options, Work work) {
+	AsyncQueue::TaskNode AsyncQueue::runSingle(RunOptions options, Work work) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		for(auto& taskNode : taskQueue) {
 			if(taskNode.task->getTag() == options.tag) {
-				return RunResult{
-					.task=taskNode.task,
-					.promise=taskNode.promise
-				};
+				return taskNode;
 			}
 		}
 		return run<Work>(options, work);
