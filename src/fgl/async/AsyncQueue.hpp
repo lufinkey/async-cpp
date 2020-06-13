@@ -68,9 +68,9 @@ namespace fgl {
 		
 		size_t taskCount() const;
 		
-		std::shared_ptr<Task> getTaskWithName(const String& name);
-		std::shared_ptr<Task> getTaskWithTag(const String& tag);
-		LinkedList<std::shared_ptr<Task>> getTasksWithTag(const String& tag);
+		Optional<TaskNode> getTaskWithName(const String& name);
+		Optional<TaskNode> getTaskWithTag(const String& tag);
+		LinkedList<TaskNode> getTasksWithTag(const String& tag);
 		
 		struct RunOptions {
 			String name;

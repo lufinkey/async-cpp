@@ -22,30 +22,30 @@ namespace fgl {
 		return taskQueue.size();
 	}
 
-	std::shared_ptr<AsyncQueue::Task> AsyncQueue::getTaskWithName(const String& name) {
+	Optional<AsyncQueue::TaskNode> AsyncQueue::getTaskWithName(const String& name) {
 		for(auto& taskNode : taskQueue) {
 			if(taskNode.task->getName() == name) {
-				return taskNode.task;
+				return taskNode;
 			}
 		}
-		return nullptr;
+		return std::nullopt;
 	}
 
-	std::shared_ptr<AsyncQueue::Task> AsyncQueue::getTaskWithTag(const String& tag) {
+	Optional<AsyncQueue::TaskNode> AsyncQueue::getTaskWithTag(const String& tag) {
 		for(auto& taskNode : taskQueue) {
 			if(taskNode.task->getTag() == tag) {
-				return taskNode.task;
+				return taskNode;
 			}
 		}
-		return nullptr;
+		return std::nullopt;
 	}
 
-	LinkedList<std::shared_ptr<AsyncQueue::Task>> AsyncQueue::getTasksWithTag(const String& tag) {
+	LinkedList<AsyncQueue::TaskNode> AsyncQueue::getTasksWithTag(const String& tag) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
-		LinkedList<std::shared_ptr<AsyncQueue::Task>> tasks;
+		LinkedList<AsyncQueue::TaskNode> tasks;
 		for(auto& taskNode : taskQueue) {
 			if(taskNode.task->getTag() == tag) {
-				tasks.push_back(taskNode.task);
+				tasks.push_back(taskNode);
 			}
 		}
 		return tasks;
