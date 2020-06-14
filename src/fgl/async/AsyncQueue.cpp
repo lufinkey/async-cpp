@@ -20,6 +20,16 @@ namespace fgl {
 		return listenerId;
 	}
 
+	size_t nextAsyncQueueTaskCancelListenerId() {
+		static std::mutex mtx;
+		static size_t nextId = 0;
+		mtx.lock();
+		size_t listenerId = nextId;
+		nextId++;
+		mtx.unlock();
+		return listenerId;
+	}
+
 	AsyncQueue::AsyncQueue(Options options)
 	: options(options), aliveStatus(std::make_shared<AliveStatus>()) {
 		//
@@ -152,11 +162,47 @@ namespace fgl {
 		if(done) {
 			return;
 		}
+		if(cancelled) {
+			return;
+		}
 		cancelled = true;
+		auto self = weakSelf.lock();
+		auto listeners = cancelListeners;
+		for(auto& pair : listeners) {
+			pair.second(self, pair.first);
+		}
 	}
 
 	bool AsyncQueue::Task::isCancelled() const {
 		return cancelled;
+	}
+
+	size_t AsyncQueue::Task::addCancelListener(StatusChangeListener listener) {
+		size_t listenerId;
+		do {
+			listenerId = nextAsyncQueueTaskCancelListenerId();
+		} while(cancelListeners.find(listenerId) != cancelListeners.end());
+		cancelListeners[listenerId] = listener;
+		return listenerId;
+	}
+
+	bool AsyncQueue::Task::removeCancelListener(size_t listenerId) {
+		auto it = cancelListeners.find(listenerId);
+		if(it == cancelListeners.end()) {
+			return false;
+		}
+		cancelListeners.erase(it);
+		return true;
+	}
+
+	void AsyncQueue::Task::clearCancelListeners() {
+		cancelListeners.clear();
+	}
+
+	size_t AsyncQueue::Task::cancelSubtaskWhenCancelled(std::shared_ptr<Task> subTask) {
+		return addCancelListener([=](auto task, size_t cancelListenerId) {
+			subTask->cancel();
+		});
 	}
 
 	bool AsyncQueue::Task::isDone() const {

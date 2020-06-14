@@ -21,6 +21,7 @@ namespace fgl {
 			friend class AsyncQueue;
 		public:
 			using StatusChangeListener = Function<void(std::shared_ptr<Task> task, size_t listenerId)>;
+			using CancelListener = Function<void(std::shared_ptr<Task> task, size_t listenerId)>;
 			
 			struct Options {
 				String name;
@@ -37,6 +38,12 @@ namespace fgl {
 			
 			void cancel();
 			bool isCancelled() const;
+			size_t addCancelListener(CancelListener listener);
+			bool removeCancelListener(size_t listenerId);
+			void clearCancelListeners();
+			
+			size_t cancelSubtaskWhenCancelled(std::shared_ptr<Task> subTask);
+			
 			bool isDone() const;
 			
 			Status getStatus() const;
@@ -57,6 +64,7 @@ namespace fgl {
 			Function<Promise<void>(std::shared_ptr<Task>)> executor;
 			Optional<Promise<void>> promise;
 			Status status;
+			std::map<size_t,CancelListener> cancelListeners;
 			std::map<size_t,StatusChangeListener> statusChangeListeners;
 			bool cancelled;
 			bool done;
