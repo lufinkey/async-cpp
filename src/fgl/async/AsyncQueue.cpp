@@ -172,7 +172,7 @@ namespace fgl {
 		auto listeners = cancelListeners;
 		cancelListeners.clear();
 		for(auto& pair : listeners) {
-			pair.second(self, pair.first);
+			pair.second(self);
 		}
 	}
 
@@ -180,7 +180,7 @@ namespace fgl {
 		return cancelled;
 	}
 
-	size_t AsyncQueue::Task::addCancelListener(StatusChangeListener listener) {
+	size_t AsyncQueue::Task::addCancelListener(CancelListener listener) {
 		size_t listenerId;
 		do {
 			listenerId = nextAsyncQueueTaskCancelListenerId();

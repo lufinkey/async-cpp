@@ -21,7 +21,7 @@ namespace fgl {
 			friend class AsyncQueue;
 		public:
 			using StatusChangeListener = Function<void(std::shared_ptr<Task> task, size_t listenerId)>;
-			using CancelListener = Function<void(std::shared_ptr<Task> task, size_t listenerId)>;
+			using CancelListener = Function<void(std::shared_ptr<Task> task)>;
 			
 			struct Options {
 				String name;
