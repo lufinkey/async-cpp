@@ -181,6 +181,9 @@ namespace fgl {
 	}
 
 	size_t AsyncQueue::Task::addCancelListener(CancelListener listener) {
+		if(cancelled) {
+			return (size_t)-1;
+		}
 		size_t listenerId;
 		do {
 			listenerId = nextAsyncQueueTaskCancelListenerId();
