@@ -159,4 +159,12 @@ namespace fgl {
 	void AsyncQueue::Task::setStatus(Status status) {
 		this->status = status;
 	}
+
+	void AsyncQueue::Task::setStatusText(String text) {
+		this->status.text = text;
+	}
+
+	void AsyncQueue::Task::setStatusProgress(double progress) {
+		this->status.progress = progress;
+	}
 }

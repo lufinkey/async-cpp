@@ -38,6 +38,8 @@ namespace fgl {
 			
 			Status getStatus() const;
 			void setStatus(Status);
+			void setStatusText(String text);
+			void setStatusProgress(double progress);
 			
 		private:
 			Task(std::shared_ptr<Task>& ptr, Options options, Function<Promise<void>(std::shared_ptr<Task>)> executor);
