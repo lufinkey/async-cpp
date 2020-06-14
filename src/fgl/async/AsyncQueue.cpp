@@ -199,12 +199,6 @@ namespace fgl {
 		cancelListeners.clear();
 	}
 
-	size_t AsyncQueue::Task::cancelSubtaskWhenCancelled(std::shared_ptr<Task> subTask) {
-		return addCancelListener([=](auto task, size_t cancelListenerId) {
-			subTask->cancel();
-		});
-	}
-
 	bool AsyncQueue::Task::isDone() const {
 		return done;
 	}

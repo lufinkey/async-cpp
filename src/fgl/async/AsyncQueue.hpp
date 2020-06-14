@@ -42,8 +42,6 @@ namespace fgl {
 			bool removeCancelListener(size_t listenerId);
 			void clearCancelListeners();
 			
-			size_t cancelSubtaskWhenCancelled(std::shared_ptr<Task> subTask);
-			
 			bool isDone() const;
 			
 			Status getStatus() const;
