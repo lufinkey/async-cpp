@@ -7,8 +7,19 @@
 //
 
 #include "AsyncQueue.hpp"
+#include <mutex>
 
 namespace fgl {
+	size_t nextAsyncQueueTaskStatusChangeListenerId() {
+		static std::mutex mtx;
+		static size_t nextId = 0;
+		mtx.lock();
+		size_t listenerId = nextId;
+		nextId++;
+		mtx.unlock();
+		return listenerId;
+	}
+
 	AsyncQueue::AsyncQueue(Options options)
 	: options(options), aliveStatus(std::make_shared<AliveStatus>()) {
 		//
@@ -158,13 +169,44 @@ namespace fgl {
 
 	void AsyncQueue::Task::setStatus(Status status) {
 		this->status = status;
+		auto self = weakSelf.lock();
+		auto listeners = statusChangeListeners;
+		for(auto& pair : listeners) {
+			pair.second(self, pair.first);
+		}
 	}
 
 	void AsyncQueue::Task::setStatusText(String text) {
-		this->status.text = text;
+		auto status = this->status;
+		status.text = text;
+		setStatus(status);
 	}
 
 	void AsyncQueue::Task::setStatusProgress(double progress) {
-		this->status.progress = progress;
+		auto status = this->status;
+		status.progress = progress;
+		setStatus(status);
+	}
+
+	size_t AsyncQueue::Task::addStatusChangeListener(StatusChangeListener listener) {
+		size_t listenerId;
+		do {
+			listenerId = nextAsyncQueueTaskStatusChangeListenerId();
+		} while(statusChangeListeners.find(listenerId) != statusChangeListeners.end());
+		statusChangeListeners[listenerId] = listener;
+		return listenerId;
+	}
+
+	bool AsyncQueue::Task::removeStatusChangeListener(size_t listenerId) {
+		auto it = statusChangeListeners.find(listenerId);
+		if(it == statusChangeListeners.end()) {
+			return false;
+		}
+		statusChangeListeners.erase(it);
+		return true;
+	}
+
+	void AsyncQueue::Task::clearStatusChangeListeners() {
+		statusChangeListeners.clear();
 	}
 }

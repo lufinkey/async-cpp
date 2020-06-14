@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <map>
 #include <memory>
 #include <fgl/async/Common.hpp>
 #include <fgl/async/Promise.hpp>
@@ -19,6 +20,8 @@ namespace fgl {
 		class Task {
 			friend class AsyncQueue;
 		public:
+			using StatusChangeListener = Function<void(std::shared_ptr<Task> task, size_t listenerId)>;
+			
 			struct Options {
 				String name;
 				String tag;
@@ -40,6 +43,9 @@ namespace fgl {
 			void setStatus(Status);
 			void setStatusText(String text);
 			void setStatusProgress(double progress);
+			size_t addStatusChangeListener(StatusChangeListener listener);
+			bool removeStatusChangeListener(size_t listenerId);
+			void clearStatusChangeListeners();
 			
 		private:
 			Task(std::shared_ptr<Task>& ptr, Options options, Function<Promise<void>(std::shared_ptr<Task>)> executor);
@@ -51,6 +57,7 @@ namespace fgl {
 			Function<Promise<void>(std::shared_ptr<Task>)> executor;
 			Optional<Promise<void>> promise;
 			Status status;
+			std::map<size_t,StatusChangeListener> statusChangeListeners;
 			bool cancelled;
 			bool done;
 		};
