@@ -142,8 +142,10 @@ namespace fgl {
 
 	Promise<void> AsyncQueue::Task::perform() {
 		FGL_ASSERT(!promise.has_value(), "Cannot call Task::perform more than once");
+		FGL_ASSERT(!done, "Cannot call Task::perform on a finished task");
 		auto self = weakSelf.lock();
 		promise = executor(self).then(nullptr, [=]() {
+			self->done = true;
 			self->promise = std::nullopt;
 		});
 		executor = nullptr;
@@ -168,6 +170,7 @@ namespace fgl {
 		cancelled = true;
 		auto self = weakSelf.lock();
 		auto listeners = cancelListeners;
+		cancelListeners.clear();
 		for(auto& pair : listeners) {
 			pair.second(self, pair.first);
 		}
