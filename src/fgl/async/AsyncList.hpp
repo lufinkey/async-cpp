@@ -53,7 +53,7 @@ namespace fgl {
 		public:
 			virtual ~Delegate() {}
 			
-			virtual Promise<void> loadAsyncListItems(Mutator* mutator, size_t index, size_t count) = 0;
+			virtual Promise<void> loadAsyncListItems(Mutator* mutator, size_t index, size_t count, std::map<String,Any> options) = 0;
 			
 			virtual bool areAsyncListItemsEqual(const AsyncList* list, const T& item1, const T& item2) const = 0;
 			
@@ -102,11 +102,15 @@ namespace fgl {
 		Optional<T> itemAt(size_t index, bool ignoreValidity = false) const;
 		struct GetItemOptions {
 			bool trackIndexChanges = false;
+			std::map<String,Any> loadOptions;
 		};
 		Promise<Optional<T>> getItem(size_t index, GetItemOptions options = GetItemOptions());
 		Promise<LinkedList<T>> getItems(size_t index, size_t count, GetItemOptions options = GetItemOptions());
 		
-		ItemGenerator generateItems(size_t startIndex=0);
+		struct GenerateItemsOptions {
+			std::map<String,Any> loadOptions;
+		};
+		ItemGenerator generateItems(size_t startIndex=0, GenerateItemsOptions options = GenerateItemsOptions());
 		
 		template<typename Callable>
 		Optional<size_t> indexWhere(Callable predicate, bool ignoreValidity = false) const;
@@ -308,7 +312,7 @@ namespace fgl {
 				}
 				size_t index = *indexMarker.get();
 				size_t chunkStartIndex = self->chunkStartIndexForIndex(index);
-				return self->delegate->loadAsyncListItems(&self->mutator, chunkStartIndex, chunkSize)
+				return self->delegate->loadAsyncListItems(&self->mutator, chunkStartIndex, chunkSize, options.loadOptions)
 				.then(nullptr, [=]() {
 					resolve(self->itemAt(index));
 				}, reject);
@@ -362,7 +366,7 @@ namespace fgl {
 				auto promise = Promise<void>::resolve();
 				for(size_t loadStartIndex = chunkStartIndex; loadStartIndex < chunkEndIndex; loadStartIndex += chunkSize) {
 					promise = promise.then([=]() {
-						return self->delegate->loadAsyncListItems(&self->mutator, loadStartIndex, self->chunkSize);
+						return self->delegate->loadAsyncListItems(&self->mutator, loadStartIndex, self->chunkSize, options.loadOptions);
 					});
 				}
 				return promise.then([=]() {
@@ -403,7 +407,7 @@ namespace fgl {
 	}
 	
 	template<typename T>
-	typename AsyncList<T>::ItemGenerator AsyncList<T>::generateItems(size_t startIndex) {
+	typename AsyncList<T>::ItemGenerator AsyncList<T>::generateItems(size_t startIndex, GenerateItemsOptions options) {
 		using YieldResult = typename ItemGenerator::YieldResult;
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto indexMarker = watchIndex(startIndex);
@@ -412,7 +416,10 @@ namespace fgl {
 			std::unique_lock<std::recursive_mutex> lock(self->mutex);
 			size_t index = *indexMarker;
 			lock.unlock();
-			return getItems(index, chunkSize).template map<YieldResult>([=](auto items) {
+			return getItems(index, chunkSize, {
+				.trackIndexChanges=true,
+				.loadOptions=options.loadOptions
+			}).template map<YieldResult>([=](auto items) {
 				std::unique_lock<std::recursive_mutex> lock(self->mutex);
 				*indexMarker += items.size();
 				if(itemsSize.has_value() && *indexMarker >= itemsSize) {
