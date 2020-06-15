@@ -72,6 +72,18 @@ namespace fgl {
 		return tasks;
 	}
 
+	Optional<size_t> AsyncQueue::indexOfTaskWithTag(const String& tag) const {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
+		size_t index = 0;
+		for(auto& taskNode : taskQueue) {
+			if(taskNode.task->getTag() == tag) {
+				return index;
+			}
+			index++;
+		}
+		return std::nullopt;
+	}
+
 	void AsyncQueue::cancelAllTasks() {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto tasks = taskQueue;
@@ -203,6 +215,10 @@ namespace fgl {
 
 	void AsyncQueue::Task::clearCancelListeners() {
 		cancelListeners.clear();
+	}
+
+	bool AsyncQueue::Task::isPerforming() const {
+		return promise.has_value();
 	}
 
 	bool AsyncQueue::Task::isDone() const {

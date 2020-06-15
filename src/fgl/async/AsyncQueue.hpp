@@ -42,6 +42,7 @@ namespace fgl {
 			bool removeCancelListener(size_t listenerId);
 			void clearCancelListeners();
 			
+			bool isPerforming() const;
 			bool isDone() const;
 			
 			Status getStatus() const;
@@ -86,6 +87,7 @@ namespace fgl {
 		Optional<TaskNode> getTaskWithName(const String& name);
 		Optional<TaskNode> getTaskWithTag(const String& tag);
 		LinkedList<TaskNode> getTasksWithTag(const String& tag);
+		Optional<size_t> indexOfTaskWithTag(const String& tag) const;
 		
 		struct RunOptions {
 			String name;
