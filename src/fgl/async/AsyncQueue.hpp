@@ -17,12 +17,24 @@
 namespace fgl {
 	class AsyncQueue {
 	public:
-		class Task {
+		class Task: public std::enable_shared_from_this<Task> {
 			friend class AsyncQueue;
 		public:
 			using BeginListener = Function<void(std::shared_ptr<Task> task)>;
 			using StatusChangeListener = Function<void(std::shared_ptr<Task> task, size_t listenerId)>;
+			using ErrorListener = Function<void(std::shared_ptr<Task> task, std::exception_ptr)>;
+			using EndListener = Function<void(std::shared_ptr<Task> task)>;
 			using CancelListener = Function<void(std::shared_ptr<Task> task)>;
+			
+			class EventListener {
+			public:
+				virtual ~EventListener() {}
+				virtual void onAsyncQueueTaskBegin(std::shared_ptr<Task> task) {};
+				virtual void onAsyncQueueTaskCancel(std::shared_ptr<Task> task) {};
+				virtual void onAsyncQueueTaskStatusChange(std::shared_ptr<Task> task) {};
+				virtual void onAsyncQueueTaskError(std::shared_ptr<Task> task, std::exception_ptr error) {};
+				virtual void onAsyncQueueTaskEnd(std::shared_ptr<Task> task) {};
+			};
 			
 			struct Options {
 				String name;
@@ -34,17 +46,28 @@ namespace fgl {
 				String text;
 			};
 			
+			static std::shared_ptr<Task> new$(Options options, Function<Promise<void>(std::shared_ptr<Task>)> executor);
+			
+			Task(Options options, Function<Promise<void>(std::shared_ptr<Task>)> executor);
+			~Task();
+			
 			const String& getTag() const;
 			const String& getName() const;
 			
+			void addEventListener(EventListener* listener);
+			void removeEventListener(EventListener* listener);
+			
 			size_t addBeginListener(BeginListener listener);
 			bool removeBeginListener(size_t listenerId);
+			size_t addErrorListener(ErrorListener listener);
+			bool removeErrorListener(size_t listenerId);
+			size_t addEndListener(EndListener listener);
+			bool removeEndListener(size_t listenerId);
 			
 			void cancel();
 			bool isCancelled() const;
 			size_t addCancelListener(CancelListener listener);
 			bool removeCancelListener(size_t listenerId);
-			void clearCancelListeners();
 			
 			bool isPerforming() const;
 			bool isDone() const;
@@ -55,21 +78,17 @@ namespace fgl {
 			void setStatusProgress(double progress);
 			size_t addStatusChangeListener(StatusChangeListener listener);
 			bool removeStatusChangeListener(size_t listenerId);
-			void clearStatusChangeListeners();
 			
 		private:
-			Task(std::shared_ptr<Task>& ptr, Options options, Function<Promise<void>(std::shared_ptr<Task>)> executor);
-			
 			Promise<void> perform();
 			
-			std::weak_ptr<Task> weakSelf;
+			EventListener* functionalEventListener();
+			
 			Options options;
 			Function<Promise<void>(std::shared_ptr<Task>)> executor;
 			Optional<Promise<void>> promise;
 			Status status;
-			std::map<size_t,BeginListener> beginListeners;
-			std::map<size_t,StatusChangeListener> statusChangeListeners;
-			std::map<size_t,CancelListener> cancelListeners;
+			LinkedList<EventListener*> eventListeners;
 			bool cancelled;
 			bool done;
 		};

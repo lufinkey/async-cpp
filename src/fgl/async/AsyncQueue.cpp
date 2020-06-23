@@ -40,6 +40,88 @@ namespace fgl {
 		return listenerId;
 	}
 
+	size_t nextAsyncQueueTaskErrorListenerId() {
+		static std::mutex mtx;
+		static size_t nextId = 0;
+		mtx.lock();
+		size_t listenerId = nextId;
+		nextId++;
+		mtx.unlock();
+		return listenerId;
+	}
+
+	size_t nextAsyncQueueTaskEndListenerId() {
+		static std::mutex mtx;
+		static size_t nextId = 0;
+		mtx.lock();
+		size_t listenerId = nextId;
+		nextId++;
+		mtx.unlock();
+		return listenerId;
+	}
+
+
+
+	class AsyncQueueTaskFunctionalEventListener: public AsyncQueue::Task::EventListener {
+	public:
+		virtual void onAsyncQueueTaskBegin(std::shared_ptr<AsyncQueue::Task> task) override;
+		virtual void onAsyncQueueTaskCancel(std::shared_ptr<AsyncQueue::Task> task) override;
+		virtual void onAsyncQueueTaskStatusChange(std::shared_ptr<AsyncQueue::Task> task) override;
+		virtual void onAsyncQueueTaskError(std::shared_ptr<AsyncQueue::Task> task, std::exception_ptr error) override;
+		virtual void onAsyncQueueTaskEnd(std::shared_ptr<AsyncQueue::Task> task) override;
+		
+		std::map<size_t,AsyncQueue::Task::BeginListener> beginListeners;
+		std::map<size_t,AsyncQueue::Task::CancelListener> cancelListeners;
+		std::map<size_t,AsyncQueue::Task::StatusChangeListener> statusChangeListeners;
+		std::map<size_t,AsyncQueue::Task::ErrorListener> errorListeners;
+		std::map<size_t,AsyncQueue::Task::EndListener> endListeners;
+	};
+
+	void AsyncQueueTaskFunctionalEventListener::onAsyncQueueTaskBegin(std::shared_ptr<AsyncQueue::Task> task) {
+		std::map<size_t,AsyncQueue::Task::BeginListener> beginListeners;
+		beginListeners.swap(this->beginListeners);
+		for(auto& pair : beginListeners) {
+			pair.second(task);
+		}
+	}
+
+	void AsyncQueueTaskFunctionalEventListener::onAsyncQueueTaskCancel(std::shared_ptr<AsyncQueue::Task> task) {
+		std::map<size_t,AsyncQueue::Task::CancelListener> cancelListeners;
+		cancelListeners.swap(this->cancelListeners);
+		for(auto& pair : cancelListeners) {
+			pair.second(task);
+		}
+	}
+
+	void AsyncQueueTaskFunctionalEventListener::onAsyncQueueTaskStatusChange(std::shared_ptr<AsyncQueue::Task> task) {
+		auto statusChangeListeners = this->statusChangeListeners;
+		for(auto& pair : statusChangeListeners) {
+			pair.second(task, pair.first);
+		}
+	}
+
+	void AsyncQueueTaskFunctionalEventListener::onAsyncQueueTaskError(std::shared_ptr<AsyncQueue::Task> task, std::exception_ptr error) {
+		this->statusChangeListeners.clear();
+		this->cancelListeners.clear();
+		std::map<size_t,AsyncQueue::Task::ErrorListener> errorListeners;
+		errorListeners.swap(this->errorListeners);
+		for(auto& pair : errorListeners) {
+			pair.second(task, error);
+		}
+	}
+
+	void AsyncQueueTaskFunctionalEventListener::onAsyncQueueTaskEnd(std::shared_ptr<AsyncQueue::Task> task) {
+		this->statusChangeListeners.clear();
+		this->cancelListeners.clear();
+		std::map<size_t,AsyncQueue::Task::EndListener> endListeners;
+		endListeners.swap(this->endListeners);
+		for(auto& pair : endListeners) {
+			pair.second(task);
+		}
+	}
+
+
+
 	AsyncQueue::AsyncQueue(Options options)
 	: options(options), aliveStatus(std::make_shared<AliveStatus>()) {
 		//
@@ -156,25 +238,57 @@ namespace fgl {
 
 
 
-	AsyncQueue::Task::Task(std::shared_ptr<Task>& ptr, Options options, Function<Promise<void>(std::shared_ptr<Task>)> executor)
+	std::shared_ptr<AsyncQueue::Task> AsyncQueue::Task::new$(Options options, Function<Promise<void>(std::shared_ptr<Task>)> executor) {
+		return std::make_shared<Task>(options, executor);
+	}
+
+	AsyncQueue::Task::Task(Options options, Function<Promise<void>(std::shared_ptr<Task>)> executor)
 	: options(options), executor(executor), cancelled(false), done(false) {
-		ptr = std::shared_ptr<Task>(this);
-		weakSelf = ptr;
+		//
+	}
+
+	AsyncQueue::Task::EventListener* AsyncQueue::Task::functionalEventListener() {
+		for(auto listener : eventListeners) {
+			if(auto castListener = dynamic_cast<AsyncQueueTaskFunctionalEventListener*>(listener)) {
+				return castListener;
+			}
+		}
+		auto castListener = new AsyncQueueTaskFunctionalEventListener();
+		eventListeners.pushFront(castListener);
+		return castListener;
+	}
+
+	AsyncQueue::Task::~Task() {
+		for(auto listener : eventListeners) {
+			if(auto castListener = dynamic_cast<AsyncQueueTaskFunctionalEventListener*>(listener)) {
+				delete castListener;
+			}
+		}
 	}
 
 	Promise<void> AsyncQueue::Task::perform() {
 		FGL_ASSERT(!promise.has_value(), "Cannot call Task::perform more than once");
 		FGL_ASSERT(!done, "Cannot call Task::perform on a finished task");
-		auto self = weakSelf.lock();
-		std::map<size_t,BeginListener> beginListeners;
-		beginListeners.swap(this->beginListeners);
-		for(auto pair : beginListeners) {
-			pair.second(self);
+		auto self = shared_from_this();
+		auto eventListeners = this->eventListeners;
+		for(auto listener : eventListeners) {
+			listener->onAsyncQueueTaskBegin(self);
 		}
-		this->beginListeners.clear();
 		promise = executor(self).then(nullptr, [=]() {
 			self->done = true;
 			self->promise = std::nullopt;
+			auto eventListeners = self->eventListeners;
+			for(auto listener : eventListeners) {
+				listener->onAsyncQueueTaskEnd(self);
+			}
+		}, [=](std::exception_ptr error) {
+			self->done = true;
+			self->promise = std::nullopt;
+			auto eventListeners = self->eventListeners;
+			for(auto listener : eventListeners) {
+				listener->onAsyncQueueTaskError(self, error);
+			}
+			std::rethrow_exception(error);
 		});
 		executor = nullptr;
 		return promise.value();
@@ -192,20 +306,68 @@ namespace fgl {
 		if(promise || done) {
 			return (size_t)-1;
 		}
+		auto funcListener = static_cast<AsyncQueueTaskFunctionalEventListener*>(functionalEventListener());
 		size_t listenerId;
 		do {
 			listenerId = nextAsyncQueueTaskBeginListenerId();
-		} while(beginListeners.find(listenerId) != beginListeners.end());
-		beginListeners[listenerId] = listener;
+		} while(funcListener->beginListeners.find(listenerId) != funcListener->beginListeners.end());
+		funcListener->beginListeners[listenerId] = listener;
 		return listenerId;
 	}
 
 	bool AsyncQueue::Task::removeBeginListener(size_t listenerId) {
-		auto it = beginListeners.find(listenerId);
-		if(it == beginListeners.end()) {
+		auto funcListener = static_cast<AsyncQueueTaskFunctionalEventListener*>(functionalEventListener());
+		auto it = funcListener->beginListeners.find(listenerId);
+		if(it == funcListener->beginListeners.end()) {
 			return false;
 		}
-		beginListeners.erase(it);
+		funcListener->beginListeners.erase(it);
+		return true;
+	}
+
+	size_t AsyncQueue::Task::addErrorListener(ErrorListener listener) {
+		if(promise || done) {
+			return (size_t)-1;
+		}
+		auto funcListener = static_cast<AsyncQueueTaskFunctionalEventListener*>(functionalEventListener());
+		size_t listenerId;
+		do {
+			listenerId = nextAsyncQueueTaskErrorListenerId();
+		} while(funcListener->errorListeners.find(listenerId) != funcListener->errorListeners.end());
+		funcListener->errorListeners[listenerId] = listener;
+		return listenerId;
+	}
+
+	bool AsyncQueue::Task::removeErrorListener(size_t listenerId) {
+		auto funcListener = static_cast<AsyncQueueTaskFunctionalEventListener*>(functionalEventListener());
+		auto it = funcListener->errorListeners.find(listenerId);
+		if(it == funcListener->errorListeners.end()) {
+			return false;
+		}
+		funcListener->errorListeners.erase(it);
+		return true;
+	}
+
+	size_t AsyncQueue::Task::addEndListener(EndListener listener) {
+		if(promise || done) {
+			return (size_t)-1;
+		}
+		auto funcListener = static_cast<AsyncQueueTaskFunctionalEventListener*>(functionalEventListener());
+		size_t listenerId;
+		do {
+			listenerId = nextAsyncQueueTaskEndListenerId();
+		} while(funcListener->endListeners.find(listenerId) != funcListener->endListeners.end());
+		funcListener->endListeners[listenerId] = listener;
+		return listenerId;
+	}
+
+	bool AsyncQueue::Task::removeEndListener(size_t listenerId) {
+		auto funcListener = static_cast<AsyncQueueTaskFunctionalEventListener*>(functionalEventListener());
+		auto it = funcListener->endListeners.find(listenerId);
+		if(it == funcListener->endListeners.end()) {
+			return false;
+		}
+		funcListener->endListeners.erase(it);
 		return true;
 	}
 	
@@ -217,11 +379,10 @@ namespace fgl {
 			return;
 		}
 		cancelled = true;
-		auto self = weakSelf.lock();
-		auto listeners = cancelListeners;
-		cancelListeners.clear();
-		for(auto& pair : listeners) {
-			pair.second(self);
+		auto self = shared_from_this();
+		auto eventListeners = this->eventListeners;
+		for(auto listener : eventListeners) {
+			listener->onAsyncQueueTaskCancel(self);
 		}
 	}
 
@@ -233,25 +394,23 @@ namespace fgl {
 		if(cancelled) {
 			return (size_t)-1;
 		}
+		auto funcListener = static_cast<AsyncQueueTaskFunctionalEventListener*>(functionalEventListener());
 		size_t listenerId;
 		do {
 			listenerId = nextAsyncQueueTaskCancelListenerId();
-		} while(cancelListeners.find(listenerId) != cancelListeners.end());
-		cancelListeners[listenerId] = listener;
+		} while(funcListener->cancelListeners.find(listenerId) != funcListener->cancelListeners.end());
+		funcListener->cancelListeners[listenerId] = listener;
 		return listenerId;
 	}
 
 	bool AsyncQueue::Task::removeCancelListener(size_t listenerId) {
-		auto it = cancelListeners.find(listenerId);
-		if(it == cancelListeners.end()) {
+		auto funcListener = static_cast<AsyncQueueTaskFunctionalEventListener*>(functionalEventListener());
+		auto it = funcListener->cancelListeners.find(listenerId);
+		if(it == funcListener->cancelListeners.end()) {
 			return false;
 		}
-		cancelListeners.erase(it);
+		funcListener->cancelListeners.erase(it);
 		return true;
-	}
-
-	void AsyncQueue::Task::clearCancelListeners() {
-		cancelListeners.clear();
 	}
 
 	bool AsyncQueue::Task::isPerforming() const {
@@ -268,10 +427,10 @@ namespace fgl {
 
 	void AsyncQueue::Task::setStatus(Status status) {
 		this->status = status;
-		auto self = weakSelf.lock();
-		auto listeners = statusChangeListeners;
-		for(auto& pair : listeners) {
-			pair.second(self, pair.first);
+		auto self = shared_from_this();
+		auto eventListeners = this->eventListeners;
+		for(auto listener : eventListeners) {
+			listener->onAsyncQueueTaskStatusChange(self);
 		}
 	}
 
@@ -288,24 +447,22 @@ namespace fgl {
 	}
 
 	size_t AsyncQueue::Task::addStatusChangeListener(StatusChangeListener listener) {
+		auto funcListener = static_cast<AsyncQueueTaskFunctionalEventListener*>(functionalEventListener());
 		size_t listenerId;
 		do {
 			listenerId = nextAsyncQueueTaskStatusChangeListenerId();
-		} while(statusChangeListeners.find(listenerId) != statusChangeListeners.end());
-		statusChangeListeners[listenerId] = listener;
+		} while(funcListener->statusChangeListeners.find(listenerId) != funcListener->statusChangeListeners.end());
+		funcListener->statusChangeListeners[listenerId] = listener;
 		return listenerId;
 	}
 
 	bool AsyncQueue::Task::removeStatusChangeListener(size_t listenerId) {
-		auto it = statusChangeListeners.find(listenerId);
-		if(it == statusChangeListeners.end()) {
+		auto funcListener = static_cast<AsyncQueueTaskFunctionalEventListener*>(functionalEventListener());
+		auto it = funcListener->statusChangeListeners.find(listenerId);
+		if(it == funcListener->statusChangeListeners.end()) {
 			return false;
 		}
-		statusChangeListeners.erase(it);
+		funcListener->statusChangeListeners.erase(it);
 		return true;
-	}
-
-	void AsyncQueue::Task::clearStatusChangeListeners() {
-		statusChangeListeners.clear();
 	}
 }
