@@ -10,6 +10,16 @@
 #include <mutex>
 
 namespace fgl {
+	size_t nextAsyncQueueTaskBeginListenerId() {
+		static std::mutex mtx;
+		static size_t nextId = 0;
+		mtx.lock();
+		size_t listenerId = nextId;
+		nextId++;
+		mtx.unlock();
+		return listenerId;
+	}
+
 	size_t nextAsyncQueueTaskStatusChangeListenerId() {
 		static std::mutex mtx;
 		static size_t nextId = 0;
@@ -156,6 +166,12 @@ namespace fgl {
 		FGL_ASSERT(!promise.has_value(), "Cannot call Task::perform more than once");
 		FGL_ASSERT(!done, "Cannot call Task::perform on a finished task");
 		auto self = weakSelf.lock();
+		std::map<size_t,BeginListener> beginListeners;
+		beginListeners.swap(this->beginListeners);
+		for(auto pair : beginListeners) {
+			pair.second(self);
+		}
+		this->beginListeners.clear();
 		promise = executor(self).then(nullptr, [=]() {
 			self->done = true;
 			self->promise = std::nullopt;
@@ -170,6 +186,27 @@ namespace fgl {
 
 	const String& AsyncQueue::Task::getName() const {
 		return options.name;
+	}
+
+	size_t AsyncQueue::Task::addBeginListener(BeginListener listener) {
+		if(promise || done) {
+			return (size_t)-1;
+		}
+		size_t listenerId;
+		do {
+			listenerId = nextAsyncQueueTaskBeginListenerId();
+		} while(beginListeners.find(listenerId) != beginListeners.end());
+		beginListeners[listenerId] = listener;
+		return listenerId;
+	}
+
+	bool AsyncQueue::Task::removeBeginListener(size_t listenerId) {
+		auto it = beginListeners.find(listenerId);
+		if(it == beginListeners.end()) {
+			return false;
+		}
+		beginListeners.erase(it);
+		return true;
 	}
 	
 	void AsyncQueue::Task::cancel() {

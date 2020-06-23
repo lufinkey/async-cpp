@@ -20,6 +20,7 @@ namespace fgl {
 		class Task {
 			friend class AsyncQueue;
 		public:
+			using BeginListener = Function<void(std::shared_ptr<Task> task)>;
 			using StatusChangeListener = Function<void(std::shared_ptr<Task> task, size_t listenerId)>;
 			using CancelListener = Function<void(std::shared_ptr<Task> task)>;
 			
@@ -35,6 +36,9 @@ namespace fgl {
 			
 			const String& getTag() const;
 			const String& getName() const;
+			
+			size_t addBeginListener(BeginListener listener);
+			bool removeBeginListener(size_t listenerId);
 			
 			void cancel();
 			bool isCancelled() const;
@@ -63,8 +67,9 @@ namespace fgl {
 			Function<Promise<void>(std::shared_ptr<Task>)> executor;
 			Optional<Promise<void>> promise;
 			Status status;
-			std::map<size_t,CancelListener> cancelListeners;
+			std::map<size_t,BeginListener> beginListeners;
 			std::map<size_t,StatusChangeListener> statusChangeListeners;
+			std::map<size_t,CancelListener> cancelListeners;
 			bool cancelled;
 			bool done;
 		};

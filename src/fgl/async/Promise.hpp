@@ -64,7 +64,7 @@ namespace fgl {
 		|| std::is_same<typename lambda_traits<Func>::return_type,Promise<Result>>::value),Func>::type;
 
 
-	
+
 	template<typename Result>
 	class Promise {
 		template<typename OtherResult>
