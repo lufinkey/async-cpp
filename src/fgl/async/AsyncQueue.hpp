@@ -187,8 +187,7 @@ namespace fgl {
 			.tag=options.tag
 		};
 		auto dispatchQueue = this->options.dispatchQueue;
-		std::shared_ptr<Task> task;
-		new Task(task, taskOptions, [=](std::shared_ptr<Task> task) {
+		auto task = Task::new$(taskOptions, [=](std::shared_ptr<Task> task) {
 			return performWork<Work>(dispatchQueue, task, work);
 		});
 		typename Promise<void>::Resolver resolveTask;
