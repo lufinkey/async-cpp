@@ -88,9 +88,16 @@ namespace fgl {
 	void AsyncQueue::Task::removeEventListener(id<FGLAsyncQueueTaskEventListener> listener) {
 		FGL_ASSERT(listener != nullptr, "listener cannot be null");
 		std::unique_lock<std::recursive_mutex> lock(mutex);
-		auto it = eventListeners.findLastWhere([=](auto& cppListener) {
-			__strong id<FGLAsyncQueueTaskEventListener> cmpListener = cppListener->weakListener;
-			return (listener == cmpListener);
+		auto it = eventListeners.findLastWhere([=](auto& cmpListener) {
+			auto cppListener = dynamic_cast<AsyncQueueTaskObjcEventListener*>(cmpListener);
+			if(cppListener == nullptr) {
+				return false;
+			}
+			__strong id<FGLAsyncQueueTaskEventListener> objcListener = cppListener->weakListener;
+			if(listener == objcListener) {
+				return true;
+			}
+			return false;
 		});
 		if(it != eventListeners.end()) {
 			auto cppListener = *it;
