@@ -292,10 +292,10 @@ namespace fgl {
 
 #ifdef __OBJC__
 @protocol FGLAsyncQueueTaskEventListener <NSObject>
--(void)asyncQueueTaskWillBegin:(std::shared_ptr<AsyncQueue::Task>)task;
--(void)asyncQueueTaskDidCancel:(std::shared_ptr<AsyncQueue::Task>) task;
--(void)asyncQueueTaskDidChangeStatus:(std::shared_ptr<AsyncQueue::Task>)task;
--(void)asyncQueueTask:(std::shared_ptr<AsyncQueue::Task>)task didThrowError:(std::exception_ptr)error;
--(void)asyncQueueTaskDidEnd:(std::shared_ptr<AsyncQueue::Task>)task;
+-(void)asyncQueueTaskWillBegin:(std::shared_ptr<fgl::AsyncQueue::Task>)task;
+-(void)asyncQueueTaskDidCancel:(std::shared_ptr<fgl::AsyncQueue::Task>) task;
+-(void)asyncQueueTaskDidChangeStatus:(std::shared_ptr<fgl::AsyncQueue::Task>)task;
+-(void)asyncQueueTask:(std::shared_ptr<fgl::AsyncQueue::Task>)task didThrowError:(std::exception_ptr)error;
+-(void)asyncQueueTaskDidEnd:(std::shared_ptr<fgl::AsyncQueue::Task>)task;
 @end
 #endif
