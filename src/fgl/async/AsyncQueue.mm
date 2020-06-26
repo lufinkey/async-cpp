@@ -36,7 +36,9 @@ namespace fgl {
 			delete this;
 			return;
 		}
-		[listener asyncQueueTaskWillBegin:task];
+		if([listener respondsToSelector:@selector(asyncQueueTaskWillBegin:)]) {
+			[listener asyncQueueTaskWillBegin:task];
+		}
 	}
 	
 	void AsyncQueueTaskObjcEventListener::onAsyncQueueTaskCancel(std::shared_ptr<AsyncQueue::Task> task) {
@@ -46,7 +48,9 @@ namespace fgl {
 			delete this;
 			return;
 		}
-		[listener asyncQueueTaskDidCancel:task];
+		if([listener respondsToSelector:@selector(asyncQueueTaskDidCancel:)]) {
+			[listener asyncQueueTaskDidCancel:task];
+		}
 	}
 	
 	void AsyncQueueTaskObjcEventListener::onAsyncQueueTaskStatusChange(std::shared_ptr<AsyncQueue::Task> task) {
@@ -56,7 +60,9 @@ namespace fgl {
 			delete this;
 			return;
 		}
-		[listener asyncQueueTaskDidChangeStatus:task];
+		if([listener respondsToSelector:@selector(asyncQueueTaskDidChangeStatus:)]) {
+			[listener asyncQueueTaskDidChangeStatus:task];
+		}
 	}
 	
 	void AsyncQueueTaskObjcEventListener::onAsyncQueueTaskError(std::shared_ptr<AsyncQueue::Task> task, std::exception_ptr error) {
@@ -66,7 +72,9 @@ namespace fgl {
 			delete this;
 			return;
 		}
-		[listener asyncQueueTask:task didThrowError:error];
+		if([listener respondsToSelector:@selector(asyncQueueTask:didThrowError:)]) {
+			[listener asyncQueueTask:task didThrowError:error];
+		}
 	}
 	
 	void AsyncQueueTaskObjcEventListener::onAsyncQueueTaskEnd(std::shared_ptr<AsyncQueue::Task> task) {
@@ -76,7 +84,9 @@ namespace fgl {
 			delete this;
 			return;
 		}
-		[listener asyncQueueTaskDidEnd:task];
+		if([listener respondsToSelector:@selector(asyncQueueTaskDidEnd:)]) {
+			[listener asyncQueueTaskDidEnd:task];
+		}
 	}
 	
 	void AsyncQueue::Task::addEventListener(id<FGLAsyncQueueTaskEventListener> listener) {

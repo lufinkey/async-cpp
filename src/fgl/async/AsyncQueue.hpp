@@ -291,6 +291,7 @@ namespace fgl {
 
 #ifdef __OBJC__
 @protocol FGLAsyncQueueTaskEventListener <NSObject>
+@optional
 -(void)asyncQueueTaskWillBegin:(std::shared_ptr<fgl::AsyncQueue::Task>)task;
 -(void)asyncQueueTaskDidCancel:(std::shared_ptr<fgl::AsyncQueue::Task>) task;
 -(void)asyncQueueTaskDidChangeStatus:(std::shared_ptr<fgl::AsyncQueue::Task>)task;
