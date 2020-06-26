@@ -14,6 +14,11 @@
 #include <fgl/async/Promise.hpp>
 #include <fgl/async/Generator.hpp>
 
+#ifdef __OBJC__
+#import <Foundation/Foundation.h>
+@protocol FGLAsyncQueueTaskEventListener;
+#endif
+
 namespace fgl {
 	class AsyncQueue {
 	public:
@@ -56,6 +61,10 @@ namespace fgl {
 			
 			void addEventListener(EventListener* listener);
 			void removeEventListener(EventListener* listener);
+			#ifdef __OBJC__
+			void addEventListener(id<FGLAsyncQueueTaskEventListener> listener);
+			void removeEventListener(id<FGLAsyncQueueTaskEventListener> listener);
+			#endif
 			
 			size_t addBeginListener(BeginListener listener);
 			bool removeBeginListener(size_t listenerId);
@@ -85,6 +94,7 @@ namespace fgl {
 			EventListener* functionalEventListener();
 			
 			Options options;
+			mutable std::recursive_mutex mutex;
 			Function<Promise<void>(std::shared_ptr<Task>)> executor;
 			Optional<Promise<void>> promise;
 			Status status;
@@ -273,4 +283,18 @@ namespace fgl {
 			return runGenerator(dispatchQueue,gen,shouldStop);
 		});
 	}
+
+
+
+#pragma mark FGLAsyncQueueTaskEventListener interface
+
+	#ifdef __OBJC__
+	@protocol FGLAsyncQueueTaskEventListener<NSObject>
+	-(void)asyncQueueTaskWillBegin:(std::shared_ptr<Task>)task;
+	-(void)asyncQueueTaskDidCancel:(std::shared_ptr<Task>) task;
+	-(void)asyncQueueTaskDidChangeStatus:(std::shared_ptr<Task>)task;
+	-(void)asyncQueueTask:(std::shared_ptr<Task>)task didThrowError:(std::exception_ptr)error;
+	-(void)asyncQueueTaskDidEnd:(std::shared_ptr<Task>)task;
+	@end
+	#endif
 }

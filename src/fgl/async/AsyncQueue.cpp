@@ -119,6 +119,7 @@ namespace fgl {
 			pair.second(task);
 		}
 	}
+	
 
 
 
@@ -267,6 +268,7 @@ namespace fgl {
 	}
 
 	Promise<void> AsyncQueue::Task::perform() {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
 		FGL_ASSERT(!promise.has_value(), "Cannot call Task::perform more than once");
 		FGL_ASSERT(!done, "Cannot call Task::perform on a finished task");
 		auto self = shared_from_this();
@@ -274,7 +276,9 @@ namespace fgl {
 		for(auto listener : eventListeners) {
 			listener->onAsyncQueueTaskBegin(self);
 		}
-		promise = executor(self).then(nullptr, [=]() {
+		promise = executor(self);
+		promise->then(nullptr, [=]() {
+			std::unique_lock<std::recursive_mutex> lock(self->mutex);
 			self->done = true;
 			self->promise = std::nullopt;
 			auto eventListeners = self->eventListeners;
@@ -282,6 +286,7 @@ namespace fgl {
 				listener->onAsyncQueueTaskEnd(self);
 			}
 		}, [=](std::exception_ptr error) {
+			std::unique_lock<std::recursive_mutex> lock(self->mutex);
 			self->done = true;
 			self->promise = std::nullopt;
 			auto eventListeners = self->eventListeners;
@@ -291,7 +296,7 @@ namespace fgl {
 			std::rethrow_exception(error);
 		});
 		executor = nullptr;
-		return promise.value();
+		return promise.valueOr(Promise<void>::resolve());
 	}
 
 	const String& AsyncQueue::Task::getTag() const {
@@ -302,7 +307,20 @@ namespace fgl {
 		return options.name;
 	}
 
+	void AsyncQueue::Task::addEventListener(EventListener* listener) {
+		FGL_ASSERT(listener != nullptr, "listener cannot be null");
+		std::unique_lock<std::recursive_mutex> lock(mutex);
+		eventListeners.pushBack(listener);
+	}
+
+	void AsyncQueue::Task::removeEventListener(EventListener* listener) {
+		FGL_ASSERT(listener != nullptr, "listener cannot be null");
+		std::unique_lock<std::recursive_mutex> lock(mutex);
+		eventListeners.removeLastEqual(listener);
+	}
+
 	size_t AsyncQueue::Task::addBeginListener(BeginListener listener) {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
 		if(promise || done) {
 			return (size_t)-1;
 		}
@@ -316,6 +334,7 @@ namespace fgl {
 	}
 
 	bool AsyncQueue::Task::removeBeginListener(size_t listenerId) {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto funcListener = static_cast<AsyncQueueTaskFunctionalEventListener*>(functionalEventListener());
 		auto it = funcListener->beginListeners.find(listenerId);
 		if(it == funcListener->beginListeners.end()) {
@@ -326,6 +345,7 @@ namespace fgl {
 	}
 
 	size_t AsyncQueue::Task::addErrorListener(ErrorListener listener) {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
 		if(promise || done) {
 			return (size_t)-1;
 		}
@@ -339,6 +359,7 @@ namespace fgl {
 	}
 
 	bool AsyncQueue::Task::removeErrorListener(size_t listenerId) {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto funcListener = static_cast<AsyncQueueTaskFunctionalEventListener*>(functionalEventListener());
 		auto it = funcListener->errorListeners.find(listenerId);
 		if(it == funcListener->errorListeners.end()) {
@@ -349,6 +370,7 @@ namespace fgl {
 	}
 
 	size_t AsyncQueue::Task::addEndListener(EndListener listener) {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
 		if(promise || done) {
 			return (size_t)-1;
 		}
@@ -362,6 +384,7 @@ namespace fgl {
 	}
 
 	bool AsyncQueue::Task::removeEndListener(size_t listenerId) {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto funcListener = static_cast<AsyncQueueTaskFunctionalEventListener*>(functionalEventListener());
 		auto it = funcListener->endListeners.find(listenerId);
 		if(it == funcListener->endListeners.end()) {
@@ -372,6 +395,7 @@ namespace fgl {
 	}
 	
 	void AsyncQueue::Task::cancel() {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
 		if(done) {
 			return;
 		}
@@ -391,6 +415,7 @@ namespace fgl {
 	}
 
 	size_t AsyncQueue::Task::addCancelListener(CancelListener listener) {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
 		if(cancelled) {
 			return (size_t)-1;
 		}
@@ -404,6 +429,7 @@ namespace fgl {
 	}
 
 	bool AsyncQueue::Task::removeCancelListener(size_t listenerId) {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto funcListener = static_cast<AsyncQueueTaskFunctionalEventListener*>(functionalEventListener());
 		auto it = funcListener->cancelListeners.find(listenerId);
 		if(it == funcListener->cancelListeners.end()) {
@@ -422,10 +448,14 @@ namespace fgl {
 	}
 	
 	AsyncQueue::Task::Status AsyncQueue::Task::getStatus() const {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
+		auto status = this->status;
+		lock.unlock();
 		return status;
 	}
 
 	void AsyncQueue::Task::setStatus(Status status) {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
 		this->status = status;
 		auto self = shared_from_this();
 		auto eventListeners = this->eventListeners;
@@ -435,18 +465,21 @@ namespace fgl {
 	}
 
 	void AsyncQueue::Task::setStatusText(String text) {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto status = this->status;
 		status.text = text;
 		setStatus(status);
 	}
 
 	void AsyncQueue::Task::setStatusProgress(double progress) {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto status = this->status;
 		status.progress = progress;
 		setStatus(status);
 	}
 
 	size_t AsyncQueue::Task::addStatusChangeListener(StatusChangeListener listener) {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto funcListener = static_cast<AsyncQueueTaskFunctionalEventListener*>(functionalEventListener());
 		size_t listenerId;
 		do {
@@ -457,6 +490,7 @@ namespace fgl {
 	}
 
 	bool AsyncQueue::Task::removeStatusChangeListener(size_t listenerId) {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto funcListener = static_cast<AsyncQueueTaskFunctionalEventListener*>(functionalEventListener());
 		auto it = funcListener->statusChangeListeners.find(listenerId);
 		if(it == funcListener->statusChangeListeners.end()) {
