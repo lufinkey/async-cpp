@@ -283,18 +283,19 @@ namespace fgl {
 			return runGenerator(dispatchQueue,gen,shouldStop);
 		});
 	}
+}
+
 
 
 
 #pragma mark FGLAsyncQueueTaskEventListener interface
 
-	#ifdef __OBJC__
-	@protocol FGLAsyncQueueTaskEventListener<NSObject>
-	-(void)asyncQueueTaskWillBegin:(std::shared_ptr<Task>)task;
-	-(void)asyncQueueTaskDidCancel:(std::shared_ptr<Task>) task;
-	-(void)asyncQueueTaskDidChangeStatus:(std::shared_ptr<Task>)task;
-	-(void)asyncQueueTask:(std::shared_ptr<Task>)task didThrowError:(std::exception_ptr)error;
-	-(void)asyncQueueTaskDidEnd:(std::shared_ptr<Task>)task;
-	@end
-	#endif
-}
+#ifdef __OBJC__
+@protocol FGLAsyncQueueTaskEventListener <NSObject>
+-(void)asyncQueueTaskWillBegin:(std::shared_ptr<AsyncQueue::Task>)task;
+-(void)asyncQueueTaskDidCancel:(std::shared_ptr<AsyncQueue::Task>) task;
+-(void)asyncQueueTaskDidChangeStatus:(std::shared_ptr<AsyncQueue::Task>)task;
+-(void)asyncQueueTask:(std::shared_ptr<AsyncQueue::Task>)task didThrowError:(std::exception_ptr)error;
+-(void)asyncQueueTaskDidEnd:(std::shared_ptr<AsyncQueue::Task>)task;
+@end
+#endif
