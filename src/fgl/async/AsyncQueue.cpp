@@ -138,7 +138,7 @@ namespace fgl {
 
 	Optional<AsyncQueue::TaskNode> AsyncQueue::getTaskWithName(const String& name) {
 		for(auto& taskNode : taskQueue) {
-			if(taskNode.task->getName() == name) {
+			if(taskNode.task->getName() == name && !(taskNode.task->isCancelled() && !taskNode.task->isPerforming())) {
 				return taskNode;
 			}
 		}
@@ -147,7 +147,7 @@ namespace fgl {
 
 	Optional<AsyncQueue::TaskNode> AsyncQueue::getTaskWithTag(const String& tag) {
 		for(auto& taskNode : taskQueue) {
-			if(taskNode.task->getTag() == tag) {
+			if(taskNode.task->getTag() == tag && !(taskNode.task->isCancelled() && !taskNode.task->isPerforming())) {
 				return taskNode;
 			}
 		}
@@ -158,7 +158,7 @@ namespace fgl {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		LinkedList<AsyncQueue::TaskNode> tasks;
 		for(auto& taskNode : taskQueue) {
-			if(taskNode.task->getTag() == tag) {
+			if(taskNode.task->getTag() == tag && !(taskNode.task->isCancelled() && !taskNode.task->isPerforming())) {
 				tasks.push_back(taskNode);
 			}
 		}
@@ -169,7 +169,7 @@ namespace fgl {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		size_t index = 0;
 		for(auto& taskNode : taskQueue) {
-			if(taskNode.task->getTag() == tag) {
+			if(taskNode.task->getTag() == tag && !(taskNode.task->isCancelled() && !taskNode.task->isPerforming())) {
 				return index;
 			}
 			index++;
@@ -217,7 +217,7 @@ namespace fgl {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		LinkedList<Promise<void>> promises;
 		for(auto& taskNode : taskQueue) {
-			if(taskNode.task->getTag() == tag) {
+			if(taskNode.task->getTag() == tag && !(taskNode.task->isCancelled() && !taskNode.task->isPerforming())) {
 				promises.push_back(taskNode.promise);
 			}
 		}
