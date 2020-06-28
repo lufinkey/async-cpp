@@ -276,8 +276,7 @@ namespace fgl {
 		for(auto listener : eventListeners) {
 			listener->onAsyncQueueTaskBegin(self);
 		}
-		promise = executor(self);
-		promise->then(nullptr, [=]() {
+		promise = executor(self).then(nullptr, [=]() {
 			std::unique_lock<std::recursive_mutex> lock(self->mutex);
 			self->done = true;
 			self->promise = std::nullopt;
