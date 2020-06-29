@@ -36,8 +36,8 @@ namespace fgl {
 			delete this;
 			return;
 		}
-		if([listener respondsToSelector:@selector(asyncQueueTaskWillBegin:)]) {
-			[listener asyncQueueTaskWillBegin:task];
+		if([listener respondsToSelector:@selector(asyncQueueTaskDidBegin:)]) {
+			[listener asyncQueueTaskDidBegin:task];
 		}
 	}
 	

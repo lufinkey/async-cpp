@@ -281,6 +281,7 @@ namespace fgl {
 			self->done = true;
 			self->promise = std::nullopt;
 			auto eventListeners = self->eventListeners;
+			lock.unlock();
 			for(auto listener : eventListeners) {
 				listener->onAsyncQueueTaskEnd(self);
 			}
@@ -289,6 +290,7 @@ namespace fgl {
 			self->done = true;
 			self->promise = std::nullopt;
 			auto eventListeners = self->eventListeners;
+			lock.unlock();
 			for(auto listener : eventListeners) {
 				listener->onAsyncQueueTaskError(self, error);
 			}
@@ -404,6 +406,7 @@ namespace fgl {
 		cancelled = true;
 		auto self = shared_from_this();
 		auto eventListeners = this->eventListeners;
+		lock.unlock();
 		for(auto listener : eventListeners) {
 			listener->onAsyncQueueTaskCancel(self);
 		}
@@ -458,6 +461,7 @@ namespace fgl {
 		this->status = status;
 		auto self = shared_from_this();
 		auto eventListeners = this->eventListeners;
+		lock.unlock();
 		for(auto listener : eventListeners) {
 			listener->onAsyncQueueTaskStatusChange(self);
 		}
@@ -465,16 +469,24 @@ namespace fgl {
 
 	void AsyncQueue::Task::setStatusText(String text) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
-		auto status = this->status;
 		status.text = text;
-		setStatus(status);
+		auto self = shared_from_this();
+		auto eventListeners = this->eventListeners;
+		lock.unlock();
+		for(auto listener : eventListeners) {
+			listener->onAsyncQueueTaskStatusChange(self);
+		}
 	}
 
 	void AsyncQueue::Task::setStatusProgress(double progress) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
-		auto status = this->status;
 		status.progress = progress;
-		setStatus(status);
+		auto self = shared_from_this();
+		auto eventListeners = this->eventListeners;
+		lock.unlock();
+		for(auto listener : eventListeners) {
+			listener->onAsyncQueueTaskStatusChange(self);
+		}
 	}
 
 	size_t AsyncQueue::Task::addStatusChangeListener(StatusChangeListener listener) {
