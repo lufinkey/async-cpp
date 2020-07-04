@@ -310,6 +310,8 @@ namespace fgl {
 	inline Result await(Promise<Result> promise);
 	template<typename Result>
 	inline Optionalized<Result> maybeTryAwait(Promise<Result> promise);
+	template<typename Result>
+	inline Result maybeTryAwait(Promise<Result> promise, Result defaultValue);
 	
 	
 	
@@ -1890,16 +1892,15 @@ namespace fgl {
 	
 	template<typename Result>
 	Optionalized<Result> maybeTryAwait(Promise<Result> promise) {
-		try {
-			if constexpr(std::is_same<Result,void>::value) {
-				promise.get();
-				return nullptr;
-			} else {
-				return promise.get();
-			}
-		}
-		catch(...) {
-			return std::nullopt;
-		}
+		return maybeTry([&]() {
+			return promise.get();
+		});
+	}
+	
+	template<typename Result>
+	Result maybeTryAwait(Promise<Result> promise, Result defaultValue) {
+		return maybeTry([&]() {
+			return promise.get();
+		}, defaultValue);
 	}
 }
