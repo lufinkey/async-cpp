@@ -372,7 +372,7 @@ namespace fgl {
 				auto promise = Promise<void>::resolve();
 				for(size_t loadStartIndex = chunkStartIndex; loadStartIndex < chunkEndIndex; loadStartIndex += chunkSize) {
 					promise = promise.then([=]() {
-						return self->delegate->loadAsyncListItems(&self->mutator, loadStartIndex, self->chunkSize, options.loadOptions);
+						return self->delegate->loadAsyncListItems(&self->mutator, loadStartIndex, chunkSize, options.loadOptions);
 					});
 				}
 				return promise.then([=]() {
