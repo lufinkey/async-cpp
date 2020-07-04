@@ -85,6 +85,7 @@ namespace fgl {
 		inline bool sizeIsKnown() const;
 		inline size_t size() const;
 		inline size_t getChunkSize() const;
+		inline void setChunkSize(size_t chunkSize);
 		
 		std::shared_ptr<size_t> watchIndex(size_t index);
 		std::shared_ptr<size_t> watchIndex(std::shared_ptr<size_t> index);
@@ -199,6 +200,14 @@ namespace fgl {
 	template<typename T>
 	size_t AsyncList<T>::getChunkSize() const {
 		return chunkSize;
+	}
+
+	template<typename T>
+	void AsyncList<T>::setChunkSize(size_t chunkSize) {
+		if(chunkSize == 0) {
+			throw std::runtime_error("chunkSize cannot be 0");
+		}
+		this->chunkSize = chunkSize;
 	}
 
 	template<typename T>
