@@ -304,10 +304,12 @@ namespace fgl {
 		std::shared_ptr<Continuer> continuer;
 	};
 	
-	template<typename Result>
+	template<typename Result = void>
 	Promise<Result> async(Function<Result()> executor);
 	template<typename Result>
 	inline Result await(Promise<Result> promise);
+	template<typename Result>
+	inline Optionalized<Result> maybeTryAwait(Promise<Result> promise);
 	
 	
 	
@@ -1884,5 +1886,20 @@ namespace fgl {
 	template<typename Result>
 	Result await(Promise<Result> promise) {
 		return promise.get();
+	}
+	
+	template<typename Result>
+	Optionalized<Result> maybeTryAwait(Promise<Result> promise) {
+		try {
+			if constexpr(std::is_same<Result,void>::value) {
+				promise.get();
+				return nullptr;
+			} else {
+				return promise.get();
+			}
+		}
+		catch(...) {
+			return std::nullopt;
+		}
 	}
 }
