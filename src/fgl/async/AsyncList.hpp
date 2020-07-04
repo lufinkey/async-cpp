@@ -53,6 +53,7 @@ namespace fgl {
 		public:
 			virtual ~Delegate() {}
 			
+			virtual size_t getAsyncListChunkSize(const AsyncList* list) const = 0;
 			virtual Promise<void> loadAsyncListItems(Mutator* mutator, size_t index, size_t count, std::map<String,Any> options) = 0;
 			
 			virtual bool areAsyncListItemsEqual(const AsyncList* list, const T& item1, const T& item2) const = 0;
@@ -69,7 +70,6 @@ namespace fgl {
 		
 		struct Options {
 			Delegate* delegate = nullptr;
-			size_t chunkSize = 0;
 			std::map<size_t,T> initialItemsMap;
 			ArrayList<T> initialItems;
 			size_t initialItemsOffset = 0;
@@ -85,7 +85,6 @@ namespace fgl {
 		inline bool sizeIsKnown() const;
 		inline size_t size() const;
 		inline size_t getChunkSize() const;
-		inline void setChunkSize(size_t chunkSize);
 		
 		std::shared_ptr<size_t> watchIndex(size_t index);
 		std::shared_ptr<size_t> watchIndex(std::shared_ptr<size_t> index);
@@ -125,13 +124,12 @@ namespace fgl {
 		Promise<void> mutate(Function<void(Mutator*)> executor);
 		
 	private:
-		size_t chunkStartIndexForIndex(size_t index) const;
+		static size_t chunkStartIndexForIndex(size_t index, size_t chunkSize);
 		
 		mutable std::recursive_mutex mutex;
 		std::map<size_t,ItemNode> items;
 		Optional<size_t> itemsSize;
 		
-		size_t chunkSize;
 		std::list<std::shared_ptr<size_t>> indexMarkers;
 		
 		AsyncQueue mutationQueue;
@@ -151,11 +149,9 @@ namespace fgl {
 
 	template<typename T>
 	AsyncList<T>::AsyncList(Options options)
-	: itemsSize(options.initialSize), chunkSize(options.chunkSize), mutator(*this), delegate(options.delegate) {
+	: itemsSize(options.initialSize), mutator(*this), delegate(options.delegate) {
 		if(options.delegate == nullptr) {
 			throw std::invalid_argument("delegate cannot be null");
-		} else if(options.chunkSize == 0) {
-			throw std::invalid_argument("chunkSize cannot be 0");
 		}
 		
 		// set initial items
@@ -187,6 +183,7 @@ namespace fgl {
 
 	template<typename T>
 	size_t AsyncList<T>::size() const {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
 		if(itemsSize.has_value()) {
 			return itemsSize.value();
 		} else if(items.size() > 0) {
@@ -199,19 +196,15 @@ namespace fgl {
 
 	template<typename T>
 	size_t AsyncList<T>::getChunkSize() const {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
+		size_t chunkSize = delegate->getAsyncListChunkSize(this);
+		FGL_ASSERT(chunkSize != 0, "AsyncList chunkSize cannot be 0");
 		return chunkSize;
 	}
 
 	template<typename T>
-	void AsyncList<T>::setChunkSize(size_t chunkSize) {
-		if(chunkSize == 0) {
-			throw std::runtime_error("chunkSize cannot be 0");
-		}
-		this->chunkSize = chunkSize;
-	}
-
-	template<typename T>
 	std::shared_ptr<size_t> AsyncList<T>::watchIndex(size_t index) {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto indexMarker = std::make_shared<size_t>(index);
 		indexMarkers.push_back(indexMarker);
 		return indexMarker;
@@ -219,6 +212,7 @@ namespace fgl {
 
 	template<typename T>
 	std::shared_ptr<size_t> AsyncList<T>::watchIndex(std::shared_ptr<size_t> index) {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto it = std::find(indexMarkers.begin(), indexMarkers.end(), index);
 		if(it == indexMarkers.end()) {
 			indexMarkers.push_back(index);
@@ -228,6 +222,7 @@ namespace fgl {
 
 	template<typename T>
 	void AsyncList<T>::unwatchIndex(std::shared_ptr<size_t> index) {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto it = std::find(indexMarkers.begin(), indexMarkers.end(), index);
 		if(it != indexMarkers.end()) {
 			indexMarkers.erase(it);
@@ -320,7 +315,8 @@ namespace fgl {
 					self->unwatchIndex(indexMarker);
 				}
 				size_t index = *indexMarker.get();
-				size_t chunkStartIndex = self->chunkStartIndexForIndex(index);
+				size_t chunkSize = self->getChunkSize();
+				size_t chunkStartIndex = chunkStartIndexForIndex(index, chunkSize);
 				return self->delegate->loadAsyncListItems(&self->mutator, chunkStartIndex, chunkSize, options.loadOptions)
 				.then(nullptr, [=]() {
 					resolve(self->itemAt(index));
@@ -367,8 +363,9 @@ namespace fgl {
 					self->unwatchIndex(indexMarker);
 				}
 				size_t index = *indexMarker.get();
-				size_t chunkStartIndex = self->chunkStartIndexForIndex(index);
-				size_t chunkEndIndex = self->chunkStartIndexForIndex(index+count);
+				size_t chunkSize = self->getChunkSize();
+				size_t chunkStartIndex = chunkStartIndexForIndex(index, chunkSize);
+				size_t chunkEndIndex = chunkStartIndexForIndex(index+count, chunkSize);
 				if(chunkEndIndex < (index+count)) {
 					chunkEndIndex += chunkSize;
 				}
@@ -424,6 +421,7 @@ namespace fgl {
 		return ItemGenerator([=]() {
 			std::unique_lock<std::recursive_mutex> lock(self->mutex);
 			size_t index = *indexMarker;
+			size_t chunkSize = self->getChunkSize();
 			lock.unlock();
 			return getItems(index, chunkSize, {
 				.trackIndexChanges=true,
@@ -461,7 +459,7 @@ namespace fgl {
 	}
 
 	template<typename T>
-	size_t AsyncList<T>::chunkStartIndexForIndex(size_t index) const {
+	size_t AsyncList<T>::chunkStartIndexForIndex(size_t index, size_t chunkSize) {
 		return std::floor(index / chunkSize) * chunkSize;
 	}
 
