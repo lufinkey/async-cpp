@@ -504,6 +504,7 @@
 				HEADER_SEARCH_PATHS = (
 					"$(PROJECT_DIR)/../../src",
 					"$(PROJECT_DIR)/../../../data-cpp/src",
+					"$(PROJECT_DIR)/../../../dtl",
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 12.4;
 				OTHER_LDFLAGS = "-ObjC";
@@ -521,6 +522,7 @@
 				HEADER_SEARCH_PATHS = (
 					"$(PROJECT_DIR)/../../src",
 					"$(PROJECT_DIR)/../../../data-cpp/src",
+					"$(PROJECT_DIR)/../../../dtl",
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 12.4;
 				OTHER_LDFLAGS = "-ObjC";

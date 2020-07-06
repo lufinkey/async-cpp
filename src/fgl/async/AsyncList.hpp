@@ -19,6 +19,31 @@
 #include <fgl/async/AsyncQueue.hpp>
 
 namespace fgl {
+	struct AsyncListGetLoadedItemsOptions {
+		size_t startIndex = 0;
+		size_t limit = (size_t)-1;
+		bool ignoreValidity = false;
+	};
+
+	struct AsyncListGetItemOptions {
+		bool trackIndexChanges = false;
+		bool forceReload = false;
+		std::map<String,Any> loadOptions;
+	};
+
+	enum AsyncListIndexMarkerState: uint8_t {
+		IN_LIST,
+		REMOVED
+	};
+
+	struct AsyncListIndexMarkerData {
+		size_t index;
+		AsyncListIndexMarkerState state;
+	};
+	typedef std::shared_ptr<AsyncListIndexMarkerData> AsyncListIndexMarker;
+
+	
+
 	template<typename T>
 	class AsyncList: public std::enable_shared_from_this<AsyncList<T>> {
 	public:
@@ -86,31 +111,18 @@ namespace fgl {
 		inline size_t size() const;
 		inline size_t getChunkSize() const;
 		
-		std::shared_ptr<size_t> watchIndex(size_t index);
-		std::shared_ptr<size_t> watchIndex(std::shared_ptr<size_t> index);
-		void unwatchIndex(std::shared_ptr<size_t> index);
+		AsyncListIndexMarker watchIndex(size_t index);
+		AsyncListIndexMarker watchIndex(AsyncListIndexMarker index);
+		void unwatchIndex(AsyncListIndexMarker index);
 		
 		bool isItemLoaded(size_t index, bool ignoreValidity = false) const;
 		bool areItemsLoaded(size_t index, size_t count, bool ignoreValidity = false) const;
-		struct GetLoadedItemsOptions {
-			size_t startIndex = 0;
-			size_t limit = (size_t)-1;
-			bool ignoreValidity = false;
-		};
-		LinkedList<T> getLoadedItems(GetLoadedItemsOptions options = GetLoadedItemsOptions()) const;
+		LinkedList<T> getLoadedItems(AsyncListGetLoadedItemsOptions options = AsyncListGetLoadedItemsOptions()) const;
 		
 		Optional<T> itemAt(size_t index, bool ignoreValidity = false) const;
-		struct GetItemOptions {
-			bool trackIndexChanges = false;
-			std::map<String,Any> loadOptions;
-		};
-		Promise<Optional<T>> getItem(size_t index, GetItemOptions options = GetItemOptions());
-		Promise<LinkedList<T>> getItems(size_t index, size_t count, GetItemOptions options = GetItemOptions());
-		
-		struct GenerateItemsOptions {
-			std::map<String,Any> loadOptions;
-		};
-		ItemGenerator generateItems(size_t startIndex=0, GenerateItemsOptions options = GenerateItemsOptions());
+		Promise<Optional<T>> getItem(size_t index, AsyncListGetItemOptions options = AsyncListGetItemOptions());
+		Promise<LinkedList<T>> getItems(size_t index, size_t count, AsyncListGetItemOptions options = AsyncListGetItemOptions());
+		ItemGenerator generateItems(size_t startIndex=0, AsyncListGetItemOptions options = AsyncListGetItemOptions{.trackIndexChanges=true});
 		
 		template<typename Callable>
 		Optional<size_t> indexWhere(Callable predicate, bool ignoreValidity = false) const;
@@ -130,7 +142,7 @@ namespace fgl {
 		std::map<size_t,ItemNode> items;
 		Optional<size_t> itemsSize;
 		
-		std::list<std::shared_ptr<size_t>> indexMarkers;
+		std::list<AsyncListIndexMarker> indexMarkers;
 		
 		AsyncQueue mutationQueue;
 		Mutator mutator;
@@ -203,25 +215,28 @@ namespace fgl {
 	}
 
 	template<typename T>
-	std::shared_ptr<size_t> AsyncList<T>::watchIndex(size_t index) {
+	AsyncListIndexMarker AsyncList<T>::watchIndex(size_t index) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
-		auto indexMarker = std::make_shared<size_t>(index);
+		auto indexMarker = std::make_shared<AsyncListIndexMarkerData>(AsyncListIndexMarkerData{
+			.index=index,
+			.state=AsyncListIndexMarkerState::IN_LIST
+		});
 		indexMarkers.push_back(indexMarker);
 		return indexMarker;
 	}
 
 	template<typename T>
-	std::shared_ptr<size_t> AsyncList<T>::watchIndex(std::shared_ptr<size_t> index) {
+	AsyncListIndexMarker AsyncList<T>::watchIndex(AsyncListIndexMarker indexMarker) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
-		auto it = std::find(indexMarkers.begin(), indexMarkers.end(), index);
+		auto it = std::find(indexMarkers.begin(), indexMarkers.end(), indexMarker);
 		if(it == indexMarkers.end()) {
-			indexMarkers.push_back(index);
+			indexMarkers.push_back(indexMarker);
 		}
-		return index;
+		return indexMarker;
 	}
 
 	template<typename T>
-	void AsyncList<T>::unwatchIndex(std::shared_ptr<size_t> index) {
+	void AsyncList<T>::unwatchIndex(AsyncListIndexMarker index) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto it = std::find(indexMarkers.begin(), indexMarkers.end(), index);
 		if(it != indexMarkers.end()) {
@@ -265,7 +280,7 @@ namespace fgl {
 	}
 
 	template<typename T>
-	LinkedList<T> AsyncList<T>::getLoadedItems(GetLoadedItemsOptions options) const {
+	LinkedList<T> AsyncList<T>::getLoadedItems(AsyncListGetLoadedItemsOptions options) const {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		LinkedList<T> loadedItems;
 		auto it = items.find(options.startIndex);
@@ -298,13 +313,18 @@ namespace fgl {
 	}
 
 	template<typename T>
-	Promise<Optional<T>> AsyncList<T>::getItem(size_t index, GetItemOptions options) {
+	Promise<Optional<T>> AsyncList<T>::getItem(size_t index, AsyncListGetItemOptions options) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
-		auto it = items.find(index);
-		if(it != items.end() && it->second.valid) {
-			return Promise<Optional<T>>::resolve(it->second.item);
+		if(!options.forceReload) {
+			auto it = items.find(index);
+			if(it != items.end() && it->second.valid) {
+				return Promise<Optional<T>>::resolve(it->second.item);
+			}
 		}
-		auto indexMarker = std::make_shared<size_t>(index);
+		auto indexMarker = std::make_shared<AsyncListIndexMarkerData>(AsyncListIndexMarkerData{
+			.index=index,
+			.state=AsyncListIndexMarkerState::IN_LIST
+		});
 		if(options.trackIndexChanges) {
 			watchIndex(indexMarker);
 		}
@@ -314,7 +334,7 @@ namespace fgl {
 				if(options.trackIndexChanges) {
 					self->unwatchIndex(indexMarker);
 				}
-				size_t index = *indexMarker.get();
+				size_t index = indexMarker->index;
 				size_t chunkSize = self->getChunkSize();
 				size_t chunkStartIndex = chunkStartIndexForIndex(index, chunkSize);
 				return self->delegate->loadAsyncListItems(&self->mutator, chunkStartIndex, chunkSize, options.loadOptions)
@@ -326,33 +346,38 @@ namespace fgl {
 	}
 
 	template<typename T>
-	Promise<LinkedList<T>> AsyncList<T>::getItems(size_t index, size_t count, GetItemOptions options) {
+	Promise<LinkedList<T>> AsyncList<T>::getItems(size_t index, size_t count, AsyncListGetItemOptions options) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
-		auto startIt = items.find(index);
-		if(startIt != items.end() && startIt->second.valid) {
-			LinkedList<T> loadedItems;
-			size_t nextIndex = index;
-			size_t endIndex = index + count;
-			if(itemsSize.has_value() && endIndex > itemsSize.value()) {
-				endIndex = itemsSize.value();
-			}
-			bool foundAllItems = false;
-			for(auto it=startIt, end=items.end(); it!=end; it++) {
-				if(it->first != nextIndex || !it->second.valid) {
-					break;
+		if(!options.forceReload) {
+			auto startIt = items.find(index);
+			if(startIt != items.end() && startIt->second.valid) {
+				LinkedList<T> loadedItems;
+				size_t nextIndex = index;
+				size_t endIndex = index + count;
+				if(itemsSize.has_value() && endIndex > itemsSize.value()) {
+					endIndex = itemsSize.value();
 				}
-				loadedItems.pushBack(it->second.item);
-				nextIndex++;
-				if(nextIndex >= endIndex) {
-					foundAllItems = true;
-					break;
+				bool foundAllItems = false;
+				for(auto it=startIt, end=items.end(); it!=end; it++) {
+					if(it->first != nextIndex || !it->second.valid) {
+						break;
+					}
+					loadedItems.pushBack(it->second.item);
+					nextIndex++;
+					if(nextIndex >= endIndex) {
+						foundAllItems = true;
+						break;
+					}
 				}
-			}
-			if(foundAllItems) {
-				return Promise<LinkedList<T>>::resolve(loadedItems);
+				if(foundAllItems) {
+					return Promise<LinkedList<T>>::resolve(loadedItems);
+				}
 			}
 		}
-		auto indexMarker = std::make_shared<size_t>(index);
+		auto indexMarker = std::make_shared<AsyncListIndexMarkerData>(AsyncListIndexMarkerData{
+			.index=index,
+			.state=AsyncListIndexMarkerState::IN_LIST
+		});
 		if(options.trackIndexChanges) {
 			watchIndex(indexMarker);
 		}
@@ -362,7 +387,7 @@ namespace fgl {
 				if(options.trackIndexChanges) {
 					self->unwatchIndex(indexMarker);
 				}
-				size_t index = *indexMarker.get();
+				size_t index = indexMarker->index;
 				size_t chunkSize = self->getChunkSize();
 				size_t chunkStartIndex = chunkStartIndexForIndex(index, chunkSize);
 				size_t chunkEndIndex = chunkStartIndexForIndex(index+count, chunkSize);
@@ -413,24 +438,28 @@ namespace fgl {
 	}
 	
 	template<typename T>
-	typename AsyncList<T>::ItemGenerator AsyncList<T>::generateItems(size_t startIndex, GenerateItemsOptions options) {
+	typename AsyncList<T>::ItemGenerator AsyncList<T>::generateItems(size_t startIndex, AsyncListGetItemOptions options) {
 		using YieldResult = typename ItemGenerator::YieldResult;
 		std::unique_lock<std::recursive_mutex> lock(mutex);
-		auto indexMarker = watchIndex(startIndex);
+		auto indexMarker = std::make_shared<AsyncListIndexMarkerData>(AsyncListIndexMarkerData{
+			.index=startIndex,
+			.state=AsyncListIndexMarkerState::IN_LIST
+		});
+		if(options.trackIndexChanges) {
+			watchIndex(indexMarker);
+		}
 		auto self = this->shared_from_this();
 		return ItemGenerator([=]() {
 			std::unique_lock<std::recursive_mutex> lock(self->mutex);
-			size_t index = *indexMarker;
+			size_t index = indexMarker->index;
 			size_t chunkSize = self->getChunkSize();
-			lock.unlock();
-			return getItems(index, chunkSize, {
-				.trackIndexChanges=true,
-				.loadOptions=options.loadOptions
-			}).template map<YieldResult>([=](auto items) {
+			return getItems(index, chunkSize, options).template map<YieldResult>([=](auto items) {
 				std::unique_lock<std::recursive_mutex> lock(self->mutex);
-				*indexMarker += items.size();
-				if(itemsSize.has_value() && *indexMarker >= itemsSize) {
-					self->unwatchIndex(indexMarker);
+				indexMarker->index += items.size();
+				if(itemsSize.has_value() && indexMarker->index >= itemsSize.value()) {
+					if(options.trackIndexChanges) {
+						self->unwatchIndex(indexMarker);
+					}
 					return YieldResult{
 						.value=items,
 						.done=true
@@ -442,7 +471,9 @@ namespace fgl {
 				};
 			});
 		}, [=]() {
-			self->unwatchIndex(indexMarker);
+			if(options.trackIndexChanges) {
+				self->unwatchIndex(indexMarker);
+			}
 		});
 	}
 
@@ -615,8 +646,8 @@ namespace fgl {
 		}
 		// update index markers
 		for(auto& indexMarker : list.indexMarkers) {
-			if(*indexMarker >= index && *indexMarker != -1) {
-				*indexMarker += insertCount;
+			if(indexMarker->index >= index) {
+				indexMarker->index += insertCount;
 			}
 		}
 		// apply new items
@@ -683,12 +714,18 @@ namespace fgl {
 		}
 		// update index markers
 		for(auto& indexMarker : list.indexMarkers) {
-			if(*indexMarker == (size_t)-1) {
-				continue;
-			} else if(*indexMarker >= endIndex) {
-				*indexMarker -= removeCount;
-			} else if(*indexMarker >= index) {
-				*indexMarker = (size_t)-1;
+			if(indexMarker->index >= endIndex) {
+				indexMarker->index -= removeCount;
+			} else if(indexMarker->index >= index) {
+				switch(indexMarker->state) {
+					case AsyncListIndexMarkerState::IN_LIST: {
+						indexMarker->state = AsyncListIndexMarkerState::REMOVED;
+						indexMarker->index = index;
+					} break;
+					case AsyncListIndexMarkerState::REMOVED: {
+						indexMarker->index = index;
+					} break;
+				}
 			}
 		}
 		// update list size
@@ -734,10 +771,14 @@ namespace fgl {
 		}
 		// eliminate index markers above count
 		for(auto& indexMarker : list.indexMarkers) {
-			if(*indexMarker == (size_t)-1) {
-				continue;
-			} else if(*indexMarker >= count) {
-				*indexMarker = (size_t)-1;
+			switch(indexMarker->state) {
+				case AsyncListIndexMarkerState::IN_LIST: {
+					indexMarker->state = AsyncListIndexMarkerState::REMOVED;
+					indexMarker->index = list.items.size();
+				} break;
+				case AsyncListIndexMarkerState::REMOVED: {
+					indexMarker->index = list.items.size();
+				} break;
 			}
 		}
 		// update list size
