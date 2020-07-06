@@ -12,6 +12,7 @@
 #include <fgl/async/Promise.hpp>
 #include <fgl/async/ContinuousGenerator.hpp>
 #include <fgl/async/AsyncQueue.hpp>
+#include <dtl/dtl.hpp>
 #include <cmath>
 #include <list>
 #include <map>
@@ -118,6 +119,7 @@ namespace fgl {
 		bool isItemLoaded(size_t index, bool ignoreValidity = false) const;
 		bool areItemsLoaded(size_t index, size_t count, bool ignoreValidity = false) const;
 		LinkedList<T> getLoadedItems(AsyncListGetLoadedItemsOptions options = AsyncListGetLoadedItemsOptions()) const;
+		LinkedList<Optional<T>> maybeGetLoadedItems(AsyncListGetLoadedItemsOptions options = AsyncListGetLoadedItemsOptions()) const;
 		
 		Optional<T> itemAt(size_t index, bool ignoreValidity = false) const;
 		Promise<Optional<T>> getItem(size_t index, AsyncListGetItemOptions options = AsyncListGetItemOptions());
@@ -293,6 +295,33 @@ namespace fgl {
 				return loadedItems;
 			}
 			loadedItems.push_back(it->second.item);
+			it++;
+			nextIndex++;
+		}
+		return loadedItems;
+	}
+
+	template<typename T>
+	LinkedList<Optional<T>> AsyncList<T>::maybeGetLoadedItems(AsyncListGetLoadedItemsOptions options) const {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
+		LinkedList<Optional<T>> loadedItems;
+		auto it = items.find(options.startIndex);
+		size_t nextIndex = options.startIndex;
+		while(it != items.end() && loadedItems.size() < options.limit) {
+			if(it->first != nextIndex) {
+				for(size_t j=nextIndex; (j < it->first) && (loadedItems.size() < options.limit); j++) {
+					loadedItems.push_back(std::nullopt);
+				}
+				if(loadedItems.size() >= options.limit) {
+					break;
+				}
+				nextIndex = it->first;
+			}
+			if(!options.ignoreValidity && !it->second.valid) {
+				loadedItems.push_back(std::nullopt);
+			} else {
+				loadedItems.push_back(Optional<T>(it->second.item));
+			}
 			it++;
 			nextIndex++;
 		}
