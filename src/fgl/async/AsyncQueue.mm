@@ -6,7 +6,7 @@
 //  Copyright © 2020 Luis Finke. All rights reserved.
 //
 
-#include "AsyncQueue.hpp"
+#include <fgl/async/AsyncQueue.hpp>
 
 #ifdef __OBJC__
 

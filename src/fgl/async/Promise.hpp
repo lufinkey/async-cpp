@@ -8,6 +8,10 @@
 
 #pragma once
 
+#include <fgl/async/Common.hpp>
+#include <fgl/async/DispatchQueue.hpp>
+#include <fgl/async/LambdaTraits.hpp>
+#include <fgl/async/PromiseErrorPtr.hpp>
 #include <chrono>
 #include <condition_variable>
 #include <future>
@@ -17,10 +21,6 @@
 #include <thread>
 #include <type_traits>
 #include <utility>
-#include <fgl/async/Common.hpp>
-#include <fgl/async/DispatchQueue.hpp>
-#include <fgl/async/LambdaTraits.hpp>
-#include <fgl/async/PromiseErrorPtr.hpp>
 
 
 namespace fgl {

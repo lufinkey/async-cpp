@@ -8,12 +8,12 @@
 
 #pragma once
 
-#include <chrono>
-#include <memory>
-#include <thread>
 #include <fgl/async/Common.hpp>
 #include <fgl/async/DispatchQueue.hpp>
 #include <fgl/async/Promise.hpp>
+#include <chrono>
+#include <memory>
+#include <thread>
 
 namespace fgl {
 	class Timer;

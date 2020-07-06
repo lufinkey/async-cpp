@@ -8,9 +8,9 @@
 
 #pragma once
 
+#include <fgl/async/Common.hpp>
 #include <exception>
 #include <type_traits>
-#include <fgl/async/Common.hpp>
 
 namespace fgl {
 	class PromiseErrorPtr {

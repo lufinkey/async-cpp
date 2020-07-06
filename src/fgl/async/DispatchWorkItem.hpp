@@ -8,11 +8,11 @@
 
 #pragma once
 
+#include <fgl/async/Common.hpp>
+#include <fgl/async/DispatchTimeoutResult.hpp>
 #include <condition_variable>
 #include <list>
 #include <mutex>
-#include <fgl/async/Common.hpp>
-#include <fgl/async/DispatchTimeoutResult.hpp>
 
 namespace fgl {
 	class DispatchQueue;

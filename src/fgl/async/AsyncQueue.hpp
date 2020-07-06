@@ -8,11 +8,11 @@
 
 #pragma once
 
-#include <map>
-#include <memory>
 #include <fgl/async/Common.hpp>
 #include <fgl/async/Promise.hpp>
 #include <fgl/async/Generator.hpp>
+#include <map>
+#include <memory>
 
 #ifdef __OBJC__
 #import <Foundation/Foundation.h>

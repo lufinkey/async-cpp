@@ -8,11 +8,11 @@
 
 #pragma once
 
-#include <condition_variable>
-#include <thread>
 #include <fgl/async/Common.hpp>
 #include <fgl/async/LambdaTraits.hpp>
 #include <fgl/async/Promise.hpp>
+#include <condition_variable>
+#include <thread>
 
 namespace fgl {
 	template<typename Yield, typename Next>

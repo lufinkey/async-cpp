@@ -6,12 +6,12 @@
 //  Copyright © 2019 Luis Finke. All rights reserved.
 //
 
+#include <fgl/async.hpp>
 #include <exception>
 #include <iostream>
 #include <thread>
 #include <type_traits>
 #include <cxxabi.h>
-#include <fgl/async.hpp>
 
 using namespace fgl;
 

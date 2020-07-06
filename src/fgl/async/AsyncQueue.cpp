@@ -6,7 +6,7 @@
 //  Copyright © 2019 Luis Finke. All rights reserved.
 //
 
-#include "AsyncQueue.hpp"
+#include <fgl/async/AsyncQueue.hpp>
 #include <mutex>
 
 namespace fgl {

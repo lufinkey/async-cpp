@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include <exception>
 #include <fgl/async/Common.hpp>
 #include <fgl/async/Generator.hpp>
+#include <exception>
 
 namespace fgl {
 	template<typename Yield, typename Next>

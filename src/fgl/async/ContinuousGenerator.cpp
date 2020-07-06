@@ -6,7 +6,7 @@
 //  Copyright © 2020 Luis Finke. All rights reserved.
 //
 
-#include "ContinuousGenerator.hpp"
+#include <fgl/async/ContinuousGenerator.hpp>
 
 namespace fgl {
 	//

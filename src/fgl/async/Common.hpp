@@ -8,8 +8,6 @@
 
 #pragma once
 
-#include <exception>
-#include <iostream>
 #ifdef ASYNC_CPP_STANDALONE
 	#include <any>
 	#include <functional>
@@ -21,6 +19,8 @@
 #else
 	#include <fgl/data.hpp>
 #endif
+#include <exception>
+#include <iostream>
 
 namespace fgl {
 	#ifdef ASYNC_CPP_STANDALONE

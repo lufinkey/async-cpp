@@ -8,14 +8,14 @@
 
 #pragma once
 
+#include <fgl/async/Common.hpp>
+#include <fgl/async/DispatchWorkItem.hpp>
 #include <chrono>
 #include <condition_variable>
 #include <memory>
 #include <mutex>
 #include <thread>
 #include <variant>
-#include <fgl/async/Common.hpp>
-#include <fgl/async/DispatchWorkItem.hpp>
 #ifdef __APPLE__
 #include <dispatch/dispatch.h>
 #endif

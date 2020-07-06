@@ -8,15 +8,15 @@
 
 #pragma once
 
+#include <fgl/async/Common.hpp>
+#include <fgl/async/Promise.hpp>
+#include <fgl/async/ContinuousGenerator.hpp>
+#include <fgl/async/AsyncQueue.hpp>
 #include <cmath>
 #include <list>
 #include <map>
 #include <memory>
 #include <variant>
-#include <fgl/async/Common.hpp>
-#include <fgl/async/Promise.hpp>
-#include <fgl/async/ContinuousGenerator.hpp>
-#include <fgl/async/AsyncQueue.hpp>
 
 namespace fgl {
 	struct AsyncListGetLoadedItemsOptions {
