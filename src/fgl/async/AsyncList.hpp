@@ -1040,10 +1040,14 @@ namespace fgl {
 			switch(indexMarker->state) {
 				case AsyncListIndexMarkerState::IN_LIST: {
 					indexMarker->state = AsyncListIndexMarkerState::REMOVED;
-					indexMarker->index = list.items.size();
+					if(list.itemsSize) {
+						indexMarker->index = list.itemsSize.value();
+					}
 				} break;
 				case AsyncListIndexMarkerState::REMOVED: {
-					indexMarker->index = list.items.size();
+					if(list.itemsSize) {
+						indexMarker->index = list.itemsSize.value();
+					}
 				} break;
 			}
 		}
