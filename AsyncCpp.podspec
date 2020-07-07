@@ -48,6 +48,9 @@ Pod::Spec.new do |s|
 		'CLANG_CXX_LANGUAGE_STANDARD' => 'gnu++17'
 	}
 	s.user_target_xcconfig = {
+		'HEADER_SEARCH_PATHS' => [ "$(PODS_ROOT)/dtl" ]
+	}
+	s.user_target_xcconfig = {
 		'FRAMEWORK_SEARCH_PATHS' => "${PODS_ROOT}/AsyncCpp/src"
 	}
 	# s.frameworks = 'UIKit', 'MapKit'
