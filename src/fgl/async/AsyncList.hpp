@@ -748,6 +748,8 @@ namespace fgl {
 				maxLookAhead = items.size();
 			}
 			
+			auto itemsIt = items.begin();
+			
 			auto sesSeq = diff.getSes().getSequence();
 			for(auto it=sesSeq.begin(); it != sesSeq.end(); it++) {
 				switch(sesSeq->second.type) {
@@ -771,6 +773,7 @@ namespace fgl {
 							displacingStartIndex = existingItemIndex;
 						}
 						addingItems.pushBack(sesSeq->first.value());
+						itemsIt++;
 					} break;
 					case dtl::SES_COMMON: {
 						if(displacing) {
@@ -816,7 +819,8 @@ namespace fgl {
 								addingItems.clear();
 							}
 						}
-						settingItems.pushBack(existingItemIt->value());
+						list.delegate->mergeAsyncListItem(list, *itemsIt, existingItemIt->value());
+						settingItems.pushBack(std::move(*itemsIt));
 					} break;
 				}
 			}
