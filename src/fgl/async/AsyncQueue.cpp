@@ -136,6 +136,10 @@ namespace fgl {
 		return taskQueue.size();
 	}
 
+	DispatchQueue* AsyncQueue::dispatchQueue() const {
+		return options.dispatchQueue;
+	}
+
 	Optional<AsyncQueue::TaskNode> AsyncQueue::getTaskWithName(const String& name) {
 		for(auto& taskNode : taskQueue) {
 			if(taskNode.task->getName() == name && !(taskNode.task->isCancelled() && !taskNode.task->isPerforming())) {

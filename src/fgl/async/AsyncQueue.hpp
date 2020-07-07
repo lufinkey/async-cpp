@@ -117,6 +117,7 @@ namespace fgl {
 		~AsyncQueue();
 		
 		size_t taskCount() const;
+		DispatchQueue* dispatchQueue() const;
 		
 		Optional<TaskNode> getTaskWithName(const String& name);
 		Optional<TaskNode> getTaskWithTag(const String& tag);
