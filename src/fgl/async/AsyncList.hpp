@@ -87,7 +87,7 @@ namespace fgl {
 			virtual Promise<void> loadAsyncListItems(Mutator* mutator, size_t index, size_t count, std::map<String,Any> options) = 0;
 			
 			virtual bool areAsyncListItemsEqual(const AsyncList<T>* list, const T& item1, const T& item2) const = 0;
-			virtual void mergeAsyncListItem(const AsyncList<T>* list, T& existingItem, T& overwritingItem) = 0;
+			virtual void mergeAsyncListItem(const AsyncList<T>* list, T& overwritingItem, T& existingItem) = 0;
 			
 			//virtual Promise<void> insertAsyncListItems(Mutator* mutator, size_t index, size_t count) = 0;
 			//virtual Promise<void> removeAsyncListItems(Mutator* mutator, size_t index, size_t count) = 0;
