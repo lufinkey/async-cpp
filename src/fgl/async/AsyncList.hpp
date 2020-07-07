@@ -61,7 +61,8 @@ namespace fgl {
 			template<typename Work>
 			void lock(Work work);
 			void apply(size_t index, LinkedList<T> items);
-			void applyAndResize(size_t index, size_t size, LinkedList<T> items);
+			void applyAndResize(size_t index, size_t listSize, LinkedList<T> items);
+			void set(size_t index, LinkedList<T> items);
 			void insert(size_t index, LinkedList<T> items);
 			void remove(size_t index, size_t count);
 			//void move(size_t index, size_t count, size_t newIndex);
@@ -69,6 +70,8 @@ namespace fgl {
 			void invalidate(size_t index, size_t count);
 			
 		private:
+			void applyMerge(size_t index, Optional<size_t> listSize, LinkedList<T> items);
+			
 			Mutator(AsyncList& list);
 			
 			AsyncList& list;
@@ -137,6 +140,9 @@ namespace fgl {
 		Promise<void> mutate(Function<Promise<void>(Mutator*)> executor);
 		Promise<void> mutate(Function<void(Mutator*)> executor);
 		
+		void invalidateItems(size_t startIndex, size_t endIndex);
+		void invalidateAllItems();
+		
 	private:
 		static size_t chunkStartIndexForIndex(size_t index, size_t chunkSize);
 		
@@ -150,6 +156,9 @@ namespace fgl {
 		Mutator mutator;
 		Delegate* delegate;
 	};
+
+	template<typename T>
+	class AsyncListOptionalDTLCompare;
 
 
 
@@ -638,23 +647,205 @@ namespace fgl {
 	}
 	
 	template<typename T>
-	void AsyncList<T>::Mutator::apply(size_t index, LinkedList<T> items) {
+	void AsyncList<T>::Mutator::applyMerge(size_t index, Optional<size_t> listSize, LinkedList<T> items) {
 		std::unique_lock<std::recursive_mutex> lock(list.mutex);
-		size_t i=index;
-		for(auto& item : items) {
-			list.items[i] = AsyncList<T>::ItemNode{
-				.item=item,
-				.valid=true
-			};
-			i++;
+		
+		using DiffType = dtl::Diff<Optional<T>, LinkedList<Optional<T>>, AsyncListOptionalDTLCompare<T>>;
+		
+		{
+			size_t existingItemsLimit = items.size();
+			if(listSize.has_value() && (index+items.size()) >= listSize.value()) {
+				existingItemsLimit = -1;
+			}
+			auto existingItems = list.maybeGetLoadedItems({
+				.startIndex=index,
+				.limit=existingItemsLimit,
+				.ignoreValidity=true
+			});
+			bool hasExistingItem = false;
+			for(auto& item : existingItems) {
+				if(item.has_value()) {
+					hasExistingItem = true;
+					break;
+				}
+			}
+			if(!hasExistingItem) {
+				set(index, items);
+				return;
+			}
+			while(existingItems.size() < items.size() && (!list.itemsSize.has_value() || (index+existingItems.size()) < list.itemsSize.value())) {
+				existingItems.push_back(std::nullopt);
+			}
+			
+			DiffType diff; {
+				auto overwritingItems = items.map([](auto& item) {
+					return Optional<T>(item);
+				});
+				
+				diff = DiffType(existingItems, overwritingItems, ItemComparer(list));
+			}
+			diff.compose();
+			
+			LinkedList<T> settingItems;
+			
+			auto existingItemIt = existingItems.begin();
+			size_t existingItemIndex = 0;
+			
+			bool displacing = false;
+			bool displacementRemovesEmpty = false;
+			size_t displacingStartIndex = 0;
+			LinkedList<T> addingItems;
+			
+			size_t maxLookAhead = list.delegate->getAsyncListChunkSize(list);
+			if(maxLookAhead < items.size()) {
+				maxLookAhead = items.size();
+			}
+			
+			auto sesSeq = diff.getSes().getSequence();
+			for(auto it=sesSeq.begin(); it != sesSeq.end(); it++) {
+				switch(sesSeq->second.type) {
+					case dtl::SES_DELETE: {
+						if(!displacing) {
+							displacing = true;
+							displacementRemovesEmpty = false;
+							displacingStartIndex = existingItemIndex;
+						}
+						if(!it->first.has_value()) {
+							displacementRemovesEmpty = true;
+						}
+						// start add/delete chain
+						existingItemIt++;
+						existingItemIndex++;
+					} break;
+					case dtl::SES_ADD: {
+						if(!displacing) {
+							displacing = true;
+							displacementRemovesEmpty = false;
+							displacingStartIndex = existingItemIndex;
+						}
+						addingItems.pushBack(sesSeq->first.value());
+					} break;
+					case dtl::SES_COMMON: {
+						if(displacing) {
+							displacing = false;
+							if(displacingStartIndex == 0 && list.items.size() > 0 && !displacementRemovesEmpty) {
+								// go down and find the items in common with the bottom added items and move them
+								auto dispIt = std::make_reverse_iterator(list.items.lower_bound(index));
+								auto addingItemsIt = addingItems.rbegin();
+								size_t addingItemsIndex = addingItems.size() - 1;
+								while(list.items.size() > 0 && dispIt != list.items.rend() && addingItemsIt != addingItems.rend()) {
+									bool foundMatch = false;
+									auto checkDispIt = dispIt;
+									size_t lookAheadCount = 0;
+									while(checkDispIt != list.items.rend() && lookAheadCount < maxLookAhead) {
+										if(list.delegate->areAsyncListItemsEqual(list, checkDispIt->second.value, *addingItemsIt)) {
+											foundMatch = true;
+											size_t prevIndex = checkDispIt->first;
+											size_t newIndex = index + settingItems.size() + addingItemsIndex;
+											*addingItemsIt = std::move(checkDispIt->second.value);
+											auto fcheckDispIt = std::prev(checkDispIt.base(), 1);
+											fcheckDispIt = list.items.erase(fcheckDispIt);
+											checkDispIt = std::make_reverse_iterator(fcheckDispIt);
+											if(list.items.size() > 0) {
+												checkDispIt++;
+											}
+											dispIt = checkDispIt;
+											// update index markers
+											for(auto& indexMarker : list.indexMarkers) {
+												if(indexMarker->index == prevIndex && indexMarker->state == AsyncListIndexMarkerState::IN_LIST) {
+													indexMarker->index = newIndex;
+												}
+											}
+											break;
+										}
+										lookAheadCount++;
+									}
+									addingItemsIt++;
+									addingItemsIndex--;
+								}
+							}
+							if(addingItems.size() > 0) {
+								settingItems.splice(settingItems.end(), addingItems);
+								addingItems.clear();
+							}
+						}
+						settingItems.pushBack(existingItemIt->value());
+					} break;
+				}
+			}
+			if(displacing) {
+				displacing = false;
+				// go up and find the items in common with the top added items and move them
+				if(list.items.size() > 0 && !displacementRemovesEmpty) {
+					auto dispIt = list.items.lower_bound(index+items.size());
+					auto addingItemsIt = addingItems.begin();
+					size_t addingItemsIndex = 0;
+					while(list.items.size() > 0 && dispIt != list.items.end() && addingItemsIt != addingItems.end()) {
+						bool foundMatch = false;
+						auto checkDispIt = dispIt;
+						size_t lookAheadCount = 0;
+						while(checkDispIt != list.items.end() && lookAheadCount < maxLookAhead) {
+							if(list.delegate->areAsyncListItemsEqual(list, checkDispIt->second.value, *addingItemsIt)) {
+								foundMatch = true;
+								size_t prevIndex = checkDispIt->first;
+								size_t newIndex = index + settingItems.size() + addingItemsIndex;
+								*addingItemsIt = std::move(checkDispIt->second.value);
+								checkDispIt = list.items.erase(checkDispIt);
+								if(list.items.size() > 0) {
+									checkDispIt++;
+								}
+								dispIt = checkDispIt;
+								// update index markers
+								for(auto& indexMarker : list.indexMarkers) {
+									if(indexMarker->index == prevIndex && indexMarker->state == AsyncListIndexMarkerState::IN_LIST) {
+										indexMarker->index = newIndex;
+									}
+								}
+								break;
+							}
+							lookAheadCount++;
+						}
+						addingItemsIt++;
+						addingItemsIndex++;
+					}
+				}
+				if(addingItems.size() > 0) {
+					settingItems.splice(settingItems.end(), addingItems);
+					addingItems.clear();
+				}
+			}
+			
+			FGL_ASSERT(settingItems.size() == items.size(), "settingItems should be the same size as items");
+			items = std::move(settingItems.size());
+		}
+		
+		set(index, items);
+		if(listSize.has_value()) {
+			resize(listSize.value());
 		}
 	}
 
 	template<typename T>
-	void AsyncList<T>::Mutator::applyAndResize(size_t index, size_t size, LinkedList<T> items) {
+	void AsyncList<T>::Mutator::apply(size_t index, LinkedList<T> items) {
+		applyMerge(index, std::nullopt, items);
+	}
+
+	template<typename T>
+	void AsyncList<T>::Mutator::applyAndResize(size_t index, size_t listSize, LinkedList<T> items) {
+		applyMerge(index, listSize, items);
+	}
+
+	template<typename T>
+	void AsyncList<T>::Mutator::set(size_t index, LinkedList<T> items) {
 		std::unique_lock<std::recursive_mutex> lock(list.mutex);
-		apply(index, items);
-		resize(size);
+		size_t i=index;
+		for(auto& item : items) {
+			list.items.insert_or_assign(i, AsyncList<T>::ItemNode{
+				.item=std::move(item),
+				.valid=true
+			});
+			i++;
+		}
 	}
 
 	template<typename T>
@@ -829,4 +1020,22 @@ namespace fgl {
 			}
 		}
 	}
+
+
+
+
+	template<typename T>
+	class AsyncListOptionalDTLCompare: public dtl::Compare<Optional<T>> {
+	public:
+		AsyncListOptionalDTLCompare(AsyncList<T>& list): list(list) {}
+		
+		virtual inline bool impl(const Optional<T>& e1, const Optional<T>& e2) const {
+			return
+				(!e1.has_value() && !e2.has_value())
+				|| (e1.has_value() && e2.has_value() && list.delegate->areAsyncListItemsEqual(list, e1.value(), e2.value()));
+		}
+		
+	private:
+		AsyncList<T>& list;
+	};
 }
