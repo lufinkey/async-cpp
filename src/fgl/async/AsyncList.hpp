@@ -73,9 +73,9 @@ namespace fgl {
 		private:
 			void applyMerge(size_t index, Optional<size_t> listSize, LinkedList<T> items);
 			
-			Mutator(AsyncList& list);
+			Mutator(AsyncList<T>& list);
 			
-			AsyncList& list;
+			AsyncList<T>& list;
 		};
 		friend class AsyncList<T>::Mutator;
 		
@@ -83,10 +83,11 @@ namespace fgl {
 		public:
 			virtual ~Delegate() {}
 			
-			virtual size_t getAsyncListChunkSize(const AsyncList* list) const = 0;
+			virtual size_t getAsyncListChunkSize(const AsyncList<T>* list) const = 0;
 			virtual Promise<void> loadAsyncListItems(Mutator* mutator, size_t index, size_t count, std::map<String,Any> options) = 0;
 			
-			virtual bool areAsyncListItemsEqual(const AsyncList* list, const T& item1, const T& item2) const = 0;
+			virtual bool areAsyncListItemsEqual(const AsyncList<T>* list, const T& item1, const T& item2) const = 0;
+			virtual void mergeAsyncListItem(const AsyncList<T>* list, T& existingItem, T& overwritingItem) = 0;
 			
 			//virtual Promise<void> insertAsyncListItems(Mutator* mutator, size_t index, size_t count) = 0;
 			//virtual Promise<void> removeAsyncListItems(Mutator* mutator, size_t index, size_t count) = 0;
@@ -788,7 +789,7 @@ namespace fgl {
 											foundMatch = true;
 											size_t prevIndex = checkDispIt->first;
 											size_t newIndex = index + settingItems.size() + addingItemsIndex;
-											*addingItemsIt = std::move(checkDispIt->second.value);
+											list.delegate->mergeAsyncListItem(list, *addingItemsIt, checkDispIt->second.value);
 											auto fcheckDispIt = std::prev(checkDispIt.base(), 1);
 											fcheckDispIt = list.items.erase(fcheckDispIt);
 											checkDispIt = std::make_reverse_iterator(fcheckDispIt);
@@ -835,7 +836,7 @@ namespace fgl {
 								foundMatch = true;
 								size_t prevIndex = checkDispIt->first;
 								size_t newIndex = index + settingItems.size() + addingItemsIndex;
-								*addingItemsIt = std::move(checkDispIt->second.value);
+								list.delegate->mergeAsyncListItem(list, *addingItemsIt, checkDispIt->second.value);
 								checkDispIt = list.items.erase(checkDispIt);
 								if(list.items.size() > 0) {
 									checkDispIt++;
@@ -865,10 +866,12 @@ namespace fgl {
 			items = std::move(settingItems.size());
 		}
 		
-		set(index, items);
-		if(listSize.has_value()) {
-			resize(listSize.value());
-		}
+		lock([&]() {
+			set(index, std::move(items));
+			if(listSize.has_value()) {
+				resize(listSize.value());
+			}
+		});
 	}
 
 	template<typename T>
@@ -912,8 +915,17 @@ namespace fgl {
 		}
 		// update index markers
 		for(auto& indexMarker : list.indexMarkers) {
-			if(indexMarker->index >= index) {
-				indexMarker->index += insertCount;
+			switch(indexMarker->state) {
+				case AsyncListIndexMarkerState::IN_LIST:
+					if(indexMarker->index >= index) {
+						indexMarker->index += insertCount;
+					}
+					break;
+				case AsyncListIndexMarkerState::REMOVED:
+					if(indexMarker->index > index) {
+						indexMarker->index += insertCount;
+					}
+					break;
 			}
 		}
 		// apply new items
