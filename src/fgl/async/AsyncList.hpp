@@ -821,6 +821,7 @@ namespace fgl {
 						}
 						list.delegate->mergeAsyncListItem(list, *itemsIt, existingItemIt->value());
 						settingItems.pushBack(std::move(*itemsIt));
+						itemsIt++;
 					} break;
 				}
 			}
