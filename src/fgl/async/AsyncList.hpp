@@ -13,6 +13,7 @@
 #include <fgl/async/ContinuousGenerator.hpp>
 #include <fgl/async/AsyncQueue.hpp>
 #ifdef FGL_USES_DTL
+	#define FGL_ASYNCLIST_USED_DTL
 	#include <dtl/dtl.hpp>
 #endif
 #include <cmath>
