@@ -697,18 +697,18 @@ namespace fgl {
 	void AsyncList<T>::Mutator::applyMerge(size_t index, Optional<size_t> listSize, LinkedList<T> items) {
 		std::unique_lock<std::recursive_mutex> lock(list->mutex);
 		
-		using DiffType = dtl::Diff<Optional<T>, LinkedList<Optional<T>>, AsyncListOptionalDTLCompare<T>>;
+		using DiffType = dtl::Diff<Optional<T>, ArrayList<Optional<T>>, AsyncListOptionalDTLCompare<T>>;
 		
 		{
 			size_t existingItemsLimit = items.size();
 			if(listSize.has_value() && (index+items.size()) >= listSize.value()) {
 				existingItemsLimit = -1;
 			}
-			auto existingItems = list->maybeGetLoadedItems({
+			auto existingItems = ArrayList<Optional<T>>(list->maybeGetLoadedItems({
 				.startIndex=index,
 				.limit=existingItemsLimit,
 				.ignoreValidity=true
-			});
+			}));
 			bool hasExistingItem = false;
 			for(auto& item : existingItems) {
 				if(item.has_value()) {
@@ -725,9 +725,11 @@ namespace fgl {
 			}
 			
 			DiffType diff; {
-				auto overwritingItems = items.template map<Optional<T>>([](auto& item) {
-					return Optional<T>(item);
-				});
+				ArrayList<Optional<T>> overwritingItems;
+				overwritingItems.reserve(items.size());
+				for(auto& item : items) {
+					overwritingItems.pushBack(Optional<T>(item));
+				}
 
 				diff = DiffType(existingItems, overwritingItems, AsyncListOptionalDTLCompare<T>(list));
 			}
