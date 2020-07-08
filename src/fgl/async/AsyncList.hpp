@@ -729,7 +729,7 @@ namespace fgl {
 					return Optional<T>(item);
 				});
 				
-				diff = DiffType(existingItems, overwritingItems, ItemComparer(list));
+				diff = DiffType(existingItems, overwritingItems, AsyncListOptionalDTLCompare<T>(list));
 			}
 			diff.compose();
 			
