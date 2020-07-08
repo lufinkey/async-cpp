@@ -12,7 +12,7 @@
 #include <fgl/async/Promise.hpp>
 #include <fgl/async/ContinuousGenerator.hpp>
 #include <fgl/async/AsyncQueue.hpp>
-#ifdef FGL_USES_DTL
+#if !defined(ASYNC_CPP_STANDALONE) && !defined(FGL_DONT_USE_DTL)
 	#define FGL_ASYNCLIST_USED_DTL
 	#include <dtl/dtl.hpp>
 #endif
@@ -705,7 +705,7 @@ namespace fgl {
 	void AsyncList<T>::Mutator::applyMerge(size_t index, Optional<size_t> listSize, LinkedList<T> items) {
 		std::unique_lock<std::recursive_mutex> lock(list->mutex);
 		
-		#ifdef FGL_USES_DTL
+		#ifndef FGL_DONT_USE_DTL
 		using DiffType = dtl::Diff<Optional<T>, ArrayList<Optional<T>>, AsyncListOptionalDTLCompare<T>>;
 		{
 			size_t existingItemsLimit = items.size();
@@ -1129,7 +1129,7 @@ namespace fgl {
 
 
 
-#ifdef FGL_USES_DTL
+#ifndef FGL_DONT_USE_DTL
 	template<typename T>
 	class AsyncListOptionalDTLCompare: public dtl::Compare<Optional<T>> {
 	public:
