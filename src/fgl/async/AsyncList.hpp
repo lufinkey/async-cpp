@@ -788,11 +788,11 @@ namespace fgl {
 									auto checkDispIt = dispIt;
 									size_t lookAheadCount = 0;
 									while(checkDispIt != list->items.rend() && lookAheadCount < maxLookAhead) {
-										if(list->delegate->areAsyncListItemsEqual(list, checkDispIt->second.value, *addingItemsIt)) {
+										if(list->delegate->areAsyncListItemsEqual(list, checkDispIt->second.item, *addingItemsIt)) {
 											foundMatch = true;
 											size_t prevIndex = checkDispIt->first;
 											size_t newIndex = index + settingItems.size() + addingItemsIndex;
-											list->delegate->mergeAsyncListItem(list, *addingItemsIt, checkDispIt->second.value);
+											list->delegate->mergeAsyncListItem(list, *addingItemsIt, checkDispIt->second.item);
 											auto fcheckDispIt = std::prev(checkDispIt.base(), 1);
 											fcheckDispIt = list->items.erase(fcheckDispIt);
 											checkDispIt = std::make_reverse_iterator(fcheckDispIt);
@@ -837,11 +837,11 @@ namespace fgl {
 						auto checkDispIt = dispIt;
 						size_t lookAheadCount = 0;
 						while(checkDispIt != list->items.end() && lookAheadCount < maxLookAhead) {
-							if(list->delegate->areAsyncListItemsEqual(list, checkDispIt->second.value, *addingItemsIt)) {
+							if(list->delegate->areAsyncListItemsEqual(list, checkDispIt->second.item, *addingItemsIt)) {
 								foundMatch = true;
 								size_t prevIndex = checkDispIt->first;
 								size_t newIndex = index + settingItems.size() + addingItemsIndex;
-								list->delegate->mergeAsyncListItem(list, *addingItemsIt, checkDispIt->second.value);
+								list->delegate->mergeAsyncListItem(list, *addingItemsIt, checkDispIt->second.item);
 								checkDispIt = list->items.erase(checkDispIt);
 								if(list->items.size() > 0) {
 									checkDispIt++;
@@ -868,7 +868,7 @@ namespace fgl {
 			}
 			
 			FGL_ASSERT(settingItems.size() == items.size(), "settingItems should be the same size as items");
-			items = std::move(settingItems.size());
+			items = std::move(settingItems);
 		}
 		
 		lock([&]() {
