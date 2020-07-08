@@ -725,7 +725,7 @@ namespace fgl {
 			}
 			
 			DiffType diff; {
-				auto overwritingItems = items.map([](auto& item) {
+				auto overwritingItems = items.map<Optional<T>>([](auto& item) {
 					return Optional<T>(item);
 				});
 				
