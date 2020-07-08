@@ -752,7 +752,7 @@ namespace fgl {
 			
 			auto sesSeq = diff.getSes().getSequence();
 			for(auto it=sesSeq.begin(); it != sesSeq.end(); it++) {
-				switch(sesSeq->second.type) {
+				switch(it->second.type) {
 					case dtl::SES_DELETE: {
 						if(!displacing) {
 							displacing = true;
@@ -772,7 +772,7 @@ namespace fgl {
 							displacementRemovesEmpty = false;
 							displacingStartIndex = existingItemIndex;
 						}
-						addingItems.pushBack(sesSeq->first.value());
+						addingItems.pushBack(it->first.value());
 						itemsIt++;
 					} break;
 					case dtl::SES_COMMON: {
