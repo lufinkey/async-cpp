@@ -12,7 +12,9 @@
 #include <fgl/async/Promise.hpp>
 #include <fgl/async/ContinuousGenerator.hpp>
 #include <fgl/async/AsyncQueue.hpp>
-#include <dtl/dtl.hpp>
+#ifdef FGL_USES_DTL
+	#include <dtl/dtl.hpp>
+#endif
 #include <cmath>
 #include <list>
 #include <map>
@@ -702,8 +704,8 @@ namespace fgl {
 	void AsyncList<T>::Mutator::applyMerge(size_t index, Optional<size_t> listSize, LinkedList<T> items) {
 		std::unique_lock<std::recursive_mutex> lock(list->mutex);
 		
+		#ifdef FGL_USES_DTL
 		using DiffType = dtl::Diff<Optional<T>, ArrayList<Optional<T>>, AsyncListOptionalDTLCompare<T>>;
-		
 		{
 			size_t existingItemsLimit = items.size();
 			if(listSize.has_value() && (index+items.size()) >= listSize.value()) {
@@ -877,6 +879,26 @@ namespace fgl {
 			FGL_ASSERT(settingItems.size() == items.size(), "settingItems should be the same size as items");
 			items = std::move(settingItems);
 		}
+		#else
+		{
+			size_t existingItemsLimit = items.size();
+			if(listSize.has_value() && (index+items.size()) >= listSize.value()) {
+				existingItemsLimit = -1;
+			}
+			auto existingItems = ArrayList<Optional<T>>(list->maybeGetLoadedItems({
+				.startIndex=index,
+				.limit=existingItemsLimit,
+				.ignoreValidity=true
+			}));
+			auto itemsIt = items.begin();
+			for(auto& existingItem : existingItems) {
+				if(existingItem.has_value() && list->delegate->areAsyncListItemsEqual(list, existingItem.value(), *itemsIt)) {
+					list->delegate->mergeAsyncListItem(list, *itemsIt, existingItem.value());
+				}
+				itemsIt++;
+			}
+		}
+		#endif
 		
 		this->lock([&]() {
 			set(index, std::move(items));
@@ -1106,6 +1128,7 @@ namespace fgl {
 
 
 
+#ifdef FGL_USES_DTL
 	template<typename T>
 	class AsyncListOptionalDTLCompare: public dtl::Compare<Optional<T>> {
 	public:
@@ -1121,4 +1144,5 @@ namespace fgl {
 	private:
 		AsyncList<T>* list;
 	};
+#endif
 }
