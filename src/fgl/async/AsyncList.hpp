@@ -1102,6 +1102,7 @@ namespace fgl {
 	template<typename T>
 	class AsyncListOptionalDTLCompare: public dtl::Compare<Optional<T>> {
 	public:
+		AsyncListOptionalDTLCompare(): list(nullptr) {}
 		AsyncListOptionalDTLCompare(AsyncList<T>* list): list(list) {}
 		
 		virtual inline bool impl(const Optional<T>& e1, const Optional<T>& e2) const {
