@@ -73,9 +73,9 @@ namespace fgl {
 		private:
 			void applyMerge(size_t index, Optional<size_t> listSize, LinkedList<T> items);
 			
-			Mutator(AsyncList<T>& list);
+			Mutator(AsyncList<T>* list);
 			
-			AsyncList<T>& list;
+			AsyncList<T>* list;
 		};
 		friend class AsyncList<T>::Mutator;
 		
@@ -179,7 +179,7 @@ namespace fgl {
 	mutationQueue({
 		.dispatchQueue=options.dispatchQueue
 	}),
-	mutator(*this), delegate(options.delegate) {
+	mutator(this), delegate(options.delegate) {
 		if(options.delegate == nullptr) {
 			throw std::invalid_argument("delegate cannot be null");
 		}
@@ -669,19 +669,19 @@ namespace fgl {
 
 
 	template<typename T>
-	AsyncList<T>::Mutator::Mutator(AsyncList<T>& list)
+	AsyncList<T>::Mutator::Mutator(AsyncList<T>* list)
 	: list(list) {
 		//
 	}
 
 	template<typename T>
 	AsyncList<T>* AsyncList<T>::Mutator::getList() {
-		return &list;
+		return list;
 	}
 
 	template<typename T>
 	const AsyncList<T>* AsyncList<T>::Mutator::getList() const {
-		return &list;
+		return list;
 	}
 
 
@@ -689,13 +689,13 @@ namespace fgl {
 	template<typename T>
 	template<typename Work>
 	void AsyncList<T>::Mutator::lock(Work work) {
-		std::unique_lock<std::recursive_mutex> lock(list.mutex);
+		std::unique_lock<std::recursive_mutex> lock(list->mutex);
 		work();
 	}
 	
 	template<typename T>
 	void AsyncList<T>::Mutator::applyMerge(size_t index, Optional<size_t> listSize, LinkedList<T> items) {
-		std::unique_lock<std::recursive_mutex> lock(list.mutex);
+		std::unique_lock<std::recursive_mutex> lock(list->mutex);
 		
 		using DiffType = dtl::Diff<Optional<T>, LinkedList<Optional<T>>, AsyncListOptionalDTLCompare<T>>;
 		
@@ -704,7 +704,7 @@ namespace fgl {
 			if(listSize.has_value() && (index+items.size()) >= listSize.value()) {
 				existingItemsLimit = -1;
 			}
-			auto existingItems = list.maybeGetLoadedItems({
+			auto existingItems = list->maybeGetLoadedItems({
 				.startIndex=index,
 				.limit=existingItemsLimit,
 				.ignoreValidity=true
@@ -720,7 +720,7 @@ namespace fgl {
 				set(index, items);
 				return;
 			}
-			while(existingItems.size() < items.size() && (!list.itemsSize.has_value() || (index+existingItems.size()) < list.itemsSize.value())) {
+			while(existingItems.size() < items.size() && (!list->itemsSize.has_value() || (index+existingItems.size()) < list->itemsSize.value())) {
 				existingItems.push_back(std::nullopt);
 			}
 			
@@ -728,7 +728,7 @@ namespace fgl {
 				auto overwritingItems = items.template map<Optional<T>>([](auto& item) {
 					return Optional<T>(item);
 				});
-				
+
 				diff = DiffType(existingItems, overwritingItems, AsyncListOptionalDTLCompare<T>(list));
 			}
 			diff.compose();
@@ -743,7 +743,7 @@ namespace fgl {
 			size_t displacingStartIndex = 0;
 			LinkedList<T> addingItems;
 			
-			size_t maxLookAhead = list.delegate->getAsyncListChunkSize(list);
+			size_t maxLookAhead = list->delegate->getAsyncListChunkSize(list);
 			if(maxLookAhead < items.size()) {
 				maxLookAhead = items.size();
 			}
@@ -778,30 +778,30 @@ namespace fgl {
 					case dtl::SES_COMMON: {
 						if(displacing) {
 							displacing = false;
-							if(displacingStartIndex == 0 && list.items.size() > 0 && !displacementRemovesEmpty) {
+							if(displacingStartIndex == 0 && list->items.size() > 0 && !displacementRemovesEmpty) {
 								// go down and find the items in common with the bottom added items and move them
-								auto dispIt = std::make_reverse_iterator(list.items.lower_bound(index));
+								auto dispIt = std::make_reverse_iterator(list->items.lower_bound(index));
 								auto addingItemsIt = addingItems.rbegin();
 								size_t addingItemsIndex = addingItems.size() - 1;
-								while(list.items.size() > 0 && dispIt != list.items.rend() && addingItemsIt != addingItems.rend()) {
+								while(list->items.size() > 0 && dispIt != list->items.rend() && addingItemsIt != addingItems.rend()) {
 									bool foundMatch = false;
 									auto checkDispIt = dispIt;
 									size_t lookAheadCount = 0;
-									while(checkDispIt != list.items.rend() && lookAheadCount < maxLookAhead) {
-										if(list.delegate->areAsyncListItemsEqual(list, checkDispIt->second.value, *addingItemsIt)) {
+									while(checkDispIt != list->items.rend() && lookAheadCount < maxLookAhead) {
+										if(list->delegate->areAsyncListItemsEqual(list, checkDispIt->second.value, *addingItemsIt)) {
 											foundMatch = true;
 											size_t prevIndex = checkDispIt->first;
 											size_t newIndex = index + settingItems.size() + addingItemsIndex;
-											list.delegate->mergeAsyncListItem(list, *addingItemsIt, checkDispIt->second.value);
+											list->delegate->mergeAsyncListItem(list, *addingItemsIt, checkDispIt->second.value);
 											auto fcheckDispIt = std::prev(checkDispIt.base(), 1);
-											fcheckDispIt = list.items.erase(fcheckDispIt);
+											fcheckDispIt = list->items.erase(fcheckDispIt);
 											checkDispIt = std::make_reverse_iterator(fcheckDispIt);
-											if(list.items.size() > 0) {
+											if(list->items.size() > 0) {
 												checkDispIt++;
 											}
 											dispIt = checkDispIt;
 											// update index markers
-											for(auto& indexMarker : list.indexMarkers) {
+											for(auto& indexMarker : list->indexMarkers) {
 												if(indexMarker->index == prevIndex && indexMarker->state == AsyncListIndexMarkerState::IN_LIST) {
 													indexMarker->index = newIndex;
 												}
@@ -819,7 +819,7 @@ namespace fgl {
 								addingItems.clear();
 							}
 						}
-						list.delegate->mergeAsyncListItem(list, *itemsIt, existingItemIt->value());
+						list->delegate->mergeAsyncListItem(list, *itemsIt, existingItemIt->value());
 						settingItems.pushBack(std::move(*itemsIt));
 						itemsIt++;
 					} break;
@@ -828,27 +828,27 @@ namespace fgl {
 			if(displacing) {
 				displacing = false;
 				// go up and find the items in common with the top added items and move them
-				if(list.items.size() > 0 && !displacementRemovesEmpty) {
-					auto dispIt = list.items.lower_bound(index+items.size());
+				if(list->items.size() > 0 && !displacementRemovesEmpty) {
+					auto dispIt = list->items.lower_bound(index+items.size());
 					auto addingItemsIt = addingItems.begin();
 					size_t addingItemsIndex = 0;
-					while(list.items.size() > 0 && dispIt != list.items.end() && addingItemsIt != addingItems.end()) {
+					while(list->items.size() > 0 && dispIt != list->items.end() && addingItemsIt != addingItems.end()) {
 						bool foundMatch = false;
 						auto checkDispIt = dispIt;
 						size_t lookAheadCount = 0;
-						while(checkDispIt != list.items.end() && lookAheadCount < maxLookAhead) {
-							if(list.delegate->areAsyncListItemsEqual(list, checkDispIt->second.value, *addingItemsIt)) {
+						while(checkDispIt != list->items.end() && lookAheadCount < maxLookAhead) {
+							if(list->delegate->areAsyncListItemsEqual(list, checkDispIt->second.value, *addingItemsIt)) {
 								foundMatch = true;
 								size_t prevIndex = checkDispIt->first;
 								size_t newIndex = index + settingItems.size() + addingItemsIndex;
-								list.delegate->mergeAsyncListItem(list, *addingItemsIt, checkDispIt->second.value);
-								checkDispIt = list.items.erase(checkDispIt);
-								if(list.items.size() > 0) {
+								list->delegate->mergeAsyncListItem(list, *addingItemsIt, checkDispIt->second.value);
+								checkDispIt = list->items.erase(checkDispIt);
+								if(list->items.size() > 0) {
 									checkDispIt++;
 								}
 								dispIt = checkDispIt;
 								// update index markers
-								for(auto& indexMarker : list.indexMarkers) {
+								for(auto& indexMarker : list->indexMarkers) {
 									if(indexMarker->index == prevIndex && indexMarker->state == AsyncListIndexMarkerState::IN_LIST) {
 										indexMarker->index = newIndex;
 									}
@@ -891,10 +891,10 @@ namespace fgl {
 
 	template<typename T>
 	void AsyncList<T>::Mutator::set(size_t index, LinkedList<T> items) {
-		std::unique_lock<std::recursive_mutex> lock(list.mutex);
+		std::unique_lock<std::recursive_mutex> lock(list->mutex);
 		size_t i=index;
 		for(auto& item : items) {
-			list.items.insert_or_assign(i, AsyncList<T>::ItemNode{
+			list->items.insert_or_assign(i, AsyncList<T>::ItemNode{
 				.item=std::move(item),
 				.valid=true
 			});
@@ -904,22 +904,22 @@ namespace fgl {
 
 	template<typename T>
 	void AsyncList<T>::Mutator::insert(size_t index, LinkedList<T> items) {
-		std::unique_lock<std::recursive_mutex> lock(list.mutex);
+		std::unique_lock<std::recursive_mutex> lock(list->mutex);
 		size_t insertCount = items.size();
 		// update list size
-		if(list.itemsSize.has_value()) {
-			list.itemsSize.value() += insertCount;
+		if(list->itemsSize.has_value()) {
+			list->itemsSize.value() += insertCount;
 		}
 		// update keys for elements above insert range
 		for(size_t i=(index+insertCount-1); i>=index && i!=(size_t)-1; i--) {
-			auto node = list.items.extract(i);
+			auto node = list->items.extract(i);
 			if(!node.empty()) {
 				node.key() += insertCount;
-				list.items.insert(list.items.end(), node);
+				list->items.insert(list->items.end(), node);
 			}
 		}
 		// update index markers
-		for(auto& indexMarker : list.indexMarkers) {
+		for(auto& indexMarker : list->indexMarkers) {
 			switch(indexMarker->state) {
 				case AsyncListIndexMarkerState::IN_LIST:
 					if(indexMarker->index >= index) {
@@ -936,7 +936,7 @@ namespace fgl {
 		// apply new items
 		size_t i=index;
 		for(auto& item : items) {
-			list.items[i] = AsyncList<T>::ItemNode{
+			list->items[i] = AsyncList<T>::ItemNode{
 				.item=item,
 				.valid=true
 			};
@@ -946,31 +946,31 @@ namespace fgl {
 
 	template<typename T>
 	void AsyncList<T>::Mutator::remove(size_t index, size_t count) {
-		std::unique_lock<std::recursive_mutex> lock(list.mutex);
-		if(list.itemSize.has_value() && index >= list.itemsSize.value()) {
+		std::unique_lock<std::recursive_mutex> lock(list->mutex);
+		if(list->itemSize.has_value() && index >= list->itemsSize.value()) {
 			return;
 		}
 		size_t endIndex = index + count;
-		if(list.itemSize.has_value() && endIndex > list.itemsSize.value()) {
-			endIndex = list.itemsSize.value();
+		if(list->itemSize.has_value() && endIndex > list->itemsSize.value()) {
+			endIndex = list->itemsSize.value();
 		}
 		size_t removeCount = endIndex - index;
 		if(removeCount == 0) {
 			return;
 		}
 		// update list items
-		if(list.items.size() > 0) {
+		if(list->items.size() > 0) {
 			using node_type = typename decltype(list->items)::node_type;
 			std::list<node_type> reinsertNodes;
-			auto it = std::prev(list.items.end(), 1);
+			auto it = std::prev(list->items.end(), 1);
 			bool removing = false;
-			auto removeStartIt = list.items.end();
-			auto removeEndIt = list.items.end();
+			auto removeStartIt = list->items.end();
+			auto removeEndIt = list->items.end();
 			do {
 				if(it->first >= endIndex) {
 					auto nodeIt = it;
 					it++;
-					auto node = list.items.extract(it);
+					auto node = list->items.extract(it);
 					node.key() -= removeCount;
 					reinsertNodes.emplace_front(std::move(node));
 				} else if(it->first < index) {
@@ -984,19 +984,19 @@ namespace fgl {
 						removing = true;
 					}
 				}
-				if(list.items.size() > 0) {
+				if(list->items.size() > 0) {
 					it--;
 				}
-			} while(list.items.size() > 0);
+			} while(list->items.size() > 0);
 			if(removing) {
-				list.items.erase(removeStartIt, removeEndIt);
+				list->items.erase(removeStartIt, removeEndIt);
 			}
 			for(auto& node : reinsertNodes) {
-				list.items.insert(list.items.end(), std::move(node));
+				list->items.insert(list->items.end(), std::move(node));
 			}
 		}
 		// update index markers
-		for(auto& indexMarker : list.indexMarkers) {
+		for(auto& indexMarker : list->indexMarkers) {
 			if(indexMarker->index >= endIndex) {
 				indexMarker->index -= removeCount;
 			} else if(indexMarker->index >= index) {
@@ -1012,26 +1012,26 @@ namespace fgl {
 			}
 		}
 		// update list size
-		if(list.itemsSize.has_value()) {
-			list.itemsSize.value() -= removeCount;
+		if(list->itemsSize.has_value()) {
+			list->itemsSize.value() -= removeCount;
 		}
 	}
 
 	/*template<typename T>
 	void AsyncList<T>::Mutator::move(size_t index, size_t count, size_t newIndex) {
-		std::unique_lock<std::recursive_mutex> lock(list.mutex);
+		std::unique_lock<std::recursive_mutex> lock(list->mutex);
 		// TODO implement move
 	}*/
 
 	template<typename T>
 	void AsyncList<T>::Mutator::resize(size_t count) {
-		std::unique_lock<std::recursive_mutex> lock(list.mutex);
+		std::unique_lock<std::recursive_mutex> lock(list->mutex);
 		// remove list items above count
-		if(list.items.size() > 0 && std::prev(list.items.end(),1)->first >= count) {
-			auto it = std::prev(list.items.end(),1);
+		if(list->items.size() > 0 && std::prev(list->items.end(),1)->first >= count) {
+			auto it = std::prev(list->items.end(),1);
 			bool removing = false;
-			auto removeStartIt = list.items.end();
-			auto removeEndIt = list.items.end();
+			auto removeStartIt = list->items.end();
+			auto removeEndIt = list->items.end();
 			do {
 				if(it->first >= count) {
 					if(removing) {
@@ -1044,42 +1044,42 @@ namespace fgl {
 				} else {
 					break;
 				}
-				if(list.items.size() > 0) {
+				if(list->items.size() > 0) {
 					it--;
 				}
-			} while(list.items.size() > 0);
+			} while(list->items.size() > 0);
 			if(removing) {
-				list.items.erase(removeStartIt, removeEndIt);
+				list->items.erase(removeStartIt, removeEndIt);
 			}
 		}
 		// eliminate index markers above count
-		for(auto& indexMarker : list.indexMarkers) {
+		for(auto& indexMarker : list->indexMarkers) {
 			switch(indexMarker->state) {
 				case AsyncListIndexMarkerState::IN_LIST: {
 					indexMarker->state = AsyncListIndexMarkerState::REMOVED;
-					if(list.itemsSize) {
-						indexMarker->index = list.itemsSize.value();
+					if(list->itemsSize) {
+						indexMarker->index = list->itemsSize.value();
 					}
 				} break;
 				case AsyncListIndexMarkerState::REMOVED: {
-					if(list.itemsSize) {
-						indexMarker->index = list.itemsSize.value();
+					if(list->itemsSize) {
+						indexMarker->index = list->itemsSize.value();
 					}
 				} break;
 			}
 		}
 		// update list size
-		list.itemsSize = count;
+		list->itemsSize = count;
 	}
 
 	template<typename T>
 	void AsyncList<T>::Mutator::invalidate(size_t index, size_t count) {
-		std::unique_lock<std::recursive_mutex> lock(list.mutex);
+		std::unique_lock<std::recursive_mutex> lock(list->mutex);
 		size_t endIndex = index + count;
-		if(list.itemsSize.has_value() && endIndex >= list.itemsSize) {
-			endIndex = list.itemsSize.value();
+		if(list->itemsSize.has_value() && endIndex >= list->itemsSize) {
+			endIndex = list->itemsSize.value();
 		}
-		for(auto it=list.items.lower_bound(index), end=list.items.end(); it!=end; it++) {
+		for(auto it=list->items.lower_bound(index), end=list->items.end(); it!=end; it++) {
 			if(it->first >= endIndex) {
 				break;
 			} else {
@@ -1090,8 +1090,8 @@ namespace fgl {
 
 	template<typename T>
 	void AsyncList<T>::Mutator::invalidateAll() {
-		std::unique_lock<std::recursive_mutex> lock(list.mutex);
-		for(auto & pair : list.items) {
+		std::unique_lock<std::recursive_mutex> lock(list->mutex);
+		for(auto & pair : list->items) {
 			pair.second.valid = false;
 		}
 	}
@@ -1102,15 +1102,15 @@ namespace fgl {
 	template<typename T>
 	class AsyncListOptionalDTLCompare: public dtl::Compare<Optional<T>> {
 	public:
-		AsyncListOptionalDTLCompare(AsyncList<T>& list): list(list) {}
+		AsyncListOptionalDTLCompare(AsyncList<T>* list): list(list) {}
 		
 		virtual inline bool impl(const Optional<T>& e1, const Optional<T>& e2) const {
 			return
 				(!e1.has_value() && !e2.has_value())
-				|| (e1.has_value() && e2.has_value() && list.delegate->areAsyncListItemsEqual(list, e1.value(), e2.value()));
+				|| (e1.has_value() && e2.has_value() && list->delegate->areAsyncListItemsEqual(list, e1.value(), e2.value()));
 		}
 		
 	private:
-		AsyncList<T>& list;
+		AsyncList<T>* list;
 	};
 }
