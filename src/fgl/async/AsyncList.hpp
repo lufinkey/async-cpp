@@ -871,7 +871,7 @@ namespace fgl {
 			items = std::move(settingItems);
 		}
 		
-		lock([&]() {
+		this->lock([&]() {
 			set(index, std::move(items));
 			if(listSize.has_value()) {
 				resize(listSize.value());
