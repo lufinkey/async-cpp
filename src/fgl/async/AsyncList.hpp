@@ -43,12 +43,17 @@ namespace fgl {
 	};
 	typedef std::shared_ptr<AsyncListIndexMarkerData> AsyncListIndexMarker;
 
+	template<typename T>
+	class AsyncListOptionalDTLCompare;
+
 	
 
 	template<typename T>
 	class AsyncList: public std::enable_shared_from_this<AsyncList<T>> {
 	public:
 		using ItemGenerator = ContinuousGenerator<LinkedList<T>,void>;
+		
+		friend class AsyncListOptionalDTLCompare<T>;
 		
 		class Mutator {
 			friend class AsyncList<T>;
