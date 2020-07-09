@@ -74,4 +74,31 @@ namespace fgl {
 			}
 		#endif
 	#endif
+
+	#ifndef FGL_FINALLY_DEF
+		#define FGL_FINALLY_DEF
+		template<typename Callable>
+		class Finally {
+		public:
+			Finally(Callable c): callable(c), enabled(true) {}
+			Finally(Finally&& f): callable(f.callable), enabled(f.enabled) {
+				f.disable();
+			}
+			~Finally() {
+				if(enabled) {
+					callable();
+				}
+			}
+			void disable() {
+				enabled = false;
+			}
+		private:
+			Callable callable;
+			bool enabled;
+		};
+		template<typename Callable>
+		Finally<Callable> make_finally(Callable c) {
+			return Finally<Callable>(c);
+		}
+	#endif
 }
