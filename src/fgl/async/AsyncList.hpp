@@ -97,9 +97,9 @@ namespace fgl {
 			virtual bool areAsyncListItemsEqual(const AsyncList<T>* list, const T& item1, const T& item2) const = 0;
 			virtual void mergeAsyncListItem(const AsyncList<T>* list, T& overwritingItem, T& existingItem) = 0;
 			
-			//virtual Promise<void> insertAsyncListItems(Mutator* mutator, size_t index, size_t count) = 0;
+			//virtual Promise<void> insertAsyncListItems(Mutator* mutator, size_t index, LinkedList<T> items) = 0;
 			//virtual Promise<void> removeAsyncListItems(Mutator* mutator, size_t index, size_t count) = 0;
-			//virtual Promise<void> moveAsyncListItems(Mutator* mutator, size_t index, size_t count) = 0;
+			//virtual Promise<void> moveAsyncListItems(Mutator* mutator, size_t index, size_t count, size_t newIndex) = 0;
 		};
 		
 		struct ItemNode {
@@ -788,6 +788,26 @@ namespace fgl {
 					case dtl::SES_COMMON: {
 						if(displacing) {
 							displacing = false;
+							// update index markers
+							size_t existingItemListIndex = index + existingItemIndex;
+							for(size_t listOffset=displacingStartIndex; listOffset<existingItemIndex; listOffset++) {
+								size_t listIndex = index + listOffset;
+								for(auto& indexMarker : list->indexMarkers) {
+									if(indexMarker->index == listIndex) {
+										switch(indexMarker->state) {
+											case AsyncListIndexMarkerState::IN_LIST: {
+												indexMarker->index = existingItemListIndex;
+												indexMarker->state = AsyncListIndexMarkerState::REMOVED;
+											} break;
+											case AsyncListIndexMarkerState::REMOVED: {
+												if(listIndex > (index + displacingStartIndex)) {
+													indexMarker->index = existingItemListIndex;
+												}
+											} break;
+										}
+									}
+								}
+							}
 							if(displacingStartIndex == 0 && list->items.size() > 0 && !displacementRemovesEmpty) {
 								// go down and find the items in common with the bottom added items and move them
 								auto dispIt = std::make_reverse_iterator(list->items.lower_bound(index));
@@ -831,12 +851,52 @@ namespace fgl {
 						}
 						list->delegate->mergeAsyncListItem(list, *itemsIt, existingItemIt->value());
 						settingItems.pushBack(std::move(*itemsIt));
+						existingItemIt++;
+						existingItemIndex++;
 						itemsIt++;
 					} break;
 				}
 			}
 			if(displacing) {
 				displacing = false;
+				// if starting at the bottom, go down and find the items in common with the bottom added items and move them
+				LinkedList<size_t> mergedAddingItemsIndexes;
+				if(displacingStartIndex == 0 && list->items.size() > 0 && !displacementRemovesEmpty) {
+					auto dispIt = std::make_reverse_iterator(list->items.lower_bound(index));
+					auto addingItemsIt = addingItems.rbegin();
+					size_t addingItemsIndex = addingItems.size() - 1;
+					while(list->items.size() > 0 && dispIt != list->items.rend() && addingItemsIt != addingItems.rend()) {
+						bool foundMatch = false;
+						auto checkDispIt = dispIt;
+						size_t lookAheadCount = 0;
+						while(checkDispIt != list->items.rend() && lookAheadCount < maxLookAhead) {
+							if(list->delegate->areAsyncListItemsEqual(list, checkDispIt->second.item, *addingItemsIt)) {
+								foundMatch = true;
+								size_t prevIndex = checkDispIt->first;
+								size_t newIndex = index + settingItems.size() + addingItemsIndex;
+								list->delegate->mergeAsyncListItem(list, *addingItemsIt, checkDispIt->second.item);
+								mergedAddingItemsIndexes.pushBack(addingItemsIndex);
+								auto fcheckDispIt = std::prev(checkDispIt.base(), 1);
+								fcheckDispIt = list->items.erase(fcheckDispIt);
+								checkDispIt = std::make_reverse_iterator(fcheckDispIt);
+								if(list->items.size() > 0) {
+									checkDispIt++;
+								}
+								dispIt = checkDispIt;
+								// update index markers
+								for(auto& indexMarker : list->indexMarkers) {
+									if(indexMarker->index == prevIndex && indexMarker->state == AsyncListIndexMarkerState::IN_LIST) {
+										indexMarker->index = newIndex;
+									}
+								}
+								break;
+							}
+							lookAheadCount++;
+						}
+						addingItemsIt++;
+						addingItemsIndex--;
+					}
+				}
 				// go up and find the items in common with the top added items and move them
 				if(list->items.size() > 0 && !displacementRemovesEmpty) {
 					auto dispIt = list->items.lower_bound(index+items.size());
@@ -847,7 +907,7 @@ namespace fgl {
 						auto checkDispIt = dispIt;
 						size_t lookAheadCount = 0;
 						while(checkDispIt != list->items.end() && lookAheadCount < maxLookAhead) {
-							if(list->delegate->areAsyncListItemsEqual(list, checkDispIt->second.item, *addingItemsIt)) {
+							if(list->delegate->areAsyncListItemsEqual(list, checkDispIt->second.item, *addingItemsIt) && !mergedAddingItemsIndexes.contains(addingItemsIndex)) {
 								foundMatch = true;
 								size_t prevIndex = checkDispIt->first;
 								size_t newIndex = index + settingItems.size() + addingItemsIndex;
