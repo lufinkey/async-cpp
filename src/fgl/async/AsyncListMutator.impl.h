@@ -95,16 +95,10 @@ namespace fgl {
 							case AsyncListIndexMarkerState::IN_LIST:
 								// shift up the items above the insertion index
 								marker->index += count;
-								// ensure we aren't moving indexes above the shift end. This would cause anomalies
-								FGL_ASSERT(!upperShiftEndIndex.has_value() || marker->index < upperShiftEndIndex.value(),
-									"marker moved above shift end index. upperShiftEndIndex is an optimizer and should not be set outside of mutator");
 								break;
 							case AsyncListIndexMarkerState::DISPLACED:
-								// if the marker is being brought within the confines of the new list
-								if(marker->index < newListSize) {
-									// update the index marker to be "in the list"
-									marker->state = AsyncListIndexMarkerState::IN_LIST;
-								}
+								// shift up the items above the insertion index
+								marker->index += count;
 								break;
 							case AsyncListIndexMarkerState::REMOVED:
 								// if we're above the insertion index (removed indexes equal to the insertion index don't move)
@@ -114,6 +108,9 @@ namespace fgl {
 								}
 								break;
 						}
+						// ensure we aren't moving indexes above the shift end. This would cause anomalies
+						FGL_ASSERT(!upperShiftEndIndex.has_value() || marker->index < upperShiftEndIndex.value(),
+							"marker moved above shift end index. upperShiftEndIndex is an optimizer and should not be set outside of mutator");
 					}
 				}
 				listSize = newListSize;
@@ -269,23 +266,23 @@ namespace fgl {
 					else if(marker->index >= newIndex.value() && (!upperShiftEndIndex.has_value() || marker->index < upperShiftEndIndex.value())) {
 						switch(marker->state) {
 							case AsyncListIndexMarkerState::IN_LIST:
-								// shift up the items above the insertion index
+								// shift up the indexes
 								marker->index += count;
 								// ensure we aren't moving indexes above the shift end. This would cause anomalies
 								FGL_ASSERT(!upperShiftEndIndex.has_value() || marker->index < upperShiftEndIndex.value(),
 									"marker moved above shift end index. upperShiftEndIndex is an optimizer and should not be set outside of mutator");
 								break;
 							case AsyncListIndexMarkerState::DISPLACED:
-								// if the marker is being brought within the confines of the new list
-								if(marker->index < newListSize) {
-									// update the index marker to be "in the list"
-									marker->state = AsyncListIndexMarkerState::IN_LIST;
-								}
+								// shift up the indexes
+								marker->index += count;
+								// ensure we aren't moving indexes above the shift end. This would cause anomalies
+								FGL_ASSERT(!upperShiftEndIndex.has_value() || marker->index < upperShiftEndIndex.value(),
+									"marker moved above shift end index. upperShiftEndIndex is an optimizer and should not be set outside of mutator");
 								break;
 							case AsyncListIndexMarkerState::REMOVED:
 								// if we're above the insertion index (removed indexes equal to the insertion index don't move)
 								if(marker->index > newIndex.value()) {
-									// shift up the items
+									// shift up the indexes
 									marker->index += count;
 									// ensure we aren't moving indexes above the shift end. This would cause anomalies
 									FGL_ASSERT(!upperShiftEndIndex.has_value() || marker->index < upperShiftEndIndex.value(),
@@ -295,6 +292,7 @@ namespace fgl {
 						}
 					}
 				}
+				// resize list
 				listSize = newListSize;
 			} break;
 			
@@ -327,6 +325,8 @@ namespace fgl {
 						}
 					}
 				}
+				// resize list
+				listSize = newListSize;
 			} break;
 		}
 	}
@@ -634,7 +634,7 @@ namespace fgl {
 				
 				// begin overflow insert chain
 				auto beginOverflowInsertChain = [&]() {
-					if(!overflowInsertStart) {
+					if(!overflowInsertStart && newListIndex >= list->itemsSize.value_or(0)) {
 						overflowInsertStart = newListIndex;
 					}
 				};
@@ -646,9 +646,10 @@ namespace fgl {
 						overflowInsertStart = std::nullopt;
 						size_t count = newListIndex - startIndex;
 						addMutations.push_back(Mutation{
-							.type = Mutation::Type::INSERT,
+							.type = Mutation::Type::MOVE,
 							.index = startIndex,
 							.count = count,
+							.newIndex = startIndex,
 							.upperShiftEndIndex = (index + items.size())
 						});
 					}

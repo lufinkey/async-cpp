@@ -57,14 +57,7 @@ namespace fgl {
 	template<typename T>
 	size_t AsyncList<T>::size() const {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
-		if(itemsSize.has_value()) {
-			return itemsSize.value();
-		} else if(items.size() > 0) {
-			auto it = items.end();
-			it--;
-			return it->first + 1;
-		}
-		return 0;
+		return itemsSize.value_or(0);
 	}
 
 	template<typename T>
@@ -78,10 +71,11 @@ namespace fgl {
 	template<typename T>
 	AsyncListIndexMarker AsyncList<T>::watchIndex(size_t index) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
-		auto indexMarker = std::make_shared<AsyncListIndexMarkerData>(AsyncListIndexMarkerData{
-			.index=index,
-			.state=AsyncListIndexMarkerState::IN_LIST
-		});
+		auto state = AsyncListIndexMarkerState::IN_LIST;
+		if(index >= itemsSize.value_or(0)) {
+			state = AsyncListIndexMarkerState::DISPLACED;
+		}
+		auto indexMarker = AsyncListIndexMarkerData::new$(index, state);
 		indexMarkers.push_back(indexMarker);
 		return indexMarker;
 	}
@@ -91,6 +85,16 @@ namespace fgl {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto it = std::find(indexMarkers.begin(), indexMarkers.end(), indexMarker);
 		if(it == indexMarkers.end()) {
+			if(index < itemsSize.value_or(0)) {
+				if(indexMarker->state == AsyncListIndexMarkerState::DISPLACED) {
+					indexMarker->state = AsyncListIndexMarkerState::IN_LIST;
+				}
+			}
+			else {
+				if(indexMarker->state == AsyncListIndexMarkerState::IN_LIST) {
+					indexMarker->state = AsyncListIndexMarkerState::DISPLACED;
+				}
+			}
 			indexMarkers.push_back(indexMarker);
 		}
 		return indexMarker;
@@ -217,10 +221,7 @@ namespace fgl {
 				return Promise<Optional<T>>::resolve(it->second.item);
 			}
 		}
-		auto indexMarker = std::make_shared<AsyncListIndexMarkerData>(AsyncListIndexMarkerData{
-			.index=index,
-			.state=AsyncListIndexMarkerState::IN_LIST
-		});
+		auto indexMarker = AsyncListIndexMarkerData::new$(index, AsyncListIndexMarkerState::IN_LIST);
 		if(options.trackIndexChanges) {
 			watchIndex(indexMarker);
 		}
@@ -267,10 +268,7 @@ namespace fgl {
 				return Promise<LinkedList<T>>::resolve(loadedItems);
 			}
 		}
-		auto indexMarker = std::make_shared<AsyncListIndexMarkerData>(AsyncListIndexMarkerData{
-			.index=index,
-			.state=AsyncListIndexMarkerState::IN_LIST
-		});
+		auto indexMarker = AsyncListIndexMarkerData::new$(index, AsyncListIndexMarkerState::IN_LIST);
 		if(options.trackIndexChanges) {
 			watchIndex(indexMarker);
 		}
@@ -337,10 +335,7 @@ namespace fgl {
 	typename AsyncList<T>::ItemGenerator AsyncList<T>::generateItems(size_t startIndex, AsyncListGetItemOptions options) {
 		using YieldResult = typename ItemGenerator::YieldResult;
 		std::unique_lock<std::recursive_mutex> lock(mutex);
-		auto indexMarker = std::make_shared<AsyncListIndexMarkerData>(AsyncListIndexMarkerData{
-			.index=startIndex,
-			.state=AsyncListIndexMarkerState::IN_LIST
-		});
+		auto indexMarker = AsyncListIndexMarkerData::new$(startIndex, AsyncListIndexMarkerState::IN_LIST);
 		if(options.trackIndexChanges) {
 			watchIndex(indexMarker);
 		}

@@ -47,6 +47,9 @@ namespace fgl {
 	struct AsyncListIndexMarkerData {
 		size_t index;
 		AsyncListIndexMarkerState state;
+		
+		AsyncListIndexMarkerData(size_t index, AsyncListIndexMarkerState state);
+		static std::shared_ptr<AsyncListIndexMarkerData> new$(size_t index, AsyncListIndexMarkerState state);
 	};
 	typedef std::shared_ptr<AsyncListIndexMarkerData> AsyncListIndexMarker;
 
