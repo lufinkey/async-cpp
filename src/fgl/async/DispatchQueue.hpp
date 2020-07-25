@@ -44,6 +44,7 @@ namespace fgl {
 		~DispatchQueue();
 		
 		String getLabel() const;
+		bool isLocal() const;
 		
 		void async(Function<void()> work);
 		void async(DispatchWorkItem* workItem);

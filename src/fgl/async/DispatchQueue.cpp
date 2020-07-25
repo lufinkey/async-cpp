@@ -194,6 +194,10 @@ namespace fgl {
 		#endif
 		}
 	}
+
+	bool DispatchQueue::isLocal() const {
+		return DispatchQueue::local() == this;
+	}
 	
 	
 	
@@ -207,8 +211,7 @@ namespace fgl {
 				data.thread = std::thread([=]() {
 					this->run();
 				});
-			}
-			else {
+			} else {
 				data.queueWaitCondition.notify_one();
 			}
 		} else {

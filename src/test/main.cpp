@@ -92,6 +92,8 @@ void runTests() {
 		printf("we got gen result %i. done? %i, has value? %i, value? %i\n", genCounter, (int)genResult.done, (int)genResult.value.has_value(), genResult.value.value_or(-1));
 		genCounter++;
 	}
+	
+	std::shared_ptr<AsyncList<String>> asyncList;
 }
 
 

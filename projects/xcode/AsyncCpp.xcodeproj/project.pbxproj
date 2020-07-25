@@ -121,6 +121,8 @@
 		A53E4EAD23062B08000BB7D8 /* LambdaTraits.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = LambdaTraits.hpp; sourceTree = "<group>"; };
 		A563A57E24A660980036A842 /* AsyncQueue.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = AsyncQueue.mm; sourceTree = "<group>"; };
 		A563A5F224B39F780036A842 /* dtl */ = {isa = PBXFileReference; lastKnownFileType = folder; name = dtl; path = ../../../dtl; sourceTree = "<group>"; };
+		A563A63F24B8DECB0036A842 /* AsyncList.impl.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = AsyncList.impl.hpp; sourceTree = "<group>"; };
+		A563A64124B8DEDF0036A842 /* AsyncListMutator.impl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AsyncListMutator.impl.h; sourceTree = "<group>"; };
 		A564DF942309082B0018787F /* async.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = async.hpp; sourceTree = "<group>"; };
 		A598D10424672B8E00C2B1BF /* ContinuousGenerator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ContinuousGenerator.cpp; sourceTree = "<group>"; };
 		A598D10524672B8E00C2B1BF /* ContinuousGenerator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ContinuousGenerator.hpp; sourceTree = "<group>"; };
@@ -190,6 +192,8 @@
 				A50F74A22389D67B0061D9FD /* AsyncQueue.cpp */,
 				A563A57E24A660980036A842 /* AsyncQueue.mm */,
 				A50F74A82389D93C0061D9FD /* AsyncList.hpp */,
+				A563A63F24B8DECB0036A842 /* AsyncList.impl.hpp */,
+				A563A64124B8DEDF0036A842 /* AsyncListMutator.impl.h */,
 				A50F74A72389D93C0061D9FD /* AsyncList.cpp */,
 			);
 			path = async;

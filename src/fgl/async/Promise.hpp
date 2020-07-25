@@ -323,7 +323,7 @@ namespace fgl {
 	#ifdef DEBUG_PROMISE_NAMING
 	: Promise(String("untitled:") + typeid(Result).name(), executor) {
 	#else
-	: Promise("", executor) {
+	: Promise(String(), executor) {
 	#endif
 		//
 	}
@@ -408,7 +408,7 @@ namespace fgl {
 		#ifdef DEBUG_PROMISE_NAMING
 		auto thenName = this->continuer->getName() + " -> then(queue,onresolve,onreject)";
 		#else
-		auto thenName = "";
+		auto thenName = String();
 		#endif
 		return then(thenName, queue, onresolve, onreject);
 	}
@@ -558,6 +558,7 @@ namespace fgl {
 		using Return = typename lambda_traits<OnReject>::return_type;
 		return Promise<Result>(name, [=](auto resolve, auto reject) {
 			this->continuer->handle(nullptr, resolve, queue, [=](auto error) {
+				// TODO poossibly have the error type checking happen on a null queue and then queue the callback if the error type actually does match
 				if constexpr(is_promise<Return>::value) {
 					// async
 					if constexpr(std::is_same<ErrorType,std::exception_ptr>::value) {
@@ -1706,7 +1707,7 @@ namespace fgl {
 				if(onresolve) {
 					if constexpr(std::is_same<Result,void>::value) {
 						resolvers.push_back([=]() {
-							if(thenQueue != nullptr && thenQueue != DispatchQueue::local()) {
+							if(thenQueue != nullptr && !thenQueue->isLocal()) {
 								thenQueue->async([=]() {
 									onresolve();
 								});
@@ -1717,7 +1718,7 @@ namespace fgl {
 					}
 					else {
 						resolvers.push_back([=](auto result) {
-							if(thenQueue != nullptr && thenQueue != DispatchQueue::local()) {
+							if(thenQueue != nullptr && !thenQueue->isLocal()) {
 								thenQueue->async([=]() {
 									onresolve(result);
 								});
@@ -1729,7 +1730,7 @@ namespace fgl {
 				}
 				if(onreject) {
 					rejecters.push_back([=](auto error) {
-						if(catchQueue != nullptr && thenQueue != DispatchQueue::local()) {
+						if(catchQueue != nullptr && !catchQueue->isLocal()) {
 							catchQueue->async([=]() {
 								onreject(error);
 							});
@@ -1744,7 +1745,7 @@ namespace fgl {
 			case State::RESOLVED: {
 				lock.unlock();
 				if(onresolve) {
-					if(thenQueue != nullptr && thenQueue != DispatchQueue::local()) {
+					if(thenQueue != nullptr && !thenQueue->isLocal()) {
 						auto self = this->self.lock();
 						thenQueue->async([=]() {
 							auto future = self->future;
@@ -1773,7 +1774,7 @@ namespace fgl {
 			case State::REJECTED: {
 				lock.unlock();
 				if(onreject) {
-					if(catchQueue != nullptr && catchQueue != DispatchQueue::local()) {
+					if(catchQueue != nullptr && !catchQueue->isLocal()) {
 						auto self = this->self.lock();
 						catchQueue->async([=]() {
 							auto future = self->future;
