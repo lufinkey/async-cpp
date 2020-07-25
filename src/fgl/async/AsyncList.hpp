@@ -36,11 +36,11 @@ namespace fgl {
 	};
 
 	enum class AsyncListIndexMarkerState: uint8_t {
-		// the marker is within the list
+		// the index is within the list
 		IN_LIST,
-		// the marker has been pushed outside the list bounds, but has not been verified as "removed"
+		// the index has been pushed outside the list bounds, but has not been verified as removed from the list
 		DISPLACED,
-		// the marker has been removed and now sits between the index and the previous index
+		// the index has been removed and now sits between the end of the previous index and the beginning of the marker index
 		REMOVED
 	};
 
