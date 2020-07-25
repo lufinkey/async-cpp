@@ -110,23 +110,23 @@ namespace fgl {
 	}
 	
 	template<typename T>
-	bool AsyncList<T>::isItemLoaded(size_t index, bool ignoreValidity) const {
+	bool AsyncList<T>::isItemLoaded(size_t index, bool onlyValidItems) const {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto it = items.find(index);
 		if(it == items.end()) {
 			return false;
 		}
-		if(ignoreValidity) {
-			return true;
+		if(onlyValidItems) {
+			return it->second.valid;
 		}
-		return it->second.valid;
+		return true;
 	}
 
 	template<typename T>
-	bool AsyncList<T>::areItemsLoaded(size_t index, size_t count, bool ignoreValidity) const {
+	bool AsyncList<T>::areItemsLoaded(size_t index, size_t count, bool onlyValidItems) const {
 		if(count == 0) {
 			#ifndef ASYNC_CPP_STANDALONE
-				FGL_WARN(stringify(*this)+"::areItemsLoaded("+stringify(index)+","+stringify(count)+","+stringify(ignoreValidity)+") called with count = 0");
+				FGL_WARN(stringify(*this)+"::areItemsLoaded("+stringify(index)+","+stringify(count)+","+stringify(onlyValidItems)+") called with count = 0");
 			#else
 				FGL_WARN("AsyncList::areItemsLoaded called with count = 0");
 			#endif
@@ -137,7 +137,7 @@ namespace fgl {
 		size_t endIndex = index + count;
 		size_t nextIndex = index;
 		while(it != items.end()) {
-			if(!ignoreValidity && !it->second.valid) {
+			if(onlyValidItems && !it->second.valid) {
 				return false;
 			}
 			if(it->first != nextIndex) {
@@ -159,7 +159,7 @@ namespace fgl {
 		auto it = items.find(options.startIndex);
 		size_t nextIndex = options.startIndex;
 		while(it != items.end() && loadedItems.size() < options.limit) {
-			if(!options.ignoreValidity && !it->second.valid) {
+			if(options.onlyValidItems && !it->second.valid) {
 				return loadedItems;
 			}
 			if(it->first != nextIndex) {
@@ -188,7 +188,7 @@ namespace fgl {
 				}
 				nextIndex = it->first;
 			}
-			if(!options.ignoreValidity && !it->second.valid) {
+			if(options.onlyValidItems && !it->second.valid) {
 				loadedItems.push_back(std::nullopt);
 			} else {
 				loadedItems.push_back(Optional<T>(it->second.item));
@@ -200,13 +200,13 @@ namespace fgl {
 	}
 	
 	template<typename T>
-	Optional<T> AsyncList<T>::itemAt(size_t index, bool ignoreValidity) const {
+	Optional<T> AsyncList<T>::itemAt(size_t index, bool onlyValidItems) const {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto it = items.find(index);
 		if(it == items.end()) {
 			return std::nullopt;
 		}
-		if(!ignoreValidity && !it->second.valid) {
+		if(onlyValidItems && !it->second.valid) {
 			return std::nullopt;
 		}
 		return it->second.item;
@@ -369,10 +369,10 @@ namespace fgl {
 
 	template<typename T>
 	template<typename Callable>
-	Optional<size_t> AsyncList<T>::indexWhere(Callable predicate, bool ignoreValidity) const {
+	Optional<size_t> AsyncList<T>::indexWhere(Callable predicate, bool onlyValidItems) const {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		for(auto& pair : items) {
-			if((ignoreValidity || pair.second.valid) && predicate(pair.second.item)) {
+			if((!onlyValidItems || pair.second.valid) && predicate(pair.second.item)) {
 				return pair.first;
 			}
 		}

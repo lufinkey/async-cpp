@@ -391,7 +391,7 @@ namespace fgl {
 				auto existingItems = ArrayList<Optional<T>>(list->maybeGetLoadedItems({
 					.startIndex=index,
 					.limit=existingItemsLimit,
-					.ignoreValidity=true
+					.onlyValidItems=false
 				}));
 				bool hasExistingItem = false;
 				for(auto& item : existingItems) {
@@ -737,7 +737,7 @@ namespace fgl {
 				auto existingItems = ArrayList<Optional<T>>(list->maybeGetLoadedItems({
 					.startIndex=index,
 					.limit=existingItemsLimit,
-					.ignoreValidity=true
+					.onlyValidItems=false
 				}));
 				auto itemsIt = items.begin();
 				for(auto& existingItem : existingItems) {

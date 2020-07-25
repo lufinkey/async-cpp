@@ -26,7 +26,7 @@ namespace fgl {
 	struct AsyncListGetLoadedItemsOptions {
 		size_t startIndex = 0;
 		size_t limit = (size_t)-1;
-		bool ignoreValidity = false;
+		bool onlyValidItems = true;
 	};
 
 	struct AsyncListGetItemOptions {
@@ -158,18 +158,18 @@ namespace fgl {
 		AsyncListIndexMarker watchIndex(AsyncListIndexMarker index);
 		void unwatchIndex(AsyncListIndexMarker index);
 		
-		bool isItemLoaded(size_t index, bool ignoreValidity = false) const;
-		bool areItemsLoaded(size_t index, size_t count, bool ignoreValidity = false) const;
+		bool isItemLoaded(size_t index, bool onlyValidItems = true) const;
+		bool areItemsLoaded(size_t index, size_t count, bool onlyValidItems = true) const;
 		LinkedList<T> getLoadedItems(AsyncListGetLoadedItemsOptions options = AsyncListGetLoadedItemsOptions()) const;
 		LinkedList<Optional<T>> maybeGetLoadedItems(AsyncListGetLoadedItemsOptions options = AsyncListGetLoadedItemsOptions()) const;
 		
-		Optional<T> itemAt(size_t index, bool ignoreValidity = false) const;
+		Optional<T> itemAt(size_t index, bool onlyValidItems = true) const;
 		Promise<Optional<T>> getItem(size_t index, AsyncListGetItemOptions options = AsyncListGetItemOptions());
 		Promise<LinkedList<T>> getItems(size_t index, size_t count, AsyncListGetItemOptions options = AsyncListGetItemOptions());
 		ItemGenerator generateItems(size_t startIndex=0, AsyncListGetItemOptions options = AsyncListGetItemOptions{.trackIndexChanges=true});
 		
 		template<typename Callable>
-		Optional<size_t> indexWhere(Callable predicate, bool ignoreValidity = false) const;
+		Optional<size_t> indexWhere(Callable predicate, bool onlyValidItems = true) const;
 		
 		void forEach(Function<void(T&,size_t)> executor, bool onlyValidItems = true);
 		void forEach(Function<void(const T&,size_t)> executor, bool onlyValidItems = true) const;
