@@ -46,6 +46,7 @@ namespace fgl {
 		std::unique_lock<std::recursive_mutex> lock(list->mutex);
 		FGL_ASSERT(!forwardingMutations, "cannot lock mutator while forwarding mutations");
 		auto prevListSize = list->itemsSize;
+		size_t prevListCapacity = list->capacity();
 		// increment lock counter
 		lockCount++;
 		auto f = make_finally([&]() {
@@ -63,8 +64,11 @@ namespace fgl {
 			FGL_ASSERT(listSize == list->itemsSize.value_or(0), "listSize should be the same as list->itemsSize");
 			
 			// swap mutations list
-			auto mutations = LinkedList<Mutation>();
-			mutations.swap(this->mutations);
+			auto change = AsyncListChange{
+				.prevSize = prevListSize,
+				.prevCapacity = prevListCapacity
+			};
+			change.mutations.swap(this->mutations);
 			this->mutations.clear();
 			
 			// prepare to forward mutations
@@ -75,7 +79,7 @@ namespace fgl {
 			
 			// call delegate
 			if(list->delegate != nullptr) {
-				list->delegate->onAsyncListMutations(list, prevListSize, mutations);
+				list->delegate->onAsyncListMutations(list, change);
 			}
 		}
 	}
