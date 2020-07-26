@@ -382,6 +382,7 @@ namespace fgl {
 				auto promise = Promise<void>::resolve();
 				for(size_t loadStartIndex = chunkStartIndex; loadStartIndex < chunkEndIndex; loadStartIndex += chunkSize) {
 					promise = promise.then(self->mutationQueue.dispatchQueue(), [=]() {
+						std::unique_lock<std::recursive_mutex> lock(self->mutex);
 						if(self->delegate == nullptr) {
 							return Promise<void>::resolve();
 						}
