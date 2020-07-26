@@ -182,6 +182,7 @@ namespace fgl {
 		LinkedList<T> getLoadedItems(const AsyncListGetLoadedItemsOptions& options = AsyncListGetLoadedItemsOptions()) const;
 		LinkedList<Optional<T>> maybeGetLoadedItems(const AsyncListGetLoadedItemsOptions& options = AsyncListGetLoadedItemsOptions()) const;
 		
+		Optional<ItemNode> itemNodeAt(size_t index) const;
 		Optional<T> itemAt(size_t index, const AsyncListIndexAccessOptions& options = AsyncListIndexAccessOptions()) const;
 		Promise<Optional<T>> getItem(size_t index, AsyncListGetItemOptions options = AsyncListGetItemOptions());
 		Promise<LinkedList<T>> getItems(size_t index, size_t count, AsyncListGetItemOptions options = AsyncListGetItemOptions());
@@ -189,6 +190,11 @@ namespace fgl {
 		
 		template<typename Callable>
 		Optional<size_t> indexWhere(Callable predicate, const AsyncListIndexAccessOptions& options = AsyncListIndexAccessOptions()) const;
+		
+		void forEachNode(Function<void(ItemNode&,size_t)> executor);
+		void forEachNode(Function<void(const ItemNode&,size_t)> executor) const;
+		void forEachNodeInRange(size_t startIndex, size_t endIndex, Function<void(ItemNode&,size_t)> executor);
+		void forEachNodeInRange(size_t startIndex, size_t endIndex, Function<void(const ItemNode&,size_t)> executor) const;
 		
 		void forEach(Function<void(T&,size_t)> executor, const AsyncListIndexAccessOptions& options = AsyncListIndexAccessOptions());
 		void forEach(Function<void(const T&,size_t)> executor, const AsyncListIndexAccessOptions& options = AsyncListIndexAccessOptions()) const;

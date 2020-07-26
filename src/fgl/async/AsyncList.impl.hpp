@@ -256,6 +256,16 @@ namespace fgl {
 		}
 		return loadedItems;
 	}
+
+	template<typename T>
+	Optional<typename AsyncList<T>::ItemNode> AsyncList<T>::itemNodeAt(size_t index) const {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
+		auto it = items.find(index);
+		if(it == items.end()) {
+			return std::nullopt;
+		}
+		return it->second;
+	}
 	
 	template<typename T>
 	Optional<T> AsyncList<T>::itemAt(size_t index, const AsyncListIndexAccessOptions& options) const {
@@ -466,6 +476,47 @@ namespace fgl {
 	template<typename T>
 	size_t AsyncList<T>::chunkStartIndexForIndex(size_t index, size_t chunkSize) {
 		return std::floor(index / chunkSize) * chunkSize;
+	}
+
+
+
+	template<typename T>
+	void AsyncList<T>::forEachNode(Function<void(ItemNode&,size_t)> executor) {
+		for(auto& pair : items) {
+			executor(pair.second, pair.first);
+		}
+	}
+
+	template<typename T>
+	void AsyncList<T>::forEachNode(Function<void(const ItemNode&,size_t)> executor) const {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
+		for(auto& pair : items) {
+			executor(pair.second, pair.first);
+		}
+	}
+
+	template<typename T>
+	void AsyncList<T>::forEachNodeInRange(size_t startIndex, size_t endIndex, Function<void(ItemNode&,size_t)> executor) {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
+		auto startIt = items.lower_bound(startIndex);
+		if(startIt == items.end() || startIt->first >= endIndex) {
+			return;
+		}
+		for(auto it=startIt; it!=items.end() && it->first < endIndex; it++) {
+			executor(it->second, it->first);
+		}
+	}
+
+	template<typename T>
+	void AsyncList<T>::forEachNodeInRange(size_t startIndex, size_t endIndex, Function<void(const ItemNode&,size_t)> executor) const {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
+		auto startIt = items.lower_bound(startIndex);
+		if(startIt == items.end() || startIt->first >= endIndex) {
+			return;
+		}
+		for(auto it=startIt; it!=items.end() && it->first < endIndex; it++) {
+			executor(it->second, it->first);
+		}
 	}
 
 
