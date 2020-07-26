@@ -425,7 +425,7 @@ namespace fgl {
 					ArrayList<Optional<T>> overwritingItems;
 					overwritingItems.reserve(items.size());
 					for(auto& item : items) {
-						overwritingItems.pushBack(Optional<T>(item));
+						overwritingItems.push_back(Optional<T>(item));
 					}
 
 					diff = DiffType(existingItems, overwritingItems, AsyncListOptionalDTLCompare<T>(list));
@@ -710,7 +710,7 @@ namespace fgl {
 							if(!displacing) {
 								beginDisplacementChain();
 							}
-							addingItems.pushBack(it->first.value());
+							addingItems.push_back(it->first.value());
 							newListIndex++;
 							itemsIt++;
 						} break;
@@ -723,7 +723,7 @@ namespace fgl {
 								beginOverflowInsertChain();
 							}
 							list->delegate->mergeAsyncListItem(list, *itemsIt, existingItemIt->value());
-							settingItems.pushBack(std::move(*itemsIt));
+							settingItems.push_back(std::move(*itemsIt));
 							existingItemIt++;
 							existingItemIndex++;
 							newListIndex++;
