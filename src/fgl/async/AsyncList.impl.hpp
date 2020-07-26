@@ -611,6 +611,13 @@ namespace fgl {
 	}
 
 	template<typename T>
+	template<typename Work>
+	auto AsyncList<T>::lock(Work work) -> decltype(work()) {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
+		return work();
+	}
+
+	template<typename T>
 	void AsyncList<T>::invalidateItems(size_t startIndex, size_t endIndex, bool runInQueue) {
 		FGL_ASSERT(endIndex < startIndex, "endIndex must be greater than or equal to startIndex");
 		mutator.invalidate(startIndex, (endIndex - startIndex));

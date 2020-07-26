@@ -203,6 +203,8 @@ namespace fgl {
 		
 		Promise<void> mutate(Function<Promise<void>(Mutator*)> executor);
 		Promise<void> mutate(Function<void(Mutator*)> executor);
+		template<typename Work>
+		auto lock(Work work) -> decltype(work());
 		
 		void invalidateItems(size_t startIndex, size_t endIndex, bool runInQueue = false);
 		void invalidateAllItems(bool runInQueue = false);
