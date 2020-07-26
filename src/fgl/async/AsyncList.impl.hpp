@@ -47,32 +47,44 @@ namespace fgl {
 	template<typename T>
 	void AsyncList<T>::destroy() {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
-		mutator->reset();
+		mutator.reset();
 		delegate = nullptr;
 	}
 
 	template<typename T>
 	void AsyncList<T>::reset() {
-		mutator->reset();
-		return mutate([=](auto mutator) {
-			mutator->reset();
-		});
+		std::unique_lock<std::recursive_mutex> lock(mutex);
+		auto self = this->shared_from_this();
+		mutator.reset();
+		if(mutationQueue.taskCount() > 0) {
+			mutate([=](auto mutator) {
+				mutator->reset();
+			});
+		}
 	}
 
 	template<typename T>
 	void AsyncList<T>::resetItems() {
-		mutator->resetItems();
-		return mutate([=](auto mutator) {
-			mutator->resetItems();
-		});
+		std::unique_lock<std::recursive_mutex> lock(mutex);
+		auto self = this->shared_from_this();
+		mutator.resetItems();
+		if(mutationQueue.taskCount() > 0) {
+			mutate([=](auto mutator) {
+				mutator->resetItems();
+			});
+		}
 	}
 
 	template<typename T>
 	void AsyncList<T>::resetSize() {
-		mutator->resetSize();
-		return mutate([=](auto mutator) {
-			mutator->resetSize();
-		});
+		std::unique_lock<std::recursive_mutex> lock(mutex);
+		auto self = this->shared_from_this();
+		mutator.resetSize();
+		if(mutationQueue.taskCount() > 0) {
+			mutate([=](auto mutator) {
+				mutator->resetSize();
+			});
+		}
 	}
 
 	template<typename T>
