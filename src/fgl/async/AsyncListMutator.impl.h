@@ -9,7 +9,10 @@
 #pragma once
 
 #include <fgl/async/Common.hpp>
-#if !defined(ASYNC_CPP_STANDALONE) && !defined(FGL_DONT_USE_DTL)
+#if defined(ASYNC_CPP_STANDALONE) && !defined(FGL_DONT_USE_DTL)
+	#define FGL_DONT_USE_DTL
+#endif
+#ifndef FGL_DONT_USE_DTL
 	#define FGL_ASYNCLIST_USED_DTL
 	#include <dtl/dtl.hpp>
 #endif
@@ -349,17 +352,27 @@ namespace fgl {
 		// if we're the last lock
 		if(lockCount == 1) {
 			// update index markers
-			for(auto& mutation : mutations) {
+			for(auto& mutation : this->mutations) {
 				mutation.applyToMarkers(list->indexMarkers, listSize);
 			}
 			FGL_ASSERT(listSize == list->itemsSize.value_or(0), "listSize should be the same as list->itemsSize");
-			// begin forwarding mutations
+			
+			// swap mutations list
+			auto mutations = LinkedList<Mutation>();
+			mutations.swap(this->mutations);
+			this->mutations.clear();
+			
+			// prepare to forward mutations
 			forwardingMutations = true;
 			auto f2 = make_finally([&]() {
-				mutations.clear();
 				forwardingMutations = false;
 			});
-			// TODO call mutation event listeners
+			
+			// call mutation listeners
+			auto listeners = this->listeners;
+			for(auto listener : listeners) {
+				listener->onAsyncListMutations(list->shared_from_this(), mutations);
+			}
 		}
 	}
 	

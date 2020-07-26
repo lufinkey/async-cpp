@@ -69,6 +69,22 @@ namespace fgl {
 	}
 
 	template<typename T>
+	void AsyncList<T>::addListener(Listener* listener) {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
+		listeners.push_back(listener);
+	}
+
+	template<typename T>
+	void AsyncList<T>::removeListener(Listener* listener) {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
+		auto revIt = std::find(listeners.rbegin(), listeners.rend(), listener);
+		if(revIt != listeners.rend()) {
+			auto it = std::prev(revIt.base(), 1);
+			listeners.erase(it);
+		}
+	}
+
+	template<typename T>
 	AsyncListIndexMarker AsyncList<T>::watchIndex(size_t index) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto state = AsyncListIndexMarkerState::IN_LIST;

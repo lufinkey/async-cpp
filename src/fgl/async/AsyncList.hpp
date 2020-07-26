@@ -12,10 +12,6 @@
 #include <fgl/async/Promise.hpp>
 #include <fgl/async/ContinuousGenerator.hpp>
 #include <fgl/async/AsyncQueue.hpp>
-#if !defined(ASYNC_CPP_STANDALONE) && !defined(FGL_DONT_USE_DTL)
-	#define FGL_ASYNCLIST_USED_DTL
-	#include <dtl/dtl.hpp>
-#endif
 #include <cmath>
 #include <list>
 #include <map>
@@ -130,6 +126,13 @@ namespace fgl {
 			//virtual Promise<void> moveAsyncListItems(Mutator* mutator, size_t index, size_t count, size_t newIndex) = 0;
 		};
 		
+		class Listener {
+		public:
+			virtual ~Listener() {}
+			
+			virtual void onAsyncListMutations(std::shared_ptr<AsyncList<T>> list, const LinkedList<Mutation>& mutations) = 0;
+		};
+		
 		struct ItemNode {
 			T item;
 			bool valid = true;
@@ -153,6 +156,9 @@ namespace fgl {
 		inline bool sizeIsKnown() const;
 		inline size_t size() const;
 		inline size_t getChunkSize() const;
+		
+		void addListener(Listener* listener);
+		void removeListener(Listener* listener);
 		
 		AsyncListIndexMarker watchIndex(size_t index);
 		AsyncListIndexMarker watchIndex(AsyncListIndexMarker index);
@@ -194,6 +200,7 @@ namespace fgl {
 		AsyncQueue mutationQueue;
 		Mutator mutator;
 		Delegate* delegate;
+		LinkedList<Listener> listeners;
 	};
 }
 
