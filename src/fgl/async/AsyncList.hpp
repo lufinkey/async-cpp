@@ -140,7 +140,7 @@ namespace fgl {
 			//virtual Promise<void> removeAsyncListItems(Mutator* mutator, size_t index, size_t count) = 0;
 			//virtual Promise<void> moveAsyncListItems(Mutator* mutator, size_t index, size_t count, size_t newIndex) = 0;
 			
-			virtual void onAsyncListMutations(const AsyncList<T>* list, const AsyncListChange& change) = 0;
+			virtual void onAsyncListMutations(const AsyncList<T>* list, AsyncListChange change) = 0;
 		};
 		
 		struct ItemNode {
