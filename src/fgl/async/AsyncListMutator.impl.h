@@ -87,13 +87,10 @@ namespace fgl {
 	template<typename T>
 	void AsyncList<T>::Mutator::applyMerge(size_t index, Optional<size_t> listSize, LinkedList<T> items) {
 		lock([&]() {
-			if(items.size() == 0 || list->delegate == nullptr) {
-				return;
-			}
 			size_t endIndex = index + items.size();
 			
 			// add insert mutations to get list to correct size
-			if(index > list->itemsSize.value_or(0)) {
+			if(index > list->itemsSize.value_or(0) && items.size() > 0) {
 				this->mutations.push_back(Mutation{
 					.type = Mutation::Type::MOVE,
 					.index = list->itemsSize.value_or(0),
@@ -105,7 +102,7 @@ namespace fgl {
 			// diff items with existing items
 			#ifndef FGL_DONT_USE_DTL
 			using DiffType = dtl::Diff<Optional<T>, ArrayList<Optional<T>>, AsyncListOptionalDTLCompare<T>>;
-			{
+			if(list->delegate != nullptr && items.size() > 0) {
 				size_t existingItemsLimit = items.size();
 				if(listSize.has_value() && endIndex >= listSize.value()) {
 					existingItemsLimit = -1;
@@ -452,7 +449,7 @@ namespace fgl {
 				this->mutations.splice(this->mutations.end(), addMutations);
 			}
 			#else
-			{
+			if(list->delegate != nullptr && items.size() > 0) {
 				size_t existingItemsLimit = items.size();
 				auto existingItems = ArrayList<Optional<T>>(list->maybeGetLoadedItems({
 					.startIndex=index,
@@ -487,7 +484,9 @@ namespace fgl {
 			}
 			
 			// apply items and size
-			set(index, std::move(items));
+			if(items.size() > 0) {
+				set(index, std::move(items));
+			}
 			if(listSize.has_value()) {
 				resize(listSize.value());
 			}

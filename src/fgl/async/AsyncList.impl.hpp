@@ -128,6 +128,7 @@ namespace fgl {
 
 	template<typename T>
 	bool AsyncList<T>::hasAllItems() const {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
 		return areItemsLoaded(0, length());
 	}
 
