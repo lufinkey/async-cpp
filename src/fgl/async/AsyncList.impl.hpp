@@ -126,23 +126,23 @@ namespace fgl {
 	}
 	
 	template<typename T>
-	bool AsyncList<T>::isItemLoaded(size_t index, bool onlyValidItems) const {
+	bool AsyncList<T>::isItemLoaded(size_t index, const AsyncListIndexAccessOptions& options) const {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto it = items.find(index);
 		if(it == items.end()) {
 			return false;
 		}
-		if(onlyValidItems) {
+		if(options.onlyValidItems) {
 			return it->second.valid;
 		}
 		return true;
 	}
 
 	template<typename T>
-	bool AsyncList<T>::areItemsLoaded(size_t index, size_t count, bool onlyValidItems) const {
+	bool AsyncList<T>::areItemsLoaded(size_t index, size_t count, const AsyncListIndexAccessOptions& options) const {
 		if(count == 0) {
 			#ifndef ASYNC_CPP_STANDALONE
-				FGL_WARN(stringify(*this)+"::areItemsLoaded("+stringify(index)+","+stringify(count)+","+stringify(onlyValidItems)+") called with count = 0");
+				FGL_WARN(stringify(*this)+"::areItemsLoaded("+stringify(index)+","+stringify(count)+","+stringify(options.onlyValidItems)+") called with count = 0");
 			#else
 				FGL_WARN("AsyncList::areItemsLoaded called with count = 0");
 			#endif
@@ -153,7 +153,7 @@ namespace fgl {
 		size_t endIndex = index + count;
 		size_t nextIndex = index;
 		while(it != items.end()) {
-			if(onlyValidItems && !it->second.valid) {
+			if(options.onlyValidItems && !it->second.valid) {
 				return false;
 			}
 			if(it->first != nextIndex) {
@@ -169,7 +169,7 @@ namespace fgl {
 	}
 
 	template<typename T>
-	LinkedList<T> AsyncList<T>::getLoadedItems(AsyncListGetLoadedItemsOptions options) const {
+	LinkedList<T> AsyncList<T>::getLoadedItems(const AsyncListGetLoadedItemsOptions& options) const {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		LinkedList<T> loadedItems;
 		auto it = items.find(options.startIndex);
@@ -189,7 +189,7 @@ namespace fgl {
 	}
 
 	template<typename T>
-	LinkedList<Optional<T>> AsyncList<T>::maybeGetLoadedItems(AsyncListGetLoadedItemsOptions options) const {
+	LinkedList<Optional<T>> AsyncList<T>::maybeGetLoadedItems(const AsyncListGetLoadedItemsOptions& options) const {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		LinkedList<Optional<T>> loadedItems;
 		auto it = items.find(options.startIndex);
@@ -216,13 +216,13 @@ namespace fgl {
 	}
 	
 	template<typename T>
-	Optional<T> AsyncList<T>::itemAt(size_t index, bool onlyValidItems) const {
+	Optional<T> AsyncList<T>::itemAt(size_t index, const AsyncListIndexAccessOptions& options) const {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto it = items.find(index);
 		if(it == items.end()) {
 			return std::nullopt;
 		}
-		if(onlyValidItems && !it->second.valid) {
+		if(options.onlyValidItems && !it->second.valid) {
 			return std::nullopt;
 		}
 		return it->second.item;
@@ -385,11 +385,19 @@ namespace fgl {
 
 	template<typename T>
 	template<typename Callable>
-	Optional<size_t> AsyncList<T>::indexWhere(Callable predicate, bool onlyValidItems) const {
+	Optional<size_t> AsyncList<T>::indexWhere(Callable predicate, const AsyncListIndexAccessOptions& options) const {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
-		for(auto& pair : items) {
-			if((!onlyValidItems || pair.second.valid) && predicate(pair.second.item)) {
-				return pair.first;
+		if(options.onlyValidItems) {
+			for(auto& pair : items) {
+				if(pair.second.valid && predicate(pair.second.item)) {
+					return pair.first;
+				}
+			}
+		} else {
+			for(auto& pair : items) {
+				if(predicate(pair.second.item)) {
+					return pair.first;
+				}
 			}
 		}
 		return std::nullopt;
@@ -403,8 +411,8 @@ namespace fgl {
 
 
 	template<typename T>
-	void AsyncList<T>::forEach(Function<void(T&,size_t)> executor, bool onlyValidItems) {
-		if(onlyValidItems) {
+	void AsyncList<T>::forEach(Function<void(T&,size_t)> executor, const AsyncListIndexAccessOptions& options) {
+		if(options.onlyValidItems) {
 			for(auto& pair : items) {
 				if(pair.second.valid) {
 					executor(pair.second.item, pair.first);
@@ -418,9 +426,9 @@ namespace fgl {
 	}
 
 	template<typename T>
-	void AsyncList<T>::forEach(Function<void(const T&,size_t)> executor, bool onlyValidItems) const {
+	void AsyncList<T>::forEach(Function<void(const T&,size_t)> executor, const AsyncListIndexAccessOptions& options) const {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
-		if(onlyValidItems) {
+		if(options.onlyValidItems) {
 			for(auto& pair : items) {
 				if(pair.second.valid) {
 					executor(pair.second.item, pair.first);
@@ -434,13 +442,13 @@ namespace fgl {
 	}
 
 	template<typename T>
-	void AsyncList<T>::forEachInRange(size_t startIndex, size_t endIndex, Function<void(T&,size_t)> executor, bool onlyValidItems) {
+	void AsyncList<T>::forEachInRange(size_t startIndex, size_t endIndex, Function<void(T&,size_t)> executor, const AsyncListIndexAccessOptions& options) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto startIt = items.lower_bound(startIndex);
 		if(startIt == items.end() || startIt->first >= endIndex) {
 			return;
 		}
-		if(onlyValidItems) {
+		if(options.onlyValidItems) {
 			for(auto it=startIt; it!=items.end() && it->first < endIndex; it++) {
 				if(it->second.valid) {
 					executor(it->second.item, it->first);
@@ -454,13 +462,13 @@ namespace fgl {
 	}
 
 	template<typename T>
-	void AsyncList<T>::forEachInRange(size_t startIndex, size_t endIndex, Function<void(const T&,size_t)> executor, bool onlyValidItems) const {
+	void AsyncList<T>::forEachInRange(size_t startIndex, size_t endIndex, Function<void(const T&,size_t)> executor, const AsyncListIndexAccessOptions& options) const {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto startIt = items.lower_bound(startIndex);
 		if(startIt == items.end() || startIt->first >= endIndex) {
 			return;
 		}
-		if(onlyValidItems) {
+		if(options.onlyValidItems) {
 			for(auto it=startIt; it!=items.end() && it->first < endIndex; it++) {
 				if(it->second.valid) {
 					executor(it->second.item, it->first);

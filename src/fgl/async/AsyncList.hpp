@@ -31,6 +31,10 @@ namespace fgl {
 		std::map<String,Any> loadOptions;
 	};
 
+	struct AsyncListIndexAccessOptions {
+		bool onlyValidItems = true;
+	};
+
 	enum class AsyncListIndexMarkerState: uint8_t {
 		// the index is within the list
 		IN_LIST,
@@ -164,23 +168,23 @@ namespace fgl {
 		AsyncListIndexMarker watchIndex(AsyncListIndexMarker index);
 		void unwatchIndex(AsyncListIndexMarker index);
 		
-		bool isItemLoaded(size_t index, bool onlyValidItems = true) const;
-		bool areItemsLoaded(size_t index, size_t count, bool onlyValidItems = true) const;
-		LinkedList<T> getLoadedItems(AsyncListGetLoadedItemsOptions options = AsyncListGetLoadedItemsOptions()) const;
-		LinkedList<Optional<T>> maybeGetLoadedItems(AsyncListGetLoadedItemsOptions options = AsyncListGetLoadedItemsOptions()) const;
+		bool isItemLoaded(size_t index, const AsyncListIndexAccessOptions& options = AsyncListIndexAccessOptions()) const;
+		bool areItemsLoaded(size_t index, size_t count, const AsyncListIndexAccessOptions& options = AsyncListIndexAccessOptions()) const;
+		LinkedList<T> getLoadedItems(const AsyncListGetLoadedItemsOptions& options = AsyncListGetLoadedItemsOptions()) const;
+		LinkedList<Optional<T>> maybeGetLoadedItems(const AsyncListGetLoadedItemsOptions& options = AsyncListGetLoadedItemsOptions()) const;
 		
-		Optional<T> itemAt(size_t index, bool onlyValidItems = true) const;
+		Optional<T> itemAt(size_t index, const AsyncListIndexAccessOptions& options = AsyncListIndexAccessOptions()) const;
 		Promise<Optional<T>> getItem(size_t index, AsyncListGetItemOptions options = AsyncListGetItemOptions());
 		Promise<LinkedList<T>> getItems(size_t index, size_t count, AsyncListGetItemOptions options = AsyncListGetItemOptions());
 		ItemGenerator generateItems(size_t startIndex=0, AsyncListGetItemOptions options = AsyncListGetItemOptions{.trackIndexChanges=true});
 		
 		template<typename Callable>
-		Optional<size_t> indexWhere(Callable predicate, bool onlyValidItems = true) const;
+		Optional<size_t> indexWhere(Callable predicate, const AsyncListIndexAccessOptions& options = AsyncListIndexAccessOptions()) const;
 		
-		void forEach(Function<void(T&,size_t)> executor, bool onlyValidItems = true);
-		void forEach(Function<void(const T&,size_t)> executor, bool onlyValidItems = true) const;
-		void forEachInRange(size_t startIndex, size_t endIndex, Function<void(T&,size_t)> executor, bool onlyValidItems = true);
-		void forEachInRange(size_t startIndex, size_t endIndex, Function<void(const T&,size_t)> executor, bool onlyValidItems = true) const;
+		void forEach(Function<void(T&,size_t)> executor, const AsyncListIndexAccessOptions& options = AsyncListIndexAccessOptions());
+		void forEach(Function<void(const T&,size_t)> executor, const AsyncListIndexAccessOptions& options = AsyncListIndexAccessOptions()) const;
+		void forEachInRange(size_t startIndex, size_t endIndex, Function<void(T&,size_t)> executor, const AsyncListIndexAccessOptions& options = AsyncListIndexAccessOptions());
+		void forEachInRange(size_t startIndex, size_t endIndex, Function<void(const T&,size_t)> executor, const AsyncListIndexAccessOptions& options = AsyncListIndexAccessOptions()) const;
 		
 		Promise<void> mutate(Function<Promise<void>(Mutator*)> executor);
 		Promise<void> mutate(Function<void(Mutator*)> executor);
