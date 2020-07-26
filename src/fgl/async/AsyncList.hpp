@@ -102,6 +102,9 @@ namespace fgl {
 			void resize(size_t count);
 			void invalidate(size_t index, size_t count);
 			void invalidateAll();
+			void resetItems();
+			void resetSize();
+			void reset();
 			
 		private:
 			void applyMerge(size_t index, Optional<size_t> listSize, LinkedList<T> items);
@@ -156,9 +159,14 @@ namespace fgl {
 		AsyncList(const AsyncList&) = delete;
 		AsyncList(Options options);
 		
+		Promise<void> reset();
+		Promise<void> resetItems();
+		Promise<void> resetSize();
+		
 		inline const std::map<size_t,ItemNode>& getMap() const;
-		inline bool sizeIsKnown() const;
-		inline size_t size() const;
+		inline Optional<size_t> size() const;
+		inline size_t length() const;
+		inline size_t capacity() const;
 		inline size_t getChunkSize() const;
 		
 		void addListener(Listener* listener);

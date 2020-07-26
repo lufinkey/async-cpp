@@ -30,8 +30,8 @@ namespace fgl {
 		// set initial items
 		for(auto& pair : options.initialItemsMap) {
 			items.insert_or_assign(pair.first, ItemNode{
-				.item=pair.second,
-				.valid=true
+				.item = pair.second,
+				.valid = true
 			});
 		}
 		size_t initialItemsOffset = options.initialItemsOffset;
@@ -45,19 +45,52 @@ namespace fgl {
 	}
 
 	template<typename T>
+	Promise<void> AsyncList<T>::reset() {
+		return mutate([=](auto mutator) {
+			mutator->reset();
+		});
+	}
+
+	template<typename T>
+	Promise<void> AsyncList<T>::resetItems() {
+		return mutate([=](auto mutator) {
+			mutator->resetItems();
+		});
+	}
+
+	template<typename T>
+	Promise<void> AsyncList<T>::resetSize() {
+		return mutate([=](auto mutator) {
+			mutator->resetSize();
+		});
+	}
+
+	template<typename T>
 	const std::map<size_t,typename AsyncList<T>::ItemNode>& AsyncList<T>::getMap() const {
 		return items;
 	}
 
 	template<typename T>
-	bool AsyncList<T>::sizeIsKnown() const {
-		return itemsSize.has_value();
+	Optional<size_t> AsyncList<T>::size() const {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
+		return itemsSize;
 	}
 
 	template<typename T>
-	size_t AsyncList<T>::size() const {
-		std::unique_lock<std::recursive_mutex> lock(mutex);
+	size_t AsyncList<T>::length() const {
 		return itemsSize.value_or(0);
+	}
+
+	template<typename T>
+	size_t AsyncList<T>::capacity() const {
+		size_t itemsCapacity = itemsSize.value_or(0);
+		if(items.size() > 0) {
+			size_t listEnd = std::prev(items.end(), 1);
+			if(listEnd > itemsCapacity) {
+				itemsCapacity = listEnd;
+			}
+		}
+		return itemsCapacity;
 	}
 
 	template<typename T>
@@ -487,14 +520,15 @@ namespace fgl {
 	Promise<void> AsyncList<T>::mutate(Function<Promise<void>(Mutator*)> executor) {
 		auto self = this->shared_from_this();
 		return mutationQueue.run([=](auto task) -> Promise<void> {
-			return executor(&mutator).then(nullptr, [self]() {});
+			return executor(&self->mutator).then(nullptr, [self]() {});
 		}).promise;
 	}
 
 	template<typename T>
 	Promise<void> AsyncList<T>::mutate(Function<void(Mutator*)> executor) {
+		auto self = this->shared_from_this();
 		return mutationQueue.run([=](auto task) -> void {
-			return executor(&mutator);
+			return self->executor(&mutator);
 		}).promise;
 	}
 

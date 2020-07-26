@@ -388,9 +388,10 @@ namespace fgl {
 			// add insert mutations to get list to correct size
 			if(index > list->itemsSize.value_or(0)) {
 				this->mutations.push_back(Mutation{
-					.type = Mutation::Type::INSERT,
+					.type = Mutation::Type::MOVE,
 					.index = list->itemsSize.value_or(0),
-					.count = (index - list->itemsSize.value_or(0))
+					.count = (index - list->itemsSize.value_or(0)),
+					.newIndex = list->itemsSize.value_or(0)
 				});
 			}
 			
@@ -459,6 +460,7 @@ namespace fgl {
 				
 				// begin add/delete chain function
 				auto beginDisplacementChain = [&]() {
+					FGL_ASSERT(!displacing, "you're supposed t call this to START displacing, not while you're already doing it");
 					displacing = true;
 					displacementRemovesEmpty = false;
 					indexRemovalCount = 0;
@@ -469,204 +471,201 @@ namespace fgl {
 				
 				// finish add/delete chain function
 				auto endDisplacementChain = [&]() {
-					if(displacing) {
-						displacing = false;
-						// if we've been finding non-empty indexes being removed, add those mutations
-						if(nonEmptyRemoveStartIndex) {
-							// Remove non-empty indexes
-							size_t removeCount = (existingItemIndex - nonEmptyRemoveStartIndex.value());
-							// add mutation to the front, since higher indexes should be removed before lower indexes
-							newRemoveMutations.push_front(Mutation{
-								.type = Mutation::Type::REMOVE,
-								.index = index + displacingStartIndex,
-								.count = removeCount,
-								.upperShiftEndIndex = (index + items.size())
-							});
-							indexRemovalCount += removeCount;
-							nonEmptyRemoveStartIndex = std::nullopt;
-						}
-						
-						size_t totalRemoveCount = existingItemIndex - displacingStartIndex;
-						size_t emptyCount = totalRemoveCount - indexRemovalCount;
-						// if we have more empty indexes than items being added, remove some of the empty indexes
-						if(emptyCount > addingItems.size()) {
-							size_t emptyRemoveCount = emptyCount - addingItems.size();
-							newRemoveMutations.push_back(Mutation{
-								.type = Mutation::Type::REMOVE,
-								.index = index + displacingStartIndex,
-								.count = emptyRemoveCount,
-								.upperShiftEndIndex = (index + items.size())
-							});
-							emptyCount -= emptyRemoveCount;
-						}
-						
-						// if we're not removing any empty indexes and we're either at the top or bottom (or both) of the list
-						if(list->items.size() > 0 && !displacementRemovesEmpty && (displacingStartIndex == 0 || (displacingStartIndex + totalRemoveCount) >= (index + items.size()))) {
-							ArrayList<Optional<Mutation>> addingItemMutations;
-							addingItemMutations.resize(addingItems.size(), std::nullopt);
-							// if this displacement chunk is at the bottom of the list
-							//  then go down and find the items in common with the bottom added items and move them
-							if(displacingStartIndex == 0) {
-								auto dispIt = std::make_reverse_iterator(list->items.lower_bound(index));
-								auto addingItemsIt = addingItems.rbegin();
-								size_t addingItemsIndex = addingItems.size() - 1;
-								while(list->items.size() > 0 && dispIt != list->items.rend() && addingItemsIt != addingItems.rend()) {
-									bool foundMatch = false;
-									auto checkDispIt = dispIt;
-									size_t lookAheadCount = 0;
-									while(checkDispIt != list->items.rend() && lookAheadCount < maxLookAhead) {
-										if(list->delegate->areAsyncListItemsEqual(list, checkDispIt->second.item, *addingItemsIt)) {
-											foundMatch = true;
-											size_t prevIndex = checkDispIt->first;
-											size_t newIndex = index + settingItems.size() + addingItemsIndex;
-											list->delegate->mergeAsyncListItem(list, *addingItemsIt, checkDispIt->second.item);
-											addingItemMutations[addingItemsIndex] = Mutation{
-												.type = Mutation::Type::LIFT_AND_INSERT,
-												.index = prevIndex,
-												.count = 1,
-												.newIndex = newIndex,
-												.upperShiftEndIndex = (index + items.size())
-											};
-											auto fcheckDispIt = std::prev(checkDispIt.base(), 1);
-											fcheckDispIt = list->items.erase(fcheckDispIt);
-											checkDispIt = std::make_reverse_iterator(fcheckDispIt);
-											if(list->items.size() > 0) {
-												checkDispIt++;
-											}
-											dispIt = checkDispIt;
-											break;
-										}
-										lookAheadCount++;
-									}
-									addingItemsIt++;
-									addingItemsIndex--;
-								}
-							}
-							// if this displacement chunk is at the top of the list
-							//  then go up and find the items in common with the top added items and move them
-							if((displacingStartIndex + totalRemoveCount) >= (index + items.size())) {
-								auto dispIt = list->items.lower_bound(index+items.size());
-								auto addingItemsIt = addingItems.begin();
-								size_t addingItemsIndex = 0;
-								while(list->items.size() > 0 && dispIt != list->items.end() && addingItemsIt != addingItems.end()) {
-									bool foundMatch = false;
-									auto checkDispIt = dispIt;
-									size_t lookAheadCount = 0;
-									while(checkDispIt != list->items.end() && lookAheadCount < maxLookAhead) {
-										if(!addingItemMutations[addingItemsIndex].has_value()
-										   && list->delegate->areAsyncListItemsEqual(list, checkDispIt->second.item, *addingItemsIt)) {
-											foundMatch = true;
-											size_t prevIndex = checkDispIt->first;
-											size_t newIndex = index + settingItems.size() + addingItemsIndex;
-											list->delegate->mergeAsyncListItem(list, *addingItemsIt, checkDispIt->second.item);
-											addingItemMutations[addingItemsIndex] = Mutation{
-												.type = Mutation::Type::LIFT_AND_INSERT,
-												.index = prevIndex,
-												.count = 1,
-												.newIndex = newIndex,
-												.upperShiftEndIndex = (index + items.size())
-											};
-											checkDispIt = list->items.erase(checkDispIt);
-											if(list->items.size() > 0) {
-												checkDispIt++;
-											}
-											dispIt = checkDispIt;
-											break;
-										}
-										lookAheadCount++;
-									}
-									addingItemsIt++;
-									addingItemsIndex++;
-								}
-							}
-							// loop through mutations and add chained mutations
-							Optional<size_t> emptyStartIndex;
-							auto completeInsertMutationChain = [&](auto i) {
-								if(emptyStartIndex) {
-									size_t insertIndex = emptyStartIndex.value();
-									emptyStartIndex = std::nullopt;
-									size_t insertCount = (i - insertIndex);
-									if(emptyCount >= insertCount) {
-										emptyCount -= insertCount;
-										insertCount = 0;
-									}
-									else if(emptyCount > 0) {
-										insertIndex += emptyCount;
-										insertCount -= emptyCount;
-										emptyCount = 0;
-									}
-									if(insertCount > 0) {
-										addMutations.push_back(Mutation{
-											.type = Mutation::Type::INSERT,
-											.index = index + settingItems.size() + insertIndex,
-											.count = insertCount,
-											.upperShiftEndIndex = (index + items.size())
-										});
-									}
-								}
-							};
-							for(auto [i, mutation] : enumerate(addingItemMutations)) {
-								if(mutation.has_value()) {
-									if(emptyStartIndex) {
-										completeInsertMutationChain(i);
-									}
-									addMutations.push_back(std::move(mutation.value()));
-								}
-								else if(!emptyStartIndex) {
-									emptyStartIndex = i;
-								}
-							}
-							if(emptyStartIndex) {
-								completeInsertMutationChain(addingItems.size());
-							}
-						}
-						// otherwise if we're not at the top or the bottom of the list
-						else {
-							if(addingItems.size() > emptyCount) {
-								size_t addCount = addingItems.size() - emptyCount;
-								addMutations.push_back(Mutation{
-									.type = Mutation::Type::INSERT,
-									.index = index + settingItems.size() + emptyCount,
-									.count = addCount,
-									.upperShiftEndIndex = (index + items.size())
-								});
-							}
-						}
-						
-						// add addingItems to settingItems
-						if(addingItems.size() > 0) {
-							settingItems.splice(settingItems.end(), addingItems);
-							addingItems.clear();
-						}
-						// add newRemoveMutations to removeMutations and clear
-						removeMutations.splice(removeMutations.begin(), newRemoveMutations);
-						newRemoveMutations.clear();
+					FGL_ASSERT(displacing, "don't call endDisplacementChain unless you're actively displacing, dumbass");
+					displacing = false;
+					// if we've been finding non-empty indexes being removed, add those mutations
+					if(nonEmptyRemoveStartIndex) {
+						// Remove non-empty indexes
+						size_t removeCount = (existingItemIndex - nonEmptyRemoveStartIndex.value());
+						// add mutation to the front, since higher indexes should be removed before lower indexes
+						newRemoveMutations.push_front(Mutation{
+							.type = Mutation::Type::REMOVE,
+							.index = index + displacingStartIndex,
+							.count = removeCount,
+							.upperShiftEndIndex = (index + items.size())
+						});
+						indexRemovalCount += removeCount;
+						nonEmptyRemoveStartIndex = std::nullopt;
 					}
+					
+					size_t totalRemoveCount = existingItemIndex - displacingStartIndex;
+					size_t emptyCount = totalRemoveCount - indexRemovalCount;
+					// if we have more empty indexes than items being added, remove some of the empty indexes
+					if(emptyCount > addingItems.size()) {
+						size_t emptyRemoveCount = emptyCount - addingItems.size();
+						newRemoveMutations.push_back(Mutation{
+							.type = Mutation::Type::REMOVE,
+							.index = index + displacingStartIndex,
+							.count = emptyRemoveCount,
+							.upperShiftEndIndex = (index + items.size())
+						});
+						emptyCount -= emptyRemoveCount;
+					}
+					
+					// if we're not removing any empty indexes and we're either at the top or bottom (or both) of the list
+					if(list->items.size() > 0 && !displacementRemovesEmpty && (displacingStartIndex == 0 || (displacingStartIndex + totalRemoveCount) >= (index + items.size()))) {
+						ArrayList<Optional<Mutation>> addingItemMutations;
+						addingItemMutations.resize(addingItems.size(), std::nullopt);
+						// if this displacement chunk is at the bottom of the list
+						if(displacingStartIndex == 0) {
+							//  then go down and find the items in common with the bottom added items and move them
+							auto dispIt = std::make_reverse_iterator(list->items.lower_bound(index));
+							auto addingItemsIt = addingItems.rbegin();
+							size_t addingItemsIndex = addingItems.size() - 1;
+							while(list->items.size() > 0 && dispIt != list->items.rend() && addingItemsIt != addingItems.rend()) {
+								bool foundMatch = false;
+								auto checkDispIt = dispIt;
+								size_t lookAheadCount = 0;
+								while(checkDispIt != list->items.rend() && lookAheadCount < maxLookAhead) {
+									if(list->delegate->areAsyncListItemsEqual(list, checkDispIt->second.item, *addingItemsIt)) {
+										foundMatch = true;
+										size_t prevIndex = checkDispIt->first;
+										size_t newIndex = index + settingItems.size() + addingItemsIndex;
+										list->delegate->mergeAsyncListItem(list, *addingItemsIt, checkDispIt->second.item);
+										addingItemMutations[addingItemsIndex] = Mutation{
+											.type = Mutation::Type::LIFT_AND_INSERT,
+											.index = prevIndex,
+											.count = 1,
+											.newIndex = newIndex,
+											.upperShiftEndIndex = (index + items.size())
+										};
+										auto fcheckDispIt = std::prev(checkDispIt.base(), 1);
+										fcheckDispIt = list->items.erase(fcheckDispIt);
+										checkDispIt = std::make_reverse_iterator(fcheckDispIt);
+										if(list->items.size() > 0) {
+											checkDispIt++;
+										}
+										dispIt = checkDispIt;
+										break;
+									}
+									lookAheadCount++;
+								}
+								addingItemsIt++;
+								addingItemsIndex--;
+							}
+						}
+						// if this displacement chunk is at the top of the list
+						//  then go up and find the items in common with the top added items and move them
+						if((displacingStartIndex + totalRemoveCount) >= (index + items.size())) {
+							auto dispIt = list->items.lower_bound(index+items.size());
+							auto addingItemsIt = addingItems.begin();
+							size_t addingItemsIndex = 0;
+							while(list->items.size() > 0 && dispIt != list->items.end() && addingItemsIt != addingItems.end()) {
+								bool foundMatch = false;
+								auto checkDispIt = dispIt;
+								size_t lookAheadCount = 0;
+								while(checkDispIt != list->items.end() && lookAheadCount < maxLookAhead) {
+									if(!addingItemMutations[addingItemsIndex].has_value()
+									   && list->delegate->areAsyncListItemsEqual(list, checkDispIt->second.item, *addingItemsIt)) {
+										foundMatch = true;
+										size_t prevIndex = checkDispIt->first;
+										size_t newIndex = index + settingItems.size() + addingItemsIndex;
+										list->delegate->mergeAsyncListItem(list, *addingItemsIt, checkDispIt->second.item);
+										addingItemMutations[addingItemsIndex] = Mutation{
+											.type = Mutation::Type::LIFT_AND_INSERT,
+											.index = prevIndex,
+											.count = 1,
+											.newIndex = newIndex,
+											.upperShiftEndIndex = (index + items.size())
+										};
+										checkDispIt = list->items.erase(checkDispIt);
+										if(list->items.size() > 0) {
+											checkDispIt++;
+										}
+										dispIt = checkDispIt;
+										break;
+									}
+									lookAheadCount++;
+								}
+								addingItemsIt++;
+								addingItemsIndex++;
+							}
+						}
+						// loop through mutations and add chained mutations
+						Optional<size_t> emptyStartIndex;
+						auto completeInsertMutationChain = [&](auto i) {
+							if(emptyStartIndex) {
+								size_t insertIndex = emptyStartIndex.value();
+								emptyStartIndex = std::nullopt;
+								size_t insertCount = (i - insertIndex);
+								if(emptyCount >= insertCount) {
+									emptyCount -= insertCount;
+									insertCount = 0;
+								}
+								else if(emptyCount > 0) {
+									insertIndex += emptyCount;
+									insertCount -= emptyCount;
+									emptyCount = 0;
+								}
+								if(insertCount > 0) {
+									addMutations.push_back(Mutation{
+										.type = Mutation::Type::INSERT,
+										.index = index + settingItems.size() + insertIndex,
+										.count = insertCount,
+										.upperShiftEndIndex = (index + items.size())
+									});
+								}
+							}
+						};
+						for(auto [i, mutation] : enumerate(addingItemMutations)) {
+							if(mutation.has_value()) {
+								if(emptyStartIndex) {
+									completeInsertMutationChain(i);
+								}
+								addMutations.push_back(std::move(mutation.value()));
+							}
+							else if(!emptyStartIndex) {
+								emptyStartIndex = i;
+							}
+						}
+						if(emptyStartIndex) {
+							completeInsertMutationChain(addingItems.size());
+						}
+					}
+					// otherwise if we're not at the top or the bottom of the list
+					else {
+						if(addingItems.size() > emptyCount) {
+							size_t addCount = addingItems.size() - emptyCount;
+							addMutations.push_back(Mutation{
+								.type = Mutation::Type::INSERT,
+								.index = (index + settingItems.size() + emptyCount),
+								.count = addCount,
+								.upperShiftEndIndex = (index + items.size())
+							});
+						}
+					}
+					
+					// add addingItems to settingItems
+					if(addingItems.size() > 0) {
+						settingItems.splice(settingItems.end(), addingItems);
+						addingItems.clear();
+					}
+					// add newRemoveMutations to removeMutations and clear
+					removeMutations.splice(removeMutations.begin(), newRemoveMutations);
+					newRemoveMutations.clear();
 				};
 				
 				Optional<size_t> overflowInsertStart;
 				
 				// begin overflow insert chain
 				auto beginOverflowInsertChain = [&]() {
-					if(!overflowInsertStart && newListIndex >= list->itemsSize.value_or(0)) {
-						overflowInsertStart = newListIndex;
-					}
+					FGL_ASSERT((!overflowInsertStart && newListIndex >= list->itemsSize.value_or(0)), "Did you really call this without checking these conditions? Bro wtf are you doing.");
+					overflowInsertStart = newListIndex;
 				};
 				
 				// end overflow insert chain
 				auto endOverflowInsertChain = [&]() {
-					if(overflowInsertStart) {
-						size_t startIndex = overflowInsertStart.value();
-						overflowInsertStart = std::nullopt;
-						size_t count = newListIndex - startIndex;
-						addMutations.push_back(Mutation{
-							.type = Mutation::Type::MOVE,
-							.index = startIndex,
-							.count = count,
-							.newIndex = startIndex,
-							.upperShiftEndIndex = (index + items.size())
-						});
-					}
+					FGL_ASSERT(overflowInsertStart, "fucking ridiculous, You're ending a chain and you didn't even start it. Really take a look in the mirror at yourself and question what you're doing with your life")
+					size_t startIndex = overflowInsertStart.value();
+					overflowInsertStart = std::nullopt;
+					size_t count = newListIndex - startIndex;
+					addMutations.push_back(Mutation{
+						.type = Mutation::Type::MOVE,
+						.index = startIndex,
+						.count = count,
+						.newIndex = startIndex,
+						.upperShiftEndIndex = (index + items.size())
+					});
 				};
 				
 				// loop through diff
@@ -906,56 +905,61 @@ namespace fgl {
 			if(count == 0) {
 				return;
 			}
-			else if(index == newIndex) {
-				return;
-			}
 			size_t endIndex = (index + count);
-			// extract items from list
-			using node_type = typename decltype(list->items)::node_type;
-			std::list<node_type> extractedNodes;
-			auto it = list->items.lower_bound(index);
-			while(it != list->items.end() && it->first < endIndex) {
-				auto nextIt = std::next(it, 1);
-				auto node = list->items.extract(it);
-				extractedNodes.emplace_back(node);
-				it = nextIt;
-			}
-			// shift items displaced by move
-			if(newIndex < index) {
-				for(auto revIt = std::make_reverse_iterator(it);
-				   (revIt != list->items.rend()) && (revIt->first >= newIndex);
-				   revIt++) {
-					auto insertIt = revIt.base();
-					auto extractIt = std::prev(insertIt, 1);
-					auto node = list->items.extract(extractIt);
-					node.key() += count;
-					revIt = list->items.insert(insertIt, node);
+			if(index != newIndex) {
+				// extract items from list
+				using node_type = typename decltype(list->items)::node_type;
+				std::list<node_type> extractedNodes;
+				auto it = list->items.lower_bound(index);
+				while(it != list->items.end() && it->first < endIndex) {
+					auto nextIt = std::next(it, 1);
+					auto node = list->items.extract(it);
+					extractedNodes.emplace_back(node);
+					it = nextIt;
 				}
-			}
-			else if(newIndex > index) {
-				for(auto revIt = std::make_reverse_iterator(list->items.upper_bound(newIndex));
-				   (revIt != list->items.rend()) && (revIt->first >= index);
-				   revIt++) {
-					auto insertIt = revIt.base();
-					auto extractIt = std::prev(insertIt, 1);
-					auto node = list->items.extract(extractIt);
-					node.key() += count;
-					revIt = list->items.insert(insertIt, node);
+				// shift items displaced by move
+				if(newIndex < index) {
+					for(auto revIt = std::make_reverse_iterator(it);
+					   (revIt != list->items.rend()) && (revIt->first >= newIndex);
+					   revIt++) {
+						auto insertIt = revIt.base();
+						auto extractIt = std::prev(insertIt, 1);
+						auto node = list->items.extract(extractIt);
+						node.key() += count;
+						revIt = list->items.insert(insertIt, node);
+					}
 				}
-			}
-			// reinsert extracted items
-			it = list->items.lower_bound(newIndex);
-			for(auto& node : extractedNodes) {
-				it = list->items.insert(it, std::move(node));
-				it++;
+				else if(newIndex > index) {
+					for(auto revIt = std::make_reverse_iterator(list->items.upper_bound(newIndex));
+					   (revIt != list->items.rend()) && (revIt->first >= index);
+					   revIt++) {
+						auto insertIt = revIt.base();
+						auto extractIt = std::prev(insertIt, 1);
+						auto node = list->items.extract(extractIt);
+						node.key() += count;
+						revIt = list->items.insert(insertIt, node);
+					}
+				}
+				// reinsert extracted items
+				it = list->items.lower_bound(newIndex);
+				for(auto& node : extractedNodes) {
+					it = list->items.insert(it, std::move(node));
+					it++;
+				}
 			}
 			// get insertion count to pad list
 			size_t prevListSize = list->itemsSize.value_or(0);
 			size_t shrunkListSize = prevListSize;
-			if(shrunkListSize > count) {
-				shrunkListSize -= count;
-			} else {
-				shrunkListSize = 0;
+			if(index < prevListSize) {
+				if(endIndex >= prevListSize) {
+					shrunkListSize = index;
+				} else {
+					if(shrunkListSize > count) {
+						shrunkListSize -= count;
+					} else {
+						shrunkListSize = 0;
+					}
+				}
 			}
 			size_t paddedInsertCount = 0;
 			size_t moveInsertCount = 0;
@@ -984,9 +988,10 @@ namespace fgl {
 			if(indexInside || newIndexInside) {
 				if(paddedInsertCount > 0) {
 					this->mutations.push_back(Mutation{
-						.type = Mutation::Type::INSERT,
+						.type = Mutation::Type::MOVE,
 						.index = prevListSize,
-						.count = paddedInsertCount
+						.count = paddedInsertCount,
+						.newIndex = prevListSize
 					});
 				}
 			}
@@ -1038,6 +1043,50 @@ namespace fgl {
 			for(auto & pair : list->items) {
 				pair.second.valid = false;
 			}
+		});
+	}
+
+	template<typename T>
+	void AsyncList<T>::Mutator::resetItems() {
+		lock([&]() {
+			size_t itemsSize = list->itemsSize.value_or(0);
+			size_t capacity = list->capacity();
+			list->items.clear();
+			this->mutations.push_back(Mutation{
+				.type = Mutation::Type::REMOVE,
+				.index = 0,
+				.count = capacity
+			});
+			this->mutations.push_back(Mutation{
+				.type = Mutation::Type::RESIZE,
+				.count = itemsSize
+			});
+		});
+	}
+
+	template<typename T>
+	void AsyncList<T>::Mutator::resetSize() {
+		lock([&]() {
+			invalidateAll();
+			this->mutations.push_back(Mutation{
+				.type = Mutation::Type::RESIZE,
+				.count = 0
+			});
+			list->itemsSize = std::nullopt;
+		});
+	}
+
+	template<typename T>
+	void AsyncList<T>::Mutator::reset() {
+		lock([&]() {
+			size_t capacity = list->capacity();
+			list->items.clear();
+			this->mutations.push_back(Mutation{
+				.type = Mutation::Type::REMOVE,
+				.index = 0,
+				.count = capacity
+			});
+			list->itemsSize = std::nullopt;
 		});
 	}
 
