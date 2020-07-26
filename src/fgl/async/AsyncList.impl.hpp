@@ -45,21 +45,24 @@ namespace fgl {
 	}
 
 	template<typename T>
-	Promise<void> AsyncList<T>::reset() {
+	void AsyncList<T>::reset() {
+		mutator->reset();
 		return mutate([=](auto mutator) {
 			mutator->reset();
 		});
 	}
 
 	template<typename T>
-	Promise<void> AsyncList<T>::resetItems() {
+	void AsyncList<T>::resetItems() {
+		mutator->resetItems();
 		return mutate([=](auto mutator) {
 			mutator->resetItems();
 		});
 	}
 
 	template<typename T>
-	Promise<void> AsyncList<T>::resetSize() {
+	void AsyncList<T>::resetSize() {
+		mutator->resetSize();
 		return mutate([=](auto mutator) {
 			mutator->resetSize();
 		});
@@ -99,22 +102,6 @@ namespace fgl {
 		size_t chunkSize = delegate->getAsyncListChunkSize(this);
 		FGL_ASSERT(chunkSize != 0, "AsyncList chunkSize cannot be 0");
 		return chunkSize;
-	}
-
-	template<typename T>
-	void AsyncList<T>::addListener(Listener* listener) {
-		std::unique_lock<std::recursive_mutex> lock(mutex);
-		listeners.push_back(listener);
-	}
-
-	template<typename T>
-	void AsyncList<T>::removeListener(Listener* listener) {
-		std::unique_lock<std::recursive_mutex> lock(mutex);
-		auto revIt = std::find(listeners.rbegin(), listeners.rend(), listener);
-		if(revIt != listeners.rend()) {
-			auto it = std::prev(revIt.base(), 1);
-			listeners.erase(it);
-		}
 	}
 
 	template<typename T>

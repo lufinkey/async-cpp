@@ -127,15 +127,9 @@ namespace fgl {
 			
 			virtual bool areAsyncListItemsEqual(const AsyncList<T>* list, const T& item1, const T& item2) const = 0;
 			virtual void mergeAsyncListItem(const AsyncList<T>* list, T& overwritingItem, T& existingItem) = 0;
-			
 			//virtual Promise<void> insertAsyncListItems(Mutator* mutator, size_t index, LinkedList<T> items) = 0;
 			//virtual Promise<void> removeAsyncListItems(Mutator* mutator, size_t index, size_t count) = 0;
 			//virtual Promise<void> moveAsyncListItems(Mutator* mutator, size_t index, size_t count, size_t newIndex) = 0;
-		};
-		
-		class Listener {
-		public:
-			virtual ~Listener() {}
 			
 			virtual void onAsyncListMutations(std::shared_ptr<AsyncList<T>> list, Optional<size_t> prevListSize, const LinkedList<Mutation>& mutations) = 0;
 		};
@@ -159,18 +153,15 @@ namespace fgl {
 		AsyncList(const AsyncList&) = delete;
 		AsyncList(Options options);
 		
-		Promise<void> reset();
-		Promise<void> resetItems();
-		Promise<void> resetSize();
+		void reset();
+		void resetItems();
+		void resetSize();
 		
 		inline const std::map<size_t,ItemNode>& getMap() const;
 		inline Optional<size_t> size() const;
 		inline size_t length() const;
 		inline size_t capacity() const;
 		inline size_t getChunkSize() const;
-		
-		void addListener(Listener* listener);
-		void removeListener(Listener* listener);
 		
 		AsyncListIndexMarker watchIndex(size_t index);
 		AsyncListIndexMarker watchIndex(AsyncListIndexMarker index);
@@ -212,7 +203,6 @@ namespace fgl {
 		AsyncQueue mutationQueue;
 		Mutator mutator;
 		Delegate* delegate;
-		LinkedList<Listener*> listeners;
 	};
 }
 

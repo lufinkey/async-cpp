@@ -73,11 +73,8 @@ namespace fgl {
 				forwardingMutations = false;
 			});
 			
-			// call mutation listeners
-			auto listeners = list->listeners;
-			for(auto listener : listeners) {
-				listener->onAsyncListMutations(list->shared_from_this(), prevListSize, mutations);
-			}
+			// call delegate
+			list->delegate->onAsyncListMutations(list->shared_from_this(), prevListSize, mutations);
 		}
 	}
 	
