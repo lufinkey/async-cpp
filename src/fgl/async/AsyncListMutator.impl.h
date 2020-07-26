@@ -341,7 +341,7 @@ namespace fgl {
 	void AsyncList<T>::Mutator::lock(Work work) {
 		std::unique_lock<std::recursive_mutex> lock(list->mutex);
 		FGL_ASSERT(!forwardingMutations, "cannot lock mutator while forwarding mutations");
-		size_t listSize = list->itemsSize.value_or(0);
+		auto prevListSize = list->itemsSize;
 		// increment lock counter
 		lockCount++;
 		auto f = make_finally([&]() {
@@ -352,6 +352,7 @@ namespace fgl {
 		// if we're the last lock
 		if(lockCount == 1) {
 			// update index markers
+			size_t listSize = prevListSize.value_or(0);
 			for(auto& mutation : this->mutations) {
 				mutation.applyToMarkers(list->indexMarkers, listSize);
 			}
@@ -371,7 +372,7 @@ namespace fgl {
 			// call mutation listeners
 			auto listeners = this->listeners;
 			for(auto listener : listeners) {
-				listener->onAsyncListMutations(list->shared_from_this(), mutations);
+				listener->onAsyncListMutations(list->shared_from_this(), prevListSize, mutations);
 			}
 		}
 	}

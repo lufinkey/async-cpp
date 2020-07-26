@@ -134,7 +134,7 @@ namespace fgl {
 		public:
 			virtual ~Listener() {}
 			
-			virtual void onAsyncListMutations(std::shared_ptr<AsyncList<T>> list, const LinkedList<Mutation>& mutations) = 0;
+			virtual void onAsyncListMutations(std::shared_ptr<AsyncList<T>> list, Optional<size_t> prevListSize, const LinkedList<Mutation>& mutations) = 0;
 		};
 		
 		struct ItemNode {
