@@ -283,6 +283,10 @@ namespace fgl {
 			return runGenerator(dispatchQueue,gen,shouldStop);
 		});
 	}
+
+	class AsyncQueueTaskAutoDeletedEventListener: public AsyncQueue::Task::EventListener {
+		//
+	};
 }
 
 

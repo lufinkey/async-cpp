@@ -62,7 +62,7 @@ namespace fgl {
 
 
 
-	class AsyncQueueTaskFunctionalEventListener: public AsyncQueue::Task::EventListener {
+	class AsyncQueueTaskFunctionalEventListener: public AsyncQueueTaskAutoDeletedEventListener {
 	public:
 		virtual void onAsyncQueueTaskBegin(std::shared_ptr<AsyncQueue::Task> task) override;
 		virtual void onAsyncQueueTaskCancel(std::shared_ptr<AsyncQueue::Task> task) override;
@@ -265,7 +265,7 @@ namespace fgl {
 
 	AsyncQueue::Task::~Task() {
 		for(auto listener : eventListeners) {
-			if(auto castListener = dynamic_cast<AsyncQueueTaskFunctionalEventListener*>(listener)) {
+			if(auto castListener = dynamic_cast<AsyncQueueTaskAutoDeletedEventListener*>(listener)) {
 				delete castListener;
 			}
 		}
@@ -321,7 +321,11 @@ namespace fgl {
 	void AsyncQueue::Task::removeEventListener(EventListener* listener) {
 		FGL_ASSERT(listener != nullptr, "listener cannot be null");
 		std::unique_lock<std::recursive_mutex> lock(mutex);
-		eventListeners.removeLastEqual(listener);
+		bool removed = eventListeners.removeLastEqual(listener);
+		if(removed) {
+			auto autoDeletedListener = dynamic_cast<AsyncQueueTaskAutoDeletedEventListener*>(listener);
+			delete autoDeletedListener;
+		}
 	}
 
 	size_t AsyncQueue::Task::addBeginListener(BeginListener listener) {

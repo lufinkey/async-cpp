@@ -11,7 +11,7 @@
 #ifdef __OBJC__
 
 namespace fgl {
-	class AsyncQueueTaskObjcEventListener: public AsyncQueue::Task::EventListener {
+	class AsyncQueueTaskObjcEventListener: public AsyncQueueTaskAutoDeletedEventListener {
 	public:
 		AsyncQueueTaskObjcEventListener(id<FGLAsyncQueueTaskEventListener> listener);
 		
@@ -33,7 +33,6 @@ namespace fgl {
 		__strong id<FGLAsyncQueueTaskEventListener> listener = weakListener;
 		if(listener == nil) {
 			task->removeEventListener(this);
-			delete this;
 			return;
 		}
 		if([listener respondsToSelector:@selector(asyncQueueTaskDidBegin:)]) {
@@ -45,7 +44,6 @@ namespace fgl {
 		__strong id<FGLAsyncQueueTaskEventListener> listener = weakListener;
 		if(listener == nil) {
 			task->removeEventListener(this);
-			delete this;
 			return;
 		}
 		if([listener respondsToSelector:@selector(asyncQueueTaskDidCancel:)]) {
@@ -57,7 +55,6 @@ namespace fgl {
 		__strong id<FGLAsyncQueueTaskEventListener> listener = weakListener;
 		if(listener == nil) {
 			task->removeEventListener(this);
-			delete this;
 			return;
 		}
 		if([listener respondsToSelector:@selector(asyncQueueTaskDidChangeStatus:)]) {
@@ -69,7 +66,6 @@ namespace fgl {
 		__strong id<FGLAsyncQueueTaskEventListener> listener = weakListener;
 		if(listener == nil) {
 			task->removeEventListener(this);
-			delete this;
 			return;
 		}
 		if([listener respondsToSelector:@selector(asyncQueueTask:didThrowError:)]) {
@@ -81,7 +77,6 @@ namespace fgl {
 		__strong id<FGLAsyncQueueTaskEventListener> listener = weakListener;
 		if(listener == nil) {
 			task->removeEventListener(this);
-			delete this;
 			return;
 		}
 		if([listener respondsToSelector:@selector(asyncQueueTaskDidEnd:)]) {
