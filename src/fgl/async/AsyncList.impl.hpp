@@ -529,7 +529,7 @@ namespace fgl {
 	Promise<void> AsyncList<T>::mutate(Function<void(Mutator*)> executor) {
 		auto self = this->shared_from_this();
 		return mutationQueue.run([=](auto task) -> void {
-			return self->executor(&mutator);
+			return executor(&self->mutator);
 		}).promise;
 	}
 
