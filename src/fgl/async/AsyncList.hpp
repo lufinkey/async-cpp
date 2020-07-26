@@ -212,7 +212,7 @@ namespace fgl {
 		AsyncQueue mutationQueue;
 		Mutator mutator;
 		Delegate* delegate;
-		LinkedList<Listener> listeners;
+		LinkedList<Listener*> listeners;
 	};
 }
 
