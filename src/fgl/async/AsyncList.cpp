@@ -9,6 +9,18 @@
 #include <fgl/async/AsyncList.hpp>
 
 namespace fgl {
+	String AsyncListIndexMarkerState_toString(AsyncListIndexMarkerState state) {
+		switch(state) {
+			case AsyncListIndexMarkerState::IN_LIST:
+				return "IN_LIST";
+			case AsyncListIndexMarkerState::DISPLACED:
+				return "DISPLACED";
+			case AsyncListIndexMarkerState::REMOVED:
+				return "REMOVED";
+		}
+		FGL_ASSERT(false, "Invalid AsyncListIndexMarkerState");
+	}
+
 	AsyncListIndexMarkerData::AsyncListIndexMarkerData(size_t index, AsyncListIndexMarkerState state)
 	: index(index), state(state) {
 		switch(state) {
@@ -17,12 +29,16 @@ namespace fgl {
 			case AsyncListIndexMarkerState::REMOVED:
 				break;
 			default:
-				FGL_ASSERT(false, "Invalid AsynListIndexMarkerState");
+				FGL_ASSERT(false, "Invalid AsyncListIndexMarkerState");
 		}
 	}
 
-	AsyncListIndexMarker new$(size_t index, AsyncListIndexMarkerState state) {
+	AsyncListIndexMarker AsyncListIndexMarkerData::new$(size_t index, AsyncListIndexMarkerState state) {
 		return std::make_shared<AsyncListIndexMarkerData>(index, state);
+	}
+
+	String AsyncListIndexMarkerData::toString() const {
+		return String::join({"IndexMarker{ ",stringify(index),", ",AsyncListIndexMarkerState_toString(state)," }"});
 	}
 
 

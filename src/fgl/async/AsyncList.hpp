@@ -43,6 +43,7 @@ namespace fgl {
 		// the index has been removed and now sits between the end of the previous index and the beginning of the marker index
 		REMOVED
 	};
+	String AsyncListIndexMarkerState_toString(AsyncListIndexMarkerState);
 
 	struct AsyncListIndexMarkerData {
 		size_t index;
@@ -50,6 +51,8 @@ namespace fgl {
 		
 		AsyncListIndexMarkerData(size_t index, AsyncListIndexMarkerState state);
 		static std::shared_ptr<AsyncListIndexMarkerData> new$(size_t index, AsyncListIndexMarkerState state);
+		
+		String toString() const;
 	};
 	typedef std::shared_ptr<AsyncListIndexMarkerData> AsyncListIndexMarker;
 
