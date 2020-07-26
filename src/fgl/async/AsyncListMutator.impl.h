@@ -75,7 +75,7 @@ namespace fgl {
 			
 			// call delegate
 			if(list->delegate != nullptr) {
-				list->delegate->onAsyncListMutations(list->shared_from_this(), prevListSize, mutations);
+				list->delegate->onAsyncListMutations(list, prevListSize, mutations);
 			}
 		}
 	}

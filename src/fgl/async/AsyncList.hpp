@@ -134,7 +134,7 @@ namespace fgl {
 			//virtual Promise<void> removeAsyncListItems(Mutator* mutator, size_t index, size_t count) = 0;
 			//virtual Promise<void> moveAsyncListItems(Mutator* mutator, size_t index, size_t count, size_t newIndex) = 0;
 			
-			virtual void onAsyncListMutations(std::shared_ptr<AsyncList<T>> list, Optional<size_t> prevListSize, const LinkedList<Mutation>& mutations) = 0;
+			virtual void onAsyncListMutations(const AsyncList<T>* list, Optional<size_t> prevListSize, const LinkedList<Mutation>& mutations) = 0;
 		};
 		
 		struct ItemNode {
