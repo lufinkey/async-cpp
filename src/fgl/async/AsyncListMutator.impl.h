@@ -370,7 +370,7 @@ namespace fgl {
 			});
 			
 			// call mutation listeners
-			auto listeners = this->listeners;
+			auto listeners = list->listeners;
 			for(auto listener : listeners) {
 				listener->onAsyncListMutations(list->shared_from_this(), prevListSize, mutations);
 			}
@@ -768,7 +768,7 @@ namespace fgl {
 				auto removeBegin = list->items.lower_bound(endIndex);
 				auto removeEnd = list->items.end();
 				if(removeBegin != removeEnd) {
-					auto removeLastIndex = std::prev(removeEnd, 1)->index;
+					auto removeLastIndex = std::prev(removeEnd, 1)->first;
 					list->items.erase(removeBegin, removeEnd);
 					// add mutations
 					this->mutations.push_back(Mutation{
@@ -784,7 +784,7 @@ namespace fgl {
 			if(listSize.has_value()) {
 				resize(listSize.value());
 			}
-			else if(endIndex > list->listSize.value_or(0)) {
+			else if(endIndex > list->itemsSize.value_or(0)) {
 				list->itemsSize = endIndex;
 			}
 		});
