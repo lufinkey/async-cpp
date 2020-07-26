@@ -45,6 +45,13 @@ namespace fgl {
 	}
 
 	template<typename T>
+	void AsyncList<T>::destroy() {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
+		mutator->reset();
+		delegate = nullptr;
+	}
+
+	template<typename T>
 	void AsyncList<T>::reset() {
 		mutator->reset();
 		return mutate([=](auto mutator) {
@@ -99,6 +106,9 @@ namespace fgl {
 	template<typename T>
 	size_t AsyncList<T>::getChunkSize() const {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
+		if(delegate == nullptr) {
+			return 0;
+		}
 		size_t chunkSize = delegate->getAsyncListChunkSize(this);
 		FGL_ASSERT(chunkSize != 0, "AsyncList chunkSize cannot be 0");
 		return chunkSize;
@@ -265,6 +275,13 @@ namespace fgl {
 		return Promise<Optional<T>>([=](auto resolve, auto reject) {
 			self->mutationQueue.run([=](auto task) -> Promise<void> {
 				std::unique_lock<std::recursive_mutex> lock(mutex);
+				if(self->delegate == nullptr) {
+					if(options.trackIndexChanges) {
+						self->unwatchIndex(indexMarker);
+					}
+					resolve(std::nullopt);
+					return Promise<void>::resolve();
+				}
 				size_t index = indexMarker->index;
 				if(!options.forceReload) {
 					auto it = items.find(index);
@@ -312,6 +329,13 @@ namespace fgl {
 		return Promise<LinkedList<T>>([=](auto resolve, auto reject) {
 			self->mutationQueue.run([=](auto task) -> Promise<void> {
 				std::unique_lock<std::recursive_mutex> lock(mutex);
+				if(self->delegate == nullptr) {
+					if(options.trackIndexChanges) {
+						unwatchIndex(indexMarker);
+					}
+					resolve({});
+					return Promise<void>::resolve();
+				}
 				size_t index = indexMarker->index;
 				if(!options.forceReload) {
 					auto loadedItems = getLoadedItems({
@@ -336,6 +360,9 @@ namespace fgl {
 				auto promise = Promise<void>::resolve();
 				for(size_t loadStartIndex = chunkStartIndex; loadStartIndex < chunkEndIndex; loadStartIndex += chunkSize) {
 					promise = promise.then(self->mutationQueue.dispatchQueue(), [=]() {
+						if(self->delegate == nullptr) {
+							return Promise<void>::resolve();
+						}
 						return self->delegate->loadAsyncListItems(&self->mutator, loadStartIndex, chunkSize, options.loadOptions);
 					});
 				}

@@ -153,6 +153,7 @@ namespace fgl {
 		AsyncList(const AsyncList&) = delete;
 		AsyncList(Options options);
 		
+		void destroy();
 		void reset();
 		void resetItems();
 		void resetSize();

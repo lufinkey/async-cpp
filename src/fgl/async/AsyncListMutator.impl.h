@@ -74,14 +74,16 @@ namespace fgl {
 			});
 			
 			// call delegate
-			list->delegate->onAsyncListMutations(list->shared_from_this(), prevListSize, mutations);
+			if(list->delegate != nullptr) {
+				list->delegate->onAsyncListMutations(list->shared_from_this(), prevListSize, mutations);
+			}
 		}
 	}
 	
 	template<typename T>
 	void AsyncList<T>::Mutator::applyMerge(size_t index, Optional<size_t> listSize, LinkedList<T> items) {
 		lock([&]() {
-			if(items.size() == 0) {
+			if(items.size() == 0 || list->delegate == nullptr) {
 				return;
 			}
 			size_t endIndex = index + items.size();
@@ -802,6 +804,9 @@ namespace fgl {
 		AsyncListOptionalDTLCompare(AsyncList<T>* list): list(list) {}
 		
 		virtual inline bool impl(const Optional<T>& e1, const Optional<T>& e2) const {
+			if(list->delegate == nullptr) {
+				return false;
+			}
 			return
 				(!e1.has_value() && !e2.has_value())
 				|| (e1.has_value() && e2.has_value() && list->delegate->areAsyncListItemsEqual(list, e1.value(), e2.value()));
