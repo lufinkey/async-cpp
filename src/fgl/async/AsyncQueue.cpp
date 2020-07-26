@@ -323,8 +323,9 @@ namespace fgl {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		bool removed = eventListeners.removeLastEqual(listener);
 		if(removed) {
-			auto autoDeletedListener = dynamic_cast<AutoDeletedEventListener*>(listener);
-			delete autoDeletedListener;
+			if(auto castListener = dynamic_cast<AutoDeletedEventListener*>(listener)) {
+				delete castListener;
+			}
 		}
 	}
 
