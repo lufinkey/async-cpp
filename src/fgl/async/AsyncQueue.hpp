@@ -40,6 +40,9 @@ namespace fgl {
 				virtual void onAsyncQueueTaskError(std::shared_ptr<Task> task, std::exception_ptr error) {};
 				virtual void onAsyncQueueTaskEnd(std::shared_ptr<Task> task) {};
 			};
+			class AutoDeletedEventListener: public EventListener {
+				//
+			};
 			
 			struct Options {
 				String name;
@@ -283,10 +286,6 @@ namespace fgl {
 			return runGenerator(dispatchQueue,gen,shouldStop);
 		});
 	}
-
-	class AsyncQueueTaskAutoDeletedEventListener: public AsyncQueue::Task::EventListener {
-		//
-	};
 }
 
 

@@ -11,7 +11,7 @@
 #ifdef __OBJC__
 
 namespace fgl {
-	class AsyncQueueTaskObjcEventListener: public AsyncQueueTaskAutoDeletedEventListener {
+	class AsyncQueueTaskObjcEventListener: public AsyncQueue::Task::AutoDeletedEventListener {
 	public:
 		AsyncQueueTaskObjcEventListener(id<FGLAsyncQueueTaskEventListener> listener);
 		
