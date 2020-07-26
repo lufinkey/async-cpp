@@ -172,6 +172,7 @@ namespace fgl {
 		inline size_t length() const;
 		inline size_t capacity() const;
 		inline size_t getChunkSize() const;
+		bool hasAllItems() const;
 		
 		AsyncListIndexMarker watchIndex(size_t index);
 		AsyncListIndexMarker watchIndex(AsyncListIndexMarker index);

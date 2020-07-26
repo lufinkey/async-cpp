@@ -127,6 +127,11 @@ namespace fgl {
 	}
 
 	template<typename T>
+	bool AsyncList<T>::hasAllItems() const {
+		return areItemsLoaded(0, length());
+	}
+
+	template<typename T>
 	AsyncListIndexMarker AsyncList<T>::watchIndex(size_t index) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto state = AsyncListIndexMarkerState::IN_LIST;
