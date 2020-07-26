@@ -90,13 +90,13 @@ namespace fgl {
 	}
 	
 	void AsyncQueue::Task::addEventListener(id<FGLAsyncQueueTaskEventListener> listener) {
-		FGL_ASSERT(listener != nullptr, "listener cannot be null");
+		FGL_ASSERT(listener != nil, "listener cannot be nil");
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		eventListeners.pushBack(new AsyncQueueTaskObjcEventListener(listener));
 	}
 	
 	void AsyncQueue::Task::removeEventListener(id<FGLAsyncQueueTaskEventListener> listener) {
-		FGL_ASSERT(listener != nullptr, "listener cannot be null");
+		FGL_ASSERT(listener != nil, "listener cannot be nil");
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto it = eventListeners.findLastWhere([=](auto& cmpListener) {
 			auto cppListener = dynamic_cast<AsyncQueueTaskObjcEventListener*>(cmpListener);
