@@ -85,7 +85,7 @@ namespace fgl {
 	size_t AsyncList<T>::capacity() const {
 		size_t itemsCapacity = itemsSize.value_or(0);
 		if(items.size() > 0) {
-			size_t listEnd = std::prev(items.end(), 1);
+			size_t listEnd = std::prev(items.end(), 1)->first + 1;
 			if(listEnd > itemsCapacity) {
 				itemsCapacity = listEnd;
 			}
@@ -134,7 +134,7 @@ namespace fgl {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto it = std::find(indexMarkers.begin(), indexMarkers.end(), indexMarker);
 		if(it == indexMarkers.end()) {
-			if(index < itemsSize.value_or(0)) {
+			if(indexMarker->index < itemsSize.value_or(0)) {
 				if(indexMarker->state == AsyncListIndexMarkerState::DISPLACED) {
 					indexMarker->state = AsyncListIndexMarkerState::IN_LIST;
 				}
@@ -336,7 +336,8 @@ namespace fgl {
 						endIndex = itemsSize.value();
 					}
 					if((index + loadedItems.size()) >= endIndex) {
-						return Promise<LinkedList<T>>::resolve(loadedItems);
+						resolve(loadedItems);
+						return Promise<void>::resolve();
 					}
 				}
 				size_t chunkSize = self->getChunkSize();
