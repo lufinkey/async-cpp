@@ -612,9 +612,9 @@ namespace fgl {
 
 	template<typename T>
 	template<typename Work>
-	auto AsyncList<T>::lock(Work work) -> decltype(work()) {
+	auto AsyncList<T>::lock(Work work) -> decltype(work((Mutator*)nullptr)) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
-		return work();
+		return work(&mutator);
 	}
 
 	template<typename T>
