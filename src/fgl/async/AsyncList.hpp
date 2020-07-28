@@ -25,7 +25,7 @@ namespace fgl {
 		bool onlyValidItems = true;
 	};
 
-	struct AsyncListGetItemOptions {
+	struct AsyncListLoadItemOptions {
 		bool trackIndexChanges = false;
 		bool forceReload = false;
 		std::map<String,Any> loadOptions;
@@ -185,9 +185,10 @@ namespace fgl {
 		
 		Optional<ItemNode> itemNodeAt(size_t index) const;
 		Optional<T> itemAt(size_t index, const AsyncListIndexAccessOptions& options = AsyncListIndexAccessOptions()) const;
-		Promise<Optional<T>> getItem(size_t index, AsyncListGetItemOptions options = AsyncListGetItemOptions());
-		Promise<LinkedList<T>> getItems(size_t index, size_t count, AsyncListGetItemOptions options = AsyncListGetItemOptions());
-		ItemGenerator generateItems(size_t startIndex=0, AsyncListGetItemOptions options = AsyncListGetItemOptions{.trackIndexChanges=true});
+		Promise<Optional<T>> getItem(size_t index, AsyncListLoadItemOptions options = AsyncListLoadItemOptions());
+		Promise<LinkedList<T>> getItems(size_t index, size_t count, AsyncListLoadItemOptions options = AsyncListLoadItemOptions());
+		Promise<void> loadItems(size_t index, size_t count, AsyncListLoadItemOptions options = AsyncListLoadItemOptions());
+		ItemGenerator generateItems(size_t startIndex=0, AsyncListLoadItemOptions options = AsyncListLoadItemOptions());
 		
 		template<typename Callable>
 		Optional<size_t> indexWhere(Callable predicate, const AsyncListIndexAccessOptions& options = AsyncListIndexAccessOptions()) const;

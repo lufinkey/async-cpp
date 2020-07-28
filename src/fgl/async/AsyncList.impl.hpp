@@ -287,54 +287,67 @@ namespace fgl {
 	}
 
 	template<typename T, typename InsT>
-	Promise<Optional<T>> AsyncList<T,InsT>::getItem(size_t index, AsyncListGetItemOptions options) {
+	Promise<Optional<T>> AsyncList<T,InsT>::getItem(size_t index, AsyncListLoadItemOptions options) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
-		if(!options.forceReload && mutationQueue.taskCount() > 0) {
-			auto it = items.find(index);
-			if(it != items.end() && it->second.valid) {
-				return Promise<Optional<T>>::resolve(it->second.item);
-			}
-		}
+		auto self = this->shared_from_this();
 		auto indexMarker = AsyncListIndexMarkerData::new$(index, AsyncListIndexMarkerState::IN_LIST);
 		if(options.trackIndexChanges) {
 			watchIndex(indexMarker);
 		}
-		auto self = this->shared_from_this();
-		return Promise<Optional<T>>([=](auto resolve, auto reject) {
-			self->mutationQueue.run([=](auto task) -> Promise<void> {
-				std::unique_lock<std::recursive_mutex> lock(mutex);
-				if(self->delegate == nullptr) {
-					if(options.trackIndexChanges) {
-						self->unwatchIndex(indexMarker);
-					}
-					resolve(std::nullopt);
-					return Promise<void>::resolve();
-				}
-				size_t index = indexMarker->index;
-				if(!options.forceReload) {
-					auto it = items.find(index);
-					if(it != items.end() && it->second.valid) {
-						resolve(it->second.item);
-						return Promise<void>::resolve();
-					}
-				}
-				size_t chunkSize = self->getChunkSize();
-				size_t chunkStartIndex = chunkStartIndexForIndex(index, chunkSize);
-				return self->delegate->loadAsyncListItems(&self->mutator, chunkStartIndex, chunkSize, options.loadOptions)
-				.finally(self->mutationQueue.dispatchQueue(), [=]() {
-					if(options.trackIndexChanges) {
-						self->unwatchIndex(indexMarker);
-					}
-				})
-				.then(self->mutationQueue.dispatchQueue(), [=]() {
-					resolve(self->itemAt(indexMarker->index));
-				}, reject);
-			});
+		return loadItems(index, 1, options)
+		.template map<LinkedList<T>>(self->mutationQueue.dispatchQueue(), [=]() {
+			std::unique_lock<std::recursive_mutex> lock(self->mutex);
+			if(options.trackIndexChanges) {
+				self->unwatchIndex(indexMarker);
+			}
+		})
+		.template map<Optional<T>>(self->mutationQueue.dispatchQueue(), [=]() -> Optional<T> {
+			std::unique_lock<std::recursive_mutex> lock(self->mutex);
+			if(options.trackIndexChanges && indexMarker->state == AsyncListIndexMarkerState::REMOVED) {
+				return std::nullopt;
+			} else {
+				return self->itemAt(indexMarker->index);
+			}
 		});
 	}
 
 	template<typename T, typename InsT>
-	Promise<LinkedList<T>> AsyncList<T,InsT>::getItems(size_t index, size_t count, AsyncListGetItemOptions options) {
+	Promise<LinkedList<T>> AsyncList<T,InsT>::getItems(size_t index, size_t count, AsyncListLoadItemOptions options) {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
+		auto self = this->shared_from_this();
+		auto indexMarker = AsyncListIndexMarkerData::new$(index, AsyncListIndexMarkerState::IN_LIST);
+		if(options.trackIndexChanges) {
+			watchIndex(indexMarker);
+		}
+		return loadItems(index, count, options)
+		.template map<LinkedList<T>>(self->mutationQueue.dispatchQueue(), [=]() {
+			std::unique_lock<std::recursive_mutex> lock(self->mutex);
+			if(options.trackIndexChanges) {
+				self->unwatchIndex(indexMarker);
+			}
+		})
+		.template map<LinkedList<T>>(self->mutationQueue.dispatchQueue(), [=]() {
+			std::unique_lock<std::recursive_mutex> lock(self->mutex);
+			size_t index = indexMarker->index;
+			auto loadedItems = getLoadedItems({
+				.startIndex = index,
+				.limit = count
+			});
+			size_t endIndex = index + count;
+			if(itemsSize.has_value() && endIndex > itemsSize.value()) {
+				endIndex = itemsSize.value();
+			}
+			if(itemsSize.has_value() && (index + loadedItems.size()) < endIndex) {
+				lock.unlock();
+				throw std::logic_error("Failed to load all items");
+			}
+			lock.unlock();
+			resolve(loadedItems);
+		});
+	}
+
+	template<typename T, typename InsT>
+	Promise<void> AsyncList<T,InsT>::loadItems(size_t index, size_t count, AsyncListLoadItemOptions options) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		if(!options.forceReload && mutationQueue.taskCount() > 0) {
 			auto loadedItems = getLoadedItems({
@@ -354,78 +367,56 @@ namespace fgl {
 			watchIndex(indexMarker);
 		}
 		auto self = this->shared_from_this();
-		return Promise<LinkedList<T>>([=](auto resolve, auto reject) {
-			self->mutationQueue.run([=](auto task) -> Promise<void> {
-				std::unique_lock<std::recursive_mutex> lock(mutex);
-				if(self->delegate == nullptr) {
-					if(options.trackIndexChanges) {
-						unwatchIndex(indexMarker);
-					}
-					resolve({});
+		self->mutationQueue.run([=](auto task) -> Promise<void> {
+			std::unique_lock<std::recursive_mutex> lock(mutex);
+			if(self->delegate == nullptr) {
+				if(options.trackIndexChanges) {
+					unwatchIndex(indexMarker);
+				}
+				return Promise<void>::resolve();
+			}
+			size_t index = indexMarker->index;
+			if(!options.forceReload) {
+				auto loadedItems = getLoadedItems({
+					.startIndex = index,
+					.limit = count
+				});
+				size_t endIndex = index + count;
+				if(itemsSize.has_value() && endIndex > itemsSize.value()) {
+					endIndex = itemsSize.value();
+				}
+				if((index + loadedItems.size()) >= endIndex) {
+					resolve(loadedItems);
 					return Promise<void>::resolve();
 				}
-				size_t index = indexMarker->index;
-				if(!options.forceReload) {
-					auto loadedItems = getLoadedItems({
-						.startIndex = index,
-						.limit = count
-					});
-					size_t endIndex = index + count;
-					if(itemsSize.has_value() && endIndex > itemsSize.value()) {
-						endIndex = itemsSize.value();
-					}
-					if((index + loadedItems.size()) >= endIndex) {
-						resolve(loadedItems);
+			}
+			size_t chunkSize = self->getChunkSize();
+			size_t chunkStartIndex = chunkStartIndexForIndex(index, chunkSize);
+			size_t chunkEndIndex = chunkStartIndexForIndex(index+count, chunkSize);
+			if(chunkEndIndex < (index+count)) {
+				chunkEndIndex += chunkSize;
+			}
+			auto promise = Promise<void>::resolve();
+			for(size_t loadStartIndex = chunkStartIndex; loadStartIndex < chunkEndIndex; loadStartIndex += chunkSize) {
+				promise = promise.then(self->mutationQueue.dispatchQueue(), [=]() {
+					std::unique_lock<std::recursive_mutex> lock(self->mutex);
+					if(self->delegate == nullptr) {
 						return Promise<void>::resolve();
 					}
+					return self->delegate->loadAsyncListItems(&self->mutator, loadStartIndex, chunkSize, options.loadOptions);
+				});
+			}
+			return promise
+			.finally(self->mutationQueue.dispatchQueue(), [=]() {
+				if(options.trackIndexChanges) {
+					self->unwatchIndex(indexMarker);
 				}
-				size_t chunkSize = self->getChunkSize();
-				size_t chunkStartIndex = chunkStartIndexForIndex(index, chunkSize);
-				size_t chunkEndIndex = chunkStartIndexForIndex(index+count, chunkSize);
-				if(chunkEndIndex < (index+count)) {
-					chunkEndIndex += chunkSize;
-				}
-				auto promise = Promise<void>::resolve();
-				for(size_t loadStartIndex = chunkStartIndex; loadStartIndex < chunkEndIndex; loadStartIndex += chunkSize) {
-					promise = promise.then(self->mutationQueue.dispatchQueue(), [=]() {
-						std::unique_lock<std::recursive_mutex> lock(self->mutex);
-						if(self->delegate == nullptr) {
-							return Promise<void>::resolve();
-						}
-						return self->delegate->loadAsyncListItems(&self->mutator, loadStartIndex, chunkSize, options.loadOptions);
-					});
-				}
-				return promise
-				.finally(self->mutationQueue.dispatchQueue(), [=]() {
-					if(options.trackIndexChanges) {
-						self->unwatchIndex(indexMarker);
-					}
-				})
-				.then(self->mutationQueue.dispatchQueue(), [=]() {
-					std::unique_lock<std::recursive_mutex> lock(self->mutex);
-					size_t index = indexMarker->index;
-					auto loadedItems = getLoadedItems({
-						.startIndex = index,
-						.limit = count
-					});
-					size_t endIndex = index + count;
-					if(itemsSize.has_value() && endIndex > itemsSize.value()) {
-						endIndex = itemsSize.value();
-					}
-					if(itemsSize.has_value() && (index + loadedItems.size()) < endIndex) {
-						lock.unlock();
-						reject(std::logic_error("Failed to load all items"));
-						return;
-					}
-					lock.unlock();
-					resolve(loadedItems);
-				}, reject);
 			});
-		});
+		}).promise;
 	}
 	
 	template<typename T, typename InsT>
-	typename AsyncList<T,InsT>::ItemGenerator AsyncList<T,InsT>::generateItems(size_t startIndex, AsyncListGetItemOptions options) {
+	typename AsyncList<T,InsT>::ItemGenerator AsyncList<T,InsT>::generateItems(size_t startIndex, AsyncListLoadItemOptions options) {
 		using YieldResult = typename ItemGenerator::YieldResult;
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto indexMarker = AsyncListIndexMarkerData::new$(startIndex, AsyncListIndexMarkerState::IN_LIST);
