@@ -11,13 +11,13 @@
 #include <fgl/async/Common.hpp>
 
 namespace fgl {
-	template<typename T>
-	std::shared_ptr<AsyncList<T>> AsyncList<T>::new$(Options options) {
-		return std::make_shared<AsyncList<T>>(options);
+	template<typename T, typename InsT>
+	std::shared_ptr<AsyncList<T,InsT>> AsyncList<T,InsT>::new$(Options options) {
+		return std::make_shared<AsyncList<T,InsT>>(options);
 	}
 
-	template<typename T>
-	AsyncList<T>::AsyncList(Options options)
+	template<typename T, typename InsT>
+	AsyncList<T,InsT>::AsyncList(Options options)
 	: itemsSize(options.initialSize),
 	mutationQueue({
 		.dispatchQueue=options.dispatchQueue
@@ -44,15 +44,15 @@ namespace fgl {
 		}
 	}
 
-	template<typename T>
-	void AsyncList<T>::destroy() {
+	template<typename T, typename InsT>
+	void AsyncList<T,InsT>::destroy() {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		mutator.reset();
 		delegate = nullptr;
 	}
 
-	template<typename T>
-	void AsyncList<T>::reset() {
+	template<typename T, typename InsT>
+	void AsyncList<T,InsT>::reset() {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto self = this->shared_from_this();
 		mutator.reset();
@@ -63,8 +63,8 @@ namespace fgl {
 		}
 	}
 
-	template<typename T>
-	void AsyncList<T>::resetItems() {
+	template<typename T, typename InsT>
+	void AsyncList<T,InsT>::resetItems() {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto self = this->shared_from_this();
 		mutator.resetItems();
@@ -75,8 +75,8 @@ namespace fgl {
 		}
 	}
 
-	template<typename T>
-	void AsyncList<T>::resetSize() {
+	template<typename T, typename InsT>
+	void AsyncList<T,InsT>::resetSize() {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto self = this->shared_from_this();
 		mutator.resetSize();
@@ -87,24 +87,24 @@ namespace fgl {
 		}
 	}
 
-	template<typename T>
-	const std::map<size_t,typename AsyncList<T>::ItemNode>& AsyncList<T>::getMap() const {
+	template<typename T, typename InsT>
+	const std::map<size_t,typename AsyncList<T,InsT>::ItemNode>& AsyncList<T,InsT>::getMap() const {
 		return items;
 	}
 
-	template<typename T>
-	Optional<size_t> AsyncList<T>::size() const {
+	template<typename T, typename InsT>
+	Optional<size_t> AsyncList<T,InsT>::size() const {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		return itemsSize;
 	}
 
-	template<typename T>
-	size_t AsyncList<T>::length() const {
+	template<typename T, typename InsT>
+	size_t AsyncList<T,InsT>::length() const {
 		return itemsSize.value_or(0);
 	}
 
-	template<typename T>
-	size_t AsyncList<T>::capacity() const {
+	template<typename T, typename InsT>
+	size_t AsyncList<T,InsT>::capacity() const {
 		size_t itemsCapacity = itemsSize.value_or(0);
 		if(items.size() > 0) {
 			size_t listEnd = std::prev(items.end(), 1)->first + 1;
@@ -115,8 +115,8 @@ namespace fgl {
 		return itemsCapacity;
 	}
 
-	template<typename T>
-	size_t AsyncList<T>::getChunkSize() const {
+	template<typename T, typename InsT>
+	size_t AsyncList<T,InsT>::getChunkSize() const {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		if(delegate == nullptr) {
 			return 0;
@@ -126,14 +126,14 @@ namespace fgl {
 		return chunkSize;
 	}
 
-	template<typename T>
-	bool AsyncList<T>::hasAllItems() const {
+	template<typename T, typename InsT>
+	bool AsyncList<T,InsT>::hasAllItems() const {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		return areItemsLoaded(0, length());
 	}
 
-	template<typename T>
-	AsyncListIndexMarker AsyncList<T>::watchIndex(size_t index) {
+	template<typename T, typename InsT>
+	AsyncListIndexMarker AsyncList<T,InsT>::watchIndex(size_t index) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto state = AsyncListIndexMarkerState::IN_LIST;
 		if(index >= itemsSize.value_or(0)) {
@@ -144,8 +144,8 @@ namespace fgl {
 		return indexMarker;
 	}
 
-	template<typename T>
-	AsyncListIndexMarker AsyncList<T>::watchIndex(AsyncListIndexMarker indexMarker) {
+	template<typename T, typename InsT>
+	AsyncListIndexMarker AsyncList<T,InsT>::watchIndex(AsyncListIndexMarker indexMarker) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto it = std::find(indexMarkers.begin(), indexMarkers.end(), indexMarker);
 		if(it == indexMarkers.end()) {
@@ -164,8 +164,8 @@ namespace fgl {
 		return indexMarker;
 	}
 
-	template<typename T>
-	void AsyncList<T>::unwatchIndex(AsyncListIndexMarker index) {
+	template<typename T, typename InsT>
+	void AsyncList<T,InsT>::unwatchIndex(AsyncListIndexMarker index) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto it = std::find(indexMarkers.begin(), indexMarkers.end(), index);
 		if(it != indexMarkers.end()) {
@@ -173,8 +173,8 @@ namespace fgl {
 		}
 	}
 	
-	template<typename T>
-	bool AsyncList<T>::isItemLoaded(size_t index, const AsyncListIndexAccessOptions& options) const {
+	template<typename T, typename InsT>
+	bool AsyncList<T,InsT>::isItemLoaded(size_t index, const AsyncListIndexAccessOptions& options) const {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto it = items.find(index);
 		if(it == items.end()) {
@@ -186,8 +186,8 @@ namespace fgl {
 		return true;
 	}
 
-	template<typename T>
-	bool AsyncList<T>::areItemsLoaded(size_t index, size_t count, const AsyncListIndexAccessOptions& options) const {
+	template<typename T, typename InsT>
+	bool AsyncList<T,InsT>::areItemsLoaded(size_t index, size_t count, const AsyncListIndexAccessOptions& options) const {
 		if(count == 0) {
 			#ifndef ASYNC_CPP_STANDALONE
 				FGL_WARN(stringify(*this)+"::areItemsLoaded("+stringify(index)+","+stringify(count)+","+stringify(options.onlyValidItems)+") called with count = 0");
@@ -216,8 +216,8 @@ namespace fgl {
 		return false;
 	}
 
-	template<typename T>
-	LinkedList<T> AsyncList<T>::getLoadedItems(const AsyncListGetLoadedItemsOptions& options) const {
+	template<typename T, typename InsT>
+	LinkedList<T> AsyncList<T,InsT>::getLoadedItems(const AsyncListGetLoadedItemsOptions& options) const {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		LinkedList<T> loadedItems;
 		auto it = items.find(options.startIndex);
@@ -236,8 +236,8 @@ namespace fgl {
 		return loadedItems;
 	}
 
-	template<typename T>
-	LinkedList<Optional<T>> AsyncList<T>::maybeGetLoadedItems(const AsyncListGetLoadedItemsOptions& options) const {
+	template<typename T, typename InsT>
+	LinkedList<Optional<T>> AsyncList<T,InsT>::maybeGetLoadedItems(const AsyncListGetLoadedItemsOptions& options) const {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		LinkedList<Optional<T>> loadedItems;
 		auto it = items.find(options.startIndex);
@@ -263,8 +263,8 @@ namespace fgl {
 		return loadedItems;
 	}
 
-	template<typename T>
-	Optional<typename AsyncList<T>::ItemNode> AsyncList<T>::itemNodeAt(size_t index) const {
+	template<typename T, typename InsT>
+	Optional<typename AsyncList<T,InsT>::ItemNode> AsyncList<T,InsT>::itemNodeAt(size_t index) const {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto it = items.find(index);
 		if(it == items.end()) {
@@ -273,8 +273,8 @@ namespace fgl {
 		return it->second;
 	}
 	
-	template<typename T>
-	Optional<T> AsyncList<T>::itemAt(size_t index, const AsyncListIndexAccessOptions& options) const {
+	template<typename T, typename InsT>
+	Optional<T> AsyncList<T,InsT>::itemAt(size_t index, const AsyncListIndexAccessOptions& options) const {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto it = items.find(index);
 		if(it == items.end()) {
@@ -286,8 +286,8 @@ namespace fgl {
 		return it->second.item;
 	}
 
-	template<typename T>
-	Promise<Optional<T>> AsyncList<T>::getItem(size_t index, AsyncListGetItemOptions options) {
+	template<typename T, typename InsT>
+	Promise<Optional<T>> AsyncList<T,InsT>::getItem(size_t index, AsyncListGetItemOptions options) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		if(!options.forceReload && mutationQueue.taskCount() > 0) {
 			auto it = items.find(index);
@@ -333,8 +333,8 @@ namespace fgl {
 		});
 	}
 
-	template<typename T>
-	Promise<LinkedList<T>> AsyncList<T>::getItems(size_t index, size_t count, AsyncListGetItemOptions options) {
+	template<typename T, typename InsT>
+	Promise<LinkedList<T>> AsyncList<T,InsT>::getItems(size_t index, size_t count, AsyncListGetItemOptions options) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		if(!options.forceReload && mutationQueue.taskCount() > 0) {
 			auto loadedItems = getLoadedItems({
@@ -424,8 +424,8 @@ namespace fgl {
 		});
 	}
 	
-	template<typename T>
-	typename AsyncList<T>::ItemGenerator AsyncList<T>::generateItems(size_t startIndex, AsyncListGetItemOptions options) {
+	template<typename T, typename InsT>
+	typename AsyncList<T,InsT>::ItemGenerator AsyncList<T,InsT>::generateItems(size_t startIndex, AsyncListGetItemOptions options) {
 		using YieldResult = typename ItemGenerator::YieldResult;
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto indexMarker = AsyncListIndexMarkerData::new$(startIndex, AsyncListIndexMarkerState::IN_LIST);
@@ -460,9 +460,9 @@ namespace fgl {
 		});
 	}
 
-	template<typename T>
+	template<typename T, typename InsT>
 	template<typename Callable>
-	Optional<size_t> AsyncList<T>::indexWhere(Callable predicate, const AsyncListIndexAccessOptions& options) const {
+	Optional<size_t> AsyncList<T,InsT>::indexWhere(Callable predicate, const AsyncListIndexAccessOptions& options) const {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		if(options.onlyValidItems) {
 			for(auto& pair : items) {
@@ -480,30 +480,30 @@ namespace fgl {
 		return std::nullopt;
 	}
 
-	template<typename T>
-	size_t AsyncList<T>::chunkStartIndexForIndex(size_t index, size_t chunkSize) {
+	template<typename T, typename InsT>
+	size_t AsyncList<T,InsT>::chunkStartIndexForIndex(size_t index, size_t chunkSize) {
 		return std::floor(index / chunkSize) * chunkSize;
 	}
 
 
 
-	template<typename T>
-	void AsyncList<T>::forEachNode(Function<void(ItemNode&,size_t)> executor) {
+	template<typename T, typename InsT>
+	void AsyncList<T,InsT>::forEachNode(Function<void(ItemNode&,size_t)> executor) {
 		for(auto& pair : items) {
 			executor(pair.second, pair.first);
 		}
 	}
 
-	template<typename T>
-	void AsyncList<T>::forEachNode(Function<void(const ItemNode&,size_t)> executor) const {
+	template<typename T, typename InsT>
+	void AsyncList<T,InsT>::forEachNode(Function<void(const ItemNode&,size_t)> executor) const {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		for(auto& pair : items) {
 			executor(pair.second, pair.first);
 		}
 	}
 
-	template<typename T>
-	void AsyncList<T>::forEachNodeInRange(size_t startIndex, size_t endIndex, Function<void(ItemNode&,size_t)> executor) {
+	template<typename T, typename InsT>
+	void AsyncList<T,InsT>::forEachNodeInRange(size_t startIndex, size_t endIndex, Function<void(ItemNode&,size_t)> executor) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto startIt = items.lower_bound(startIndex);
 		if(startIt == items.end() || startIt->first >= endIndex) {
@@ -514,8 +514,8 @@ namespace fgl {
 		}
 	}
 
-	template<typename T>
-	void AsyncList<T>::forEachNodeInRange(size_t startIndex, size_t endIndex, Function<void(const ItemNode&,size_t)> executor) const {
+	template<typename T, typename InsT>
+	void AsyncList<T,InsT>::forEachNodeInRange(size_t startIndex, size_t endIndex, Function<void(const ItemNode&,size_t)> executor) const {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto startIt = items.lower_bound(startIndex);
 		if(startIt == items.end() || startIt->first >= endIndex) {
@@ -528,8 +528,8 @@ namespace fgl {
 
 
 
-	template<typename T>
-	void AsyncList<T>::forEach(Function<void(T&,size_t)> executor, const AsyncListIndexAccessOptions& options) {
+	template<typename T, typename InsT>
+	void AsyncList<T,InsT>::forEach(Function<void(T&,size_t)> executor, const AsyncListIndexAccessOptions& options) {
 		if(options.onlyValidItems) {
 			for(auto& pair : items) {
 				if(pair.second.valid) {
@@ -543,8 +543,8 @@ namespace fgl {
 		}
 	}
 
-	template<typename T>
-	void AsyncList<T>::forEach(Function<void(const T&,size_t)> executor, const AsyncListIndexAccessOptions& options) const {
+	template<typename T, typename InsT>
+	void AsyncList<T,InsT>::forEach(Function<void(const T&,size_t)> executor, const AsyncListIndexAccessOptions& options) const {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		if(options.onlyValidItems) {
 			for(auto& pair : items) {
@@ -559,8 +559,8 @@ namespace fgl {
 		}
 	}
 
-	template<typename T>
-	void AsyncList<T>::forEachInRange(size_t startIndex, size_t endIndex, Function<void(T&,size_t)> executor, const AsyncListIndexAccessOptions& options) {
+	template<typename T, typename InsT>
+	void AsyncList<T,InsT>::forEachInRange(size_t startIndex, size_t endIndex, Function<void(T&,size_t)> executor, const AsyncListIndexAccessOptions& options) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto startIt = items.lower_bound(startIndex);
 		if(startIt == items.end() || startIt->first >= endIndex) {
@@ -579,8 +579,8 @@ namespace fgl {
 		}
 	}
 
-	template<typename T>
-	void AsyncList<T>::forEachInRange(size_t startIndex, size_t endIndex, Function<void(const T&,size_t)> executor, const AsyncListIndexAccessOptions& options) const {
+	template<typename T, typename InsT>
+	void AsyncList<T,InsT>::forEachInRange(size_t startIndex, size_t endIndex, Function<void(const T&,size_t)> executor, const AsyncListIndexAccessOptions& options) const {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto startIt = items.lower_bound(startIndex);
 		if(startIt == items.end() || startIt->first >= endIndex) {
@@ -601,35 +601,35 @@ namespace fgl {
 
 
 
-	template<typename T>
-	Promise<void> AsyncList<T>::mutate(Function<Promise<void>(Mutator*)> executor) {
+	template<typename T, typename InsT>
+	Promise<void> AsyncList<T,InsT>::mutate(Function<Promise<void>(Mutator*)> executor) {
 		auto self = this->shared_from_this();
 		return mutationQueue.run([=](auto task) -> Promise<void> {
 			return executor(&self->mutator).then(nullptr, [self]() {});
 		}).promise;
 	}
 
-	template<typename T>
-	Promise<void> AsyncList<T>::mutate(Function<void(Mutator*)> executor) {
+	template<typename T, typename InsT>
+	Promise<void> AsyncList<T,InsT>::mutate(Function<void(Mutator*)> executor) {
 		auto self = this->shared_from_this();
 		return mutationQueue.run([=](auto task) -> void {
 			return executor(&self->mutator);
 		}).promise;
 	}
 
-	template<typename T>
+	template<typename T, typename InsT>
 	template<typename Work>
-	auto AsyncList<T>::lock(Work work) -> decltype(work((Mutator*)nullptr)) {
+	auto AsyncList<T,InsT>::lock(Work work) -> decltype(work((Mutator*)nullptr)) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		return work(&mutator);
 	}
 
-	template<typename T>
-	void AsyncList<T>::invalidateItems(size_t startIndex, size_t endIndex, bool runInQueue) {
+	template<typename T, typename InsT>
+	void AsyncList<T,InsT>::invalidateItems(size_t startIndex, size_t endIndex, bool runInQueue) {
 		FGL_ASSERT(endIndex < startIndex, "endIndex must be greater than or equal to startIndex");
 		mutator.invalidate(startIndex, (endIndex - startIndex));
 		if(runInQueue) {
-			std::weak_ptr<AsyncList<T>> weakSelf = this->shared_from_this();
+			std::weak_ptr<AsyncList<T,InsT>> weakSelf = this->shared_from_this();
 			mutationQueue.run([=](auto task) -> void {
 				auto self = weakSelf.lock();
 				if(!self) {
@@ -640,11 +640,11 @@ namespace fgl {
 		}
 	}
 
-	template<typename T>
-	void AsyncList<T>::invalidateAllItems(bool runInQueue) {
+	template<typename T, typename InsT>
+	void AsyncList<T,InsT>::invalidateAllItems(bool runInQueue) {
 		mutator.invalidateAll();
 		if(runInQueue) {
-			std::weak_ptr<AsyncList<T>> weakSelf = this->shared_from_this();
+			std::weak_ptr<AsyncList<T,InsT>> weakSelf = this->shared_from_this();
 			mutationQueue.run([=](auto task) -> void {
 				auto self = weakSelf.lock();
 				if(!self) {
@@ -653,5 +653,21 @@ namespace fgl {
 				self->mutator.invalidateAll();
 			});
 		}
+	}
+
+
+	template<typename T, typename InsT>
+	Promise<void> AsyncList<T,InsT>::insertItems(size_t index, LinkedList<InsT> items) {
+		auto self = this->shared_from_this();
+		auto indexMarker = watchIndex(index);
+		indexMarker->state = AsyncListIndexMarkerState::REMOVED;
+		return mutate([=]() {
+			std::unique_lock<std::recursive_mutex> lock(mutex);
+			if(self->delegate == nullptr) {
+				return Promise<void>::resolve();
+			}
+			self->unwatchIndex(indexMarker);
+			return self->delegate->insertAsyncListItems(&self->mutator, indexMarker->index, items);
+		});
 	}
 }

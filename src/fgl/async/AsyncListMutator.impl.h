@@ -18,31 +18,31 @@
 #endif
 
 namespace fgl {
-	template<typename T>
+	template<typename T, typename InsT>
 	class AsyncListOptionalDTLCompare;
 
 
-	template<typename T>
-	AsyncList<T>::Mutator::Mutator(AsyncList<T>* list)
+	template<typename T, typename InsT>
+	AsyncList<T,InsT>::Mutator::Mutator(AsyncList* list)
 	: list(list), lockCount(0), forwardingMutations(false) {
 		//
 	}
 
-	template<typename T>
-	AsyncList<T>* AsyncList<T>::Mutator::getList() {
+	template<typename T, typename InsT>
+	AsyncList<T,InsT>* AsyncList<T,InsT>::Mutator::getList() {
 		return list;
 	}
 
-	template<typename T>
-	const AsyncList<T>* AsyncList<T>::Mutator::getList() const {
+	template<typename T, typename InsT>
+	const AsyncList<T,InsT>* AsyncList<T,InsT>::Mutator::getList() const {
 		return list;
 	}
 
 
 
-	template<typename T>
+	template<typename T, typename InsT>
 	template<typename Work>
-	void AsyncList<T>::Mutator::lock(Work work) {
+	void AsyncList<T,InsT>::Mutator::lock(Work work) {
 		std::unique_lock<std::recursive_mutex> lock(list->mutex);
 		FGL_ASSERT(!forwardingMutations, "cannot lock mutator while forwarding mutations");
 		auto prevListSize = list->itemsSize;
@@ -84,8 +84,8 @@ namespace fgl {
 		}
 	}
 	
-	template<typename T>
-	void AsyncList<T>::Mutator::applyMerge(size_t index, Optional<size_t> listSize, LinkedList<T> items) {
+	template<typename T, typename InsT>
+	void AsyncList<T,InsT>::Mutator::applyMerge(size_t index, Optional<size_t> listSize, LinkedList<T> items) {
 		lock([&]() {
 			size_t endIndex = index + items.size();
 			
@@ -101,7 +101,7 @@ namespace fgl {
 			
 			// diff items with existing items
 			#ifndef FGL_DONT_USE_DTL
-			using DiffType = dtl::Diff<Optional<T>, ArrayList<Optional<T>>, AsyncListOptionalDTLCompare<T>>;
+			using DiffType = dtl::Diff<Optional<T>, ArrayList<Optional<T>>, AsyncListOptionalDTLCompare<T,InsT>>;
 			if(list->delegate != nullptr && items.size() > 0) {
 				size_t existingItemsLimit = items.size();
 				if(listSize.has_value() && endIndex >= listSize.value()) {
@@ -134,7 +134,7 @@ namespace fgl {
 						overwritingItems.push_back(Optional<T>(item));
 					}
 
-					diff = DiffType(existingItems, overwritingItems, AsyncListOptionalDTLCompare<T>(list));
+					diff = DiffType(existingItems, overwritingItems, AsyncListOptionalDTLCompare<T,InsT>(list));
 				}
 				diff.compose();
 				
@@ -506,22 +506,22 @@ namespace fgl {
 		});
 	}
 
-	template<typename T>
-	void AsyncList<T>::Mutator::apply(size_t index, LinkedList<T> items) {
+	template<typename T, typename InsT>
+	void AsyncList<T,InsT>::Mutator::apply(size_t index, LinkedList<T> items) {
 		applyMerge(index, std::nullopt, items);
 	}
 
-	template<typename T>
-	void AsyncList<T>::Mutator::applyAndResize(size_t index, size_t listSize, LinkedList<T> items) {
+	template<typename T, typename InsT>
+	void AsyncList<T,InsT>::Mutator::applyAndResize(size_t index, size_t listSize, LinkedList<T> items) {
 		applyMerge(index, listSize, items);
 	}
 
-	template<typename T>
-	void AsyncList<T>::Mutator::set(size_t index, LinkedList<T> items) {
+	template<typename T, typename InsT>
+	void AsyncList<T,InsT>::Mutator::set(size_t index, LinkedList<T> items) {
 		lock([&]() {
 			size_t i=index;
 			for(auto& item : items) {
-				list->items.insert_or_assign(i, AsyncList<T>::ItemNode{
+				list->items.insert_or_assign(i, AsyncList<T,InsT>::ItemNode{
 					.item=std::move(item),
 					.valid=true
 				});
@@ -530,8 +530,8 @@ namespace fgl {
 		});
 	}
 
-	template<typename T>
-	void AsyncList<T>::Mutator::insert(size_t index, LinkedList<T> items) {
+	template<typename T, typename InsT>
+	void AsyncList<T,InsT>::Mutator::insert(size_t index, LinkedList<T> items) {
 		lock([&]() {
 			size_t insertCount = items.size();
 			if(insertCount == 0) {
@@ -564,7 +564,7 @@ namespace fgl {
 			size_t i=index;
 			for(auto& item : items) {
 				using list_item = typename decltype(list->items)::value_type;
-				listInsertIt = list->items.insert(listInsertIt, list_item(i, AsyncList<T>::ItemNode{
+				listInsertIt = list->items.insert(listInsertIt, list_item(i, AsyncList<T,InsT>::ItemNode{
 					.item=std::move(item),
 					.valid=true
 				}));
@@ -580,8 +580,8 @@ namespace fgl {
 		});
 	}
 
-	template<typename T>
-	void AsyncList<T>::Mutator::remove(size_t index, size_t count) {
+	template<typename T, typename InsT>
+	void AsyncList<T,InsT>::Mutator::remove(size_t index, size_t count) {
 		lock([&]() {
 			if(count == 0) {
 				return;
@@ -615,8 +615,8 @@ namespace fgl {
 		});
 	}
 
-	template<typename T>
-	void AsyncList<T>::Mutator::move(size_t index, size_t count, size_t newIndex) {
+	template<typename T, typename InsT>
+	void AsyncList<T,InsT>::Mutator::move(size_t index, size_t count, size_t newIndex) {
 		lock([&]() {
 			if(count == 0) {
 				return;
@@ -720,8 +720,8 @@ namespace fgl {
 		});
 	}
 
-	template<typename T>
-	void AsyncList<T>::Mutator::resize(size_t count) {
+	template<typename T, typename InsT>
+	void AsyncList<T,InsT>::Mutator::resize(size_t count) {
 		lock([&]() {
 			// TODO possibly shift some of the overflowing items into open spaces
 			// invalidate items above resize
@@ -739,8 +739,8 @@ namespace fgl {
 		});
 	}
 
-	template<typename T>
-	void AsyncList<T>::Mutator::invalidate(size_t index, size_t count) {
+	template<typename T, typename InsT>
+	void AsyncList<T,InsT>::Mutator::invalidate(size_t index, size_t count) {
 		lock([&]() {
 			size_t endIndex = index + count;
 			for(auto it=list->items.lower_bound(index), end=list->items.end(); it!=end; it++) {
@@ -753,8 +753,8 @@ namespace fgl {
 		});
 	}
 
-	template<typename T>
-	void AsyncList<T>::Mutator::invalidateAll() {
+	template<typename T, typename InsT>
+	void AsyncList<T,InsT>::Mutator::invalidateAll() {
 		lock([&]() {
 			for(auto & pair : list->items) {
 				pair.second.valid = false;
@@ -762,8 +762,8 @@ namespace fgl {
 		});
 	}
 
-	template<typename T>
-	void AsyncList<T>::Mutator::resetItems() {
+	template<typename T, typename InsT>
+	void AsyncList<T,InsT>::Mutator::resetItems() {
 		lock([&]() {
 			size_t itemsSize = list->itemsSize.value_or(0);
 			size_t capacity = list->capacity();
@@ -780,8 +780,8 @@ namespace fgl {
 		});
 	}
 
-	template<typename T>
-	void AsyncList<T>::Mutator::resetSize() {
+	template<typename T, typename InsT>
+	void AsyncList<T,InsT>::Mutator::resetSize() {
 		lock([&]() {
 			invalidateAll();
 			this->mutations.push_back(Mutation{
@@ -792,8 +792,8 @@ namespace fgl {
 		});
 	}
 
-	template<typename T>
-	void AsyncList<T>::Mutator::reset() {
+	template<typename T, typename InsT>
+	void AsyncList<T,InsT>::Mutator::reset() {
 		lock([&]() {
 			size_t capacity = list->capacity();
 			list->items.clear();
@@ -810,11 +810,11 @@ namespace fgl {
 
 
 #ifndef FGL_DONT_USE_DTL
-	template<typename T>
+	template<typename T, typename InsT>
 	class AsyncListOptionalDTLCompare: public dtl::Compare<Optional<T>> {
 	public:
 		AsyncListOptionalDTLCompare(): list(nullptr) {}
-		AsyncListOptionalDTLCompare(AsyncList<T>* list): list(list) {}
+		AsyncListOptionalDTLCompare(AsyncList<T,InsT>* list): list(list) {}
 		
 		virtual inline bool impl(const Optional<T>& e1, const Optional<T>& e2) const {
 			if(list->delegate == nullptr) {
@@ -826,7 +826,7 @@ namespace fgl {
 		}
 		
 	private:
-		AsyncList<T>* list;
+		AsyncList<T,InsT>* list;
 	};
 	#endif
 }

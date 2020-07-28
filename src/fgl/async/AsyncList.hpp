@@ -80,20 +80,20 @@ namespace fgl {
 		size_t prevCapacity;
 	};
 
-	template<typename T>
+	template<typename T, typename InsT>
 	class AsyncListOptionalDTLCompare;
 
 	
 
-	template<typename T>
+	template<typename T, typename InsT=T>
 	class AsyncList: public std::enable_shared_from_this<AsyncList<T>> {
 	public:
 		using Mutation = AsyncListMutation;
 		using ItemGenerator = ContinuousGenerator<LinkedList<T>,void>;
-		friend class AsyncListOptionalDTLCompare<T>;
+		friend class AsyncListOptionalDTLCompare<T,InsT>;
 		
 		class Mutator {
-			friend class AsyncList<T>;
+			friend class AsyncList;
 		public:
 			Mutator(const Mutator&) = delete;
 			
@@ -118,29 +118,29 @@ namespace fgl {
 		private:
 			void applyMerge(size_t index, Optional<size_t> listSize, LinkedList<T> items);
 			
-			Mutator(AsyncList<T>* list);
+			Mutator(AsyncList* list);
 			
-			AsyncList<T>* list;
+			AsyncList* list;
 			size_t lockCount;
 			std::list<Mutation> mutations;
 			bool forwardingMutations;
 		};
-		friend class AsyncList<T>::Mutator;
+		friend class AsyncList<T,InsT>::Mutator;
 		
 		class Delegate {
 		public:
 			virtual ~Delegate() {}
 			
-			virtual size_t getAsyncListChunkSize(const AsyncList<T>* list) const = 0;
+			virtual size_t getAsyncListChunkSize(const AsyncList* list) const = 0;
 			virtual Promise<void> loadAsyncListItems(Mutator* mutator, size_t index, size_t count, std::map<String,Any> options) = 0;
 			
-			virtual bool areAsyncListItemsEqual(const AsyncList<T>* list, const T& item1, const T& item2) const = 0;
-			virtual void mergeAsyncListItem(const AsyncList<T>* list, T& overwritingItem, T& existingItem) = 0;
-			//virtual Promise<void> insertAsyncListItems(Mutator* mutator, size_t index, LinkedList<T> items) = 0;
+			virtual bool areAsyncListItemsEqual(const AsyncList* list, const T& item1, const T& item2) const = 0;
+			virtual void mergeAsyncListItem(const AsyncList* list, T& overwritingItem, T& existingItem) = 0;
+			virtual Promise<void> insertAsyncListItems(Mutator* mutator, size_t index, LinkedList<InsT> items) = 0;
 			//virtual Promise<void> removeAsyncListItems(Mutator* mutator, size_t index, size_t count) = 0;
 			//virtual Promise<void> moveAsyncListItems(Mutator* mutator, size_t index, size_t count, size_t newIndex) = 0;
 			
-			virtual void onAsyncListMutations(const AsyncList<T>* list, AsyncListChange change) = 0;
+			virtual void onAsyncListMutations(const AsyncList<T,InsT>* list, AsyncListChange change) = 0;
 		};
 		
 		struct ItemNode {
@@ -157,7 +157,7 @@ namespace fgl {
 			Optional<size_t> initialSize;
 		};
 		
-		static std::shared_ptr<AsyncList<T>> new$(Options options);
+		static std::shared_ptr<AsyncList<T,InsT>> new$(Options options);
 		
 		AsyncList(const AsyncList&) = delete;
 		AsyncList(Options options);
@@ -209,6 +209,8 @@ namespace fgl {
 		
 		void invalidateItems(size_t startIndex, size_t endIndex, bool runInQueue = false);
 		void invalidateAllItems(bool runInQueue = false);
+		
+		Promise<void> insertItems(size_t index, LinkedList<InsT> items);
 		
 	private:
 		static size_t chunkStartIndexForIndex(size_t index, size_t chunkSize);
