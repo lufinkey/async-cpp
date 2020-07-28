@@ -196,14 +196,24 @@ namespace fgl {
 					size_t emptyCount = totalRemoveCount - indexRemovalCount;
 					// if we have more empty indexes than items being added, remove some of the empty indexes
 					if(emptyCount > addingItems.size()) {
-						size_t emptyRemoveCount = emptyCount - addingItems.size();
-						newRemoveMutations.push_back(Mutation{
-							.type = Mutation::Type::REMOVE,
-							.index = index + displacingStartIndex,
-							.count = emptyRemoveCount,
-							.upperShiftEndIndex = (index + items.size())
+						// search through the list and find empty indexes to remove
+						for(size_t j=0; j<totalRemoveCount; j++) {
+							if(!existingItems[j]) {
+								newRemoveMutations.push_back(Mutation{
+									.type = Mutation::Type::REMOVE,
+									.index = (displacingStartIndex + j),
+									.count = 1,
+									.upperShiftEndIndex = (index + items.size())
+								});
+								emptyCount--;
+								if(emptyCount <= addingItems.size()) {
+									break;
+								}
+							}
+						}
+						newRemoveMutations.sort([](auto& m1, auto& m2) {
+							return (m1.index >= m2.index);
 						});
-						emptyCount -= emptyRemoveCount;
 					}
 					
 					// if we're not removing any empty indexes and we're either at the top or bottom (or both) of the list
