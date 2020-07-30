@@ -480,6 +480,7 @@ namespace fgl {
 
 	template<typename T, typename InsT>
 	void AsyncList<T,InsT>::forEachNode(Function<void(ItemNode&,size_t)> executor) {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
 		for(auto& pair : items) {
 			executor(pair.second, pair.first);
 		}
@@ -521,6 +522,7 @@ namespace fgl {
 
 	template<typename T, typename InsT>
 	void AsyncList<T,InsT>::forEach(Function<void(T&,size_t)> executor, const AsyncListIndexAccessOptions& options) {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
 		if(options.onlyValidItems) {
 			for(auto& pair : items) {
 				if(pair.second.valid) {
@@ -618,6 +620,7 @@ namespace fgl {
 	template<typename T, typename InsT>
 	void AsyncList<T,InsT>::invalidateItems(size_t startIndex, size_t endIndex, bool runInQueue) {
 		FGL_ASSERT(endIndex < startIndex, "endIndex must be greater than or equal to startIndex");
+		std::unique_lock<std::recursive_mutex> lock(mutex);
 		mutator.invalidate(startIndex, (endIndex - startIndex));
 		if(runInQueue) {
 			std::weak_ptr<AsyncList<T,InsT>> weakSelf = this->shared_from_this();
@@ -633,6 +636,7 @@ namespace fgl {
 
 	template<typename T, typename InsT>
 	void AsyncList<T,InsT>::invalidateAllItems(bool runInQueue) {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
 		mutator.invalidateAll();
 		if(runInQueue) {
 			std::weak_ptr<AsyncList<T,InsT>> weakSelf = this->shared_from_this();
@@ -649,6 +653,7 @@ namespace fgl {
 
 	template<typename T, typename InsT>
 	Promise<void> AsyncList<T,InsT>::insertItems(size_t index, LinkedList<InsT> items) {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto self = this->shared_from_this();
 		auto indexMarker = watchIndex(index);
 		indexMarker->state = AsyncListIndexMarkerState::REMOVED;
@@ -659,6 +664,56 @@ namespace fgl {
 			}
 			self->unwatchIndex(indexMarker);
 			return self->delegate->insertAsyncListItems(&self->mutator, indexMarker->index, items);
+		});
+	}
+
+	template<typename T, typename InsT>
+	Promise<void> AsyncList<T,InsT>::removeItems(size_t index, size_t count) {
+		if(count == 0) {
+			return Promise<void>::resolve();
+		}
+		auto self = this->shared_from_this();
+		auto indexMarkers = LinkedList<AsyncListIndexMarker>();
+		for(size_t i=0; i<count; i++) {
+			indexMarkers.pushBack(watchIndex(index+i));
+		}
+		return mutate([=]() {
+			std::unique_lock<std::recursive_mutex> lock(mutex);
+			if(self->delegate == nullptr) {
+				for(auto& marker : indexMarkers) {
+					self->unwatchIndex(marker);
+				}
+				return Promise<void>::resolve();
+			}
+			indexMarkers.removeWhere([](auto& marker) {
+				if(marker->state == AsyncListIndexMarkerState::REMOVED) {
+					self->unwatchIndex(marker);
+					return true;
+				}
+				return false;
+			});
+			if(indexMarkers.size() == 0) {
+				return Promise<void>::resolve();
+			}
+			indexMarkers.sort([](auto& a, auto& b) {
+				return (a->index <= b->index);
+			});
+			Optional<size_t> lastIndex;
+			for(auto& marker : indexMarkers) {
+				self->unwatchIndex(marker);
+				if(!lastIndex) {
+					lastIndex = marker->index;
+				} else {
+					size_t expectedIndex = lastIndex.value() + 1;
+					if(marker->index != expectedIndex && marker->index != lastIndex.value()) {
+						return Promise<void>::reject(std::runtime_error("list has changed and removal block is no longer consecutive"));
+					}
+					lastIndex = marker->index;
+				}
+			}
+			size_t index = indexMarkers.front()->index;
+			size_t count = (indexMarkers.back()->index + 1) - index;
+			return self->delegate->removeAsyncListItems(&self->mutator, index, count);
 		});
 	}
 }

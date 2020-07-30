@@ -137,7 +137,7 @@ namespace fgl {
 			virtual bool areAsyncListItemsEqual(const AsyncList* list, const T& item1, const T& item2) const = 0;
 			virtual void mergeAsyncListItem(const AsyncList* list, T& overwritingItem, T& existingItem) = 0;
 			virtual Promise<void> insertAsyncListItems(Mutator* mutator, size_t index, LinkedList<InsT> items) = 0;
-			//virtual Promise<void> removeAsyncListItems(Mutator* mutator, size_t index, size_t count) = 0;
+			virtual Promise<void> removeAsyncListItems(Mutator* mutator, size_t index, size_t count) = 0;
 			//virtual Promise<void> moveAsyncListItems(Mutator* mutator, size_t index, size_t count, size_t newIndex) = 0;
 			
 			virtual void onAsyncListMutations(const AsyncList<T,InsT>* list, AsyncListChange change) = 0;
@@ -160,6 +160,7 @@ namespace fgl {
 		static std::shared_ptr<AsyncList<T,InsT>> new$(Options options);
 		
 		AsyncList(const AsyncList&) = delete;
+		AsyncList& operator=(const AsyncList&) = delete;
 		AsyncList(Options options);
 		
 		void destroy();
@@ -212,6 +213,7 @@ namespace fgl {
 		void invalidateAllItems(bool runInQueue = false);
 		
 		Promise<void> insertItems(size_t index, LinkedList<InsT> items);
+		Promise<void> removeItems(size_t index, size_t count);
 		
 	private:
 		static size_t chunkStartIndexForIndex(size_t index, size_t chunkSize);
