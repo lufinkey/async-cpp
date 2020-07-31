@@ -373,7 +373,7 @@ namespace fgl {
 				if(options.trackIndexChanges) {
 					unwatchIndex(indexMarker);
 				}
-				return Promise<void>::resolve();
+				return Promise<void>::reject(std::runtime_error("AsyncList is destroyed"));
 			}
 			size_t index = indexMarker->index;
 			if(!options.forceReload) {
@@ -660,7 +660,7 @@ namespace fgl {
 		return mutate([=]() {
 			std::unique_lock<std::recursive_mutex> lock(mutex);
 			if(self->delegate == nullptr) {
-				return Promise<void>::resolve();
+				return Promise<void>::reject(std::runtime_error("AsyncList is destroyed"));
 			}
 			self->unwatchIndex(indexMarker);
 			return self->delegate->insertAsyncListItems(&self->mutator, indexMarker->index, items);
@@ -674,7 +674,7 @@ namespace fgl {
 		return mutate([=]() {
 			std::unique_lock<std::recursive_mutex> lock(mutex);
 			if(self->delegate == nullptr) {
-				return Promise<void>::resolve();
+				return Promise<void>::reject(std::runtime_error("AsyncList is destroyed"));
 			}
 			return self->delegate->appendAsyncListItems(&self->mutator, items);
 		});
@@ -699,7 +699,7 @@ namespace fgl {
 				for(auto& marker : indexMarkers) {
 					self->unwatchIndex(marker);
 				}
-				return Promise<void>::resolve();
+				return Promise<void>::reject(std::runtime_error("AsyncList is destroyed"));
 			}
 			// if an item was removed while waiting to mutate, we can't trust that we're removing all intended items
 			if(indexMarkers.containsWhere([](auto& marker) { return marker->state == AsyncListIndexMarkerState::REMOVED; })) {
@@ -760,7 +760,7 @@ namespace fgl {
 					self->unwatchIndex(marker);
 				}
 				self->unwatchIndex(newIndexMarker);
-				return Promise<void>::resolve();
+				return Promise<void>::reject(std::runtime_error("AsyncList is destroyed"));
 			}
 			// if an item was removed while waiting to mutate, we should fail
 			if(indexMarkers.containsWhere([](auto& marker) { return marker->state == AsyncListIndexMarkerState::REMOVED; })) {
