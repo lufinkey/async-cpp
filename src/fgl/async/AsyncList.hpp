@@ -138,7 +138,7 @@ namespace fgl {
 			virtual void mergeAsyncListItem(const AsyncList* list, T& overwritingItem, T& existingItem) = 0;
 			virtual Promise<void> insertAsyncListItems(Mutator* mutator, size_t index, LinkedList<InsT> items) = 0;
 			virtual Promise<void> removeAsyncListItems(Mutator* mutator, size_t index, size_t count) = 0;
-			//virtual Promise<void> moveAsyncListItems(Mutator* mutator, size_t index, size_t count, size_t newIndex) = 0;
+			virtual Promise<void> moveAsyncListItems(Mutator* mutator, size_t index, size_t count, size_t newIndex) = 0;
 			
 			virtual void onAsyncListMutations(const AsyncList<T,InsT>* list, AsyncListChange change) = 0;
 		};
@@ -214,6 +214,7 @@ namespace fgl {
 		
 		Promise<void> insertItems(size_t index, LinkedList<InsT> items);
 		Promise<void> removeItems(size_t index, size_t count);
+		Promise<void> moveItems(size_t index, size_t count, size_t newIndex);
 		
 	private:
 		static size_t chunkStartIndexForIndex(size_t index, size_t chunkSize);

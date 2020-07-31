@@ -672,11 +672,14 @@ namespace fgl {
 		if(count == 0) {
 			return Promise<void>::resolve();
 		}
+		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto self = this->shared_from_this();
+		// watch removal indexes
 		auto indexMarkers = LinkedList<AsyncListIndexMarker>();
 		for(size_t i=0; i<count; i++) {
 			indexMarkers.pushBack(watchIndex(index+i));
 		}
+		// queue mutation
 		return mutate([=]() {
 			std::unique_lock<std::recursive_mutex> lock(mutex);
 			if(self->delegate == nullptr) {
@@ -685,35 +688,105 @@ namespace fgl {
 				}
 				return Promise<void>::resolve();
 			}
-			indexMarkers.removeWhere([](auto& marker) {
-				if(marker->state == AsyncListIndexMarkerState::REMOVED) {
+			// if an item was removed while waiting to mutate, we can't trust that we're removing all intended items
+			if(indexMarkers.containsWhere([](auto& marker) { return marker->state == AsyncListIndexMarkerState::REMOVED; })) {
+				for(auto& marker : indexMarkers) {
 					self->unwatchIndex(marker);
-					return true;
 				}
-				return false;
-			});
-			if(indexMarkers.size() == 0) {
-				return Promise<void>::resolve();
+				return Promise<void>::reject(std::runtime_error("Could not locate items to be removed"));
 			}
+			// sort list consecutively
 			indexMarkers.sort([](auto& a, auto& b) {
 				return (a->index <= b->index);
 			});
+			// ensure removal block is consecutive
 			Optional<size_t> lastIndex;
 			for(auto& marker : indexMarkers) {
-				self->unwatchIndex(marker);
 				if(!lastIndex) {
 					lastIndex = marker->index;
 				} else {
 					size_t expectedIndex = lastIndex.value() + 1;
 					if(marker->index != expectedIndex && marker->index != lastIndex.value()) {
+						for(auto& marker : indexMarkers) {
+							self->unwatchIndex(marker);
+						}
 						return Promise<void>::reject(std::runtime_error("list has changed and removal block is no longer consecutive"));
 					}
 					lastIndex = marker->index;
 				}
 			}
+			// unwatch indexes
+			for(auto& marker : indexMarkers) {
+				self->unwatchIndex(marker);
+			}
+			// remove block
 			size_t index = indexMarkers.front()->index;
 			size_t count = (indexMarkers.back()->index + 1) - index;
 			return self->delegate->removeAsyncListItems(&self->mutator, index, count);
+		});
+	}
+
+	template<typename T, typename InsT>
+	Promise<void> AsyncList<T,InsT>::moveItems(size_t index, size_t count, size_t newIndex) {
+		if(count == 0) {
+			return Promise<void>::resolve();
+		}
+		std::unique_lock<std::recursive_mutex> lock(mutex);
+		auto self = this->shared_from_this();
+		// watch move indexes
+		auto indexMarkers = LinkedList<AsyncListIndexMarker>();
+		for(size_t i=0; i<count; i++) {
+			indexMarkers.pushBack(watchIndex(index+i));
+		}
+		auto newIndexMarker = watchIndex(newIndex);
+		// queue mutation
+		return mutate([=]() {
+			std::unique_lock<std::recursive_mutex> lock(mutex);
+			if(self->delegate == nullptr) {
+				for(auto& marker : indexMarkers) {
+					self->unwatchIndex(marker);
+				}
+				self->unwatchIndex(newIndexMarker);
+				return Promise<void>::resolve();
+			}
+			// if an item was removed while waiting to mutate, we should fail
+			if(indexMarkers.containsWhere([](auto& marker) { return marker->state == AsyncListIndexMarkerState::REMOVED; })) {
+				for(auto& marker : indexMarkers) {
+					self->unwatchIndex(marker);
+				}
+				self->unwatchIndex(newIndexMarker);
+				return Promise<void>::reject(std::runtime_error("Could not locate items to be removed"));
+			}
+			// sort list consecutively
+			indexMarkers.sort([](auto& a, auto& b) {
+				return (a->index <= b->index);
+			});
+			// ensure move block is consecutive
+			Optional<size_t> lastIndex;
+			for(auto& marker : indexMarkers) {
+				if(!lastIndex) {
+					lastIndex = marker->index;
+				} else {
+					size_t expectedIndex = lastIndex.value() + 1;
+					if(marker->index != expectedIndex && marker->index != lastIndex.value()) {
+						for(auto& marker : indexMarkers) {
+							self->unwatchIndex(marker);
+						}
+						self->unwatchIndex(newIndexMarker);
+						return Promise<void>::reject(std::runtime_error("list has changed and removal block is no longer consecutive"));
+					}
+					lastIndex = marker->index;
+				}
+			}
+			// unwatch indexes
+			for(auto& marker : indexMarkers) {
+				self->unwatchIndex(marker);
+			}
+			self->unwatchIndex(newIndexMarker);
+			// move block
+			size_t index = indexMarkers.front()->index;
+			size_t count = (indexMarkers.back()->index + 1) - index;
+			return self->delegate->moveAsyncListItems(&self->mutator, index, count, newIndexMarker->index);
 		});
 	}
 }
