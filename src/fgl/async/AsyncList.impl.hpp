@@ -668,6 +668,19 @@ namespace fgl {
 	}
 
 	template<typename T, typename InsT>
+	Promise<void> AsyncList<T,InsT>::appendItems(LinkedList<InsT> items) {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
+		auto self = this->shared_from_this();
+		return mutate([=]() {
+			std::unique_lock<std::recursive_mutex> lock(mutex);
+			if(self->delegate == nullptr) {
+				return Promise<void>::resolve();
+			}
+			return self->delegate->appendAsyncListItems(&self->mutator, items);
+		});
+	}
+
+	template<typename T, typename InsT>
 	Promise<void> AsyncList<T,InsT>::removeItems(size_t index, size_t count) {
 		if(count == 0) {
 			return Promise<void>::resolve();
