@@ -359,7 +359,7 @@ namespace fgl {
 				endIndex = itemsSize.value();
 			}
 			if((index + loadedItems.size()) >= endIndex) {
-				return Promise<LinkedList<T>>::resolve(loadedItems);
+				return Promise<void>::resolve();
 			}
 		}
 		auto indexMarker = AsyncListIndexMarkerData::new$(index, AsyncListIndexMarkerState::IN_LIST);
@@ -386,7 +386,6 @@ namespace fgl {
 					endIndex = itemsSize.value();
 				}
 				if((index + loadedItems.size()) >= endIndex) {
-					resolve(loadedItems);
 					return Promise<void>::resolve();
 				}
 			}
