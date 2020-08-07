@@ -86,7 +86,7 @@ namespace fgl {
 	
 
 	template<typename T, typename InsT=T>
-	class AsyncList: public std::enable_shared_from_this<AsyncList<T>> {
+	class AsyncList: public std::enable_shared_from_this<AsyncList<T,InsT>> {
 	public:
 		using Mutation = AsyncListMutation;
 		using ItemGenerator = ContinuousGenerator<LinkedList<T>,void>;
