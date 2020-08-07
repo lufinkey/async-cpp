@@ -295,7 +295,7 @@ namespace fgl {
 			watchIndex(indexMarker);
 		}
 		return loadItems(index, 1, options)
-		.template map<LinkedList<T>>(self->mutationQueue.dispatchQueue(), [=]() {
+		.finally(self->mutationQueue.dispatchQueue(), [=]() {
 			std::unique_lock<std::recursive_mutex> lock(self->mutex);
 			if(options.trackIndexChanges) {
 				self->unwatchIndex(indexMarker);
@@ -320,7 +320,7 @@ namespace fgl {
 			watchIndex(indexMarker);
 		}
 		return loadItems(index, count, options)
-		.template map<LinkedList<T>>(self->mutationQueue.dispatchQueue(), [=]() {
+		.finally(self->mutationQueue.dispatchQueue(), [=]() {
 			std::unique_lock<std::recursive_mutex> lock(self->mutex);
 			if(options.trackIndexChanges) {
 				self->unwatchIndex(indexMarker);
