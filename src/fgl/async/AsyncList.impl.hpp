@@ -342,7 +342,7 @@ namespace fgl {
 				throw std::logic_error("Failed to load all items");
 			}
 			lock.unlock();
-			resolve(loadedItems);
+			return loadedItems;
 		});
 	}
 
@@ -367,7 +367,7 @@ namespace fgl {
 			watchIndex(indexMarker);
 		}
 		auto self = this->shared_from_this();
-		self->mutationQueue.run([=](auto task) -> Promise<void> {
+		return self->mutationQueue.run([=](auto task) -> Promise<void> {
 			std::unique_lock<std::recursive_mutex> lock(mutex);
 			if(self->delegate == nullptr) {
 				if(options.trackIndexChanges) {
