@@ -120,7 +120,22 @@ namespace fgl {
 					}
 				}
 				if(!hasExistingItem) {
-					set(index, items);
+					mutations.push_back(Mutation{
+						.type = Mutation::Type::MOVE,
+						.index = index,
+						.count = items.size(),
+						.newIndex = index,
+						.upperShiftEndIndex = (index + items.size())
+					});
+					if(items.size() > 0) {
+						set(index, std::move(items));
+					}
+					if(listSize.has_value()) {
+						resize(listSize.value());
+					}
+					else if(endIndex > list->itemsSize.value_or(0)) {
+						list->itemsSize = endIndex;
+					}
 					return;
 				}
 				while(existingItems.size() < items.size() && (index+existingItems.size()) < list->itemsSize.value_or(0)) {
