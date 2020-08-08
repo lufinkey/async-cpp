@@ -145,6 +145,14 @@ namespace fgl {
 	}
 
 	template<typename T, typename InsT>
+	AsyncListIndexMarker AsyncList<T,InsT>::watchRemovedIndex(size_t index) {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
+		auto indexMarker = AsyncListIndexMarkerData::new$(index, AsyncListIndexMarkerState::REMOVED);
+		indexMarkers.push_back(indexMarker);
+		return indexMarker;
+	}
+
+	template<typename T, typename InsT>
 	AsyncListIndexMarker AsyncList<T,InsT>::watchIndex(AsyncListIndexMarker indexMarker) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto it = std::find(indexMarkers.begin(), indexMarkers.end(), indexMarker);

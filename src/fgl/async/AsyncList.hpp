@@ -177,6 +177,7 @@ namespace fgl {
 		bool hasAllItems() const;
 		
 		AsyncListIndexMarker watchIndex(size_t index);
+		AsyncListIndexMarker watchRemovedIndex(size_t index);
 		AsyncListIndexMarker watchIndex(AsyncListIndexMarker index);
 		void unwatchIndex(AsyncListIndexMarker index);
 		
