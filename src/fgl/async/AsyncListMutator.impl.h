@@ -571,7 +571,7 @@ namespace fgl {
 				auto extractIt = std::prev(insertIt, 1);
 				auto node = list->items.extract(extractIt);
 				node.key() += insertCount;
-				insertIt = list->items.insert(insertIt, node);
+				insertIt = list->items.insert(insertIt, std::move(node));
 				revIt = std::prev(std::make_reverse_iterator(insertIt), 1);
 			}
 			// apply new items
@@ -611,7 +611,7 @@ namespace fgl {
 				auto insertIt = std::next(it, 1);
 				auto node = list->items.extract(it);
 				node.key() -= count;
-				it = list->items.insert(insertIt, node);
+				it = list->items.insert(insertIt, std::move(node));
 			}
 			// update list size
 			if(list->itemsSize.has_value() && index < list->itemsSize.value()) {
@@ -657,7 +657,7 @@ namespace fgl {
 						auto extractIt = std::prev(insertIt, 1);
 						auto node = list->items.extract(extractIt);
 						node.key() += count;
-						revIt = list->items.insert(insertIt, node);
+						revIt = list->items.insert(insertIt, std::move(node));
 					}
 				}
 				else if(newIndex > index) {
@@ -668,7 +668,7 @@ namespace fgl {
 						auto extractIt = std::prev(insertIt, 1);
 						auto node = list->items.extract(extractIt);
 						node.key() += count;
-						revIt = list->items.insert(insertIt, node);
+						revIt = list->items.insert(insertIt, std::move(node));
 					}
 				}
 				// reinsert extracted items
