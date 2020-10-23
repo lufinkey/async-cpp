@@ -58,3 +58,7 @@ local.properties
 buck-out/
 \.buckd/
 *.keystore
+
+# External projects
+/external/dtl
+
