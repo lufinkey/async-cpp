@@ -12,7 +12,7 @@
 #ifdef __APPLE__
 #import <Foundation/Foundation.h>
 
-namespace sh {
+namespace fgl {
 	struct ObjCCallStack {
 		NSArray<NSString*>* callStack;
 	};

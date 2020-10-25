@@ -11,7 +11,7 @@
 
 #ifdef __APPLE__
 
-namespace sh {
+namespace fgl {
 	struct ObjCCallStack;
 	std::shared_ptr<ObjCCallStack> getObjCCallStack();
 	void printObjCCallStack(std::shared_ptr<ObjCCallStack>);
