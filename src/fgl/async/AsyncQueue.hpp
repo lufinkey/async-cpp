@@ -246,33 +246,41 @@ namespace fgl {
 
 	template<typename Work>
 	Promise<void> AsyncQueue::performWork(DispatchQueue* dispatchQueue, std::shared_ptr<Task> task, Work work) {
-		if constexpr(is_promise<decltype(work(task))>::value) {
+		using ReturnType = decltype(work(task));
+		if constexpr(is_promise<ReturnType>::value) {
 			// promise
-			auto promise = work(task);
-			if constexpr(std::is_same<Promise<void>,decltype(promise)>::value) {
-				return promise;
-			} else {
-				return promise.toVoid();
+			std::unique_ptr<ReturnType> returnVal;
+			try {
+				returnVal = std::make_unique<ReturnType>(work());
+			} catch(...) {
+				return Promise<void>::reject(std::current_exception());
 			}
-		} else if constexpr(is_generator<decltype(work(task))>::value) {
+			if constexpr(std::is_same<Promise<void>,ReturnType>::value) {
+				return std::move(*returnVal);
+			} else {
+				return returnVal->toVoid();
+			}
+		} else if constexpr(is_generator<ReturnType>::value) {
 			// generator
-			auto gen = work(task);
-			return runGenerator(dispatchQueue, gen, [=]() {
+			std::unique_ptr<ReturnType> returnVal;
+			try {
+				returnVal = std::make_unique<ReturnType>(work());
+			} catch(...) {
+				return Promise<void>::reject(std::current_exception());
+			}
+			return runGenerator(dispatchQueue, std::move(*returnVal), [=]() {
 				return task->isCancelled();
 			});
-		} else if constexpr(std::is_same<decltype(work(task)),void>::value) {
-			return Promise<void>([&](auto resolve, auto reject) {
-				try {
-					work(task);
-				} catch(...) {
-					reject(std::current_exception());
-					return;
-				}
-				resolve();
-			});
+		} else if constexpr(std::is_same<ReturnType,void>::value) {
+			try {
+				work(task);
+			} catch(...) {
+				return Promise<void>::reject(std::current_exception());
+			}
+			return Promise<void>::resolve();
 		} else {
 			static_assert(
-				(is_promise<decltype(work(task))>::value || is_generator<decltype(work(task))>::value || std::is_same<decltype(work(task)),void>::value),
+				(is_promise<ReturnType>::value || is_generator<ReturnType>::value || std::is_same<ReturnType,void>::value),
 				"invalid lambda type");
 		}
 	}
