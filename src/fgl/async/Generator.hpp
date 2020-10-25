@@ -273,8 +273,7 @@ namespace fgl {
 		auto yieldReturner = this->yieldReturner;
 		auto performNext = [=]() -> Promise<YieldResult> {
 			state = State::EXECUTING;
-			auto yieldPromise = yieldReturner(nextValue);
-			yieldPromise.then(nullptr, [=](YieldResult result) {
+			return yieldReturner(nextValue).template map<YieldResult>(nullptr, [=](YieldResult result) {
 				std::unique_lock<std::recursive_mutex> lock(self->mutex);
 				if(result.done) {
 					state = State::FINISHED;
@@ -283,13 +282,14 @@ namespace fgl {
 					state = State::WAITING;
 				}
 				self->nextPromise = std::nullopt;
-			}, [=](std::exception_ptr error) {
+				return result;
+			}).except([=](std::exception_ptr error) -> YieldResult {
 				std::unique_lock<std::recursive_mutex> lock(self->mutex);
 				state = State::FINISHED;
 				yieldReturner = nullptr;
 				self->nextPromise = std::nullopt;
+				std::rethrow_exception(error);
 			});
-			return yieldPromise;
 		};
 		if(nextPromise.has_value()) {
 			auto promise = nextPromise->then(nullptr, [=]() -> Promise<YieldResult> {
@@ -328,8 +328,7 @@ namespace fgl {
 		auto yieldReturner = this->yieldReturner;
 		auto performNext = [=]() -> Promise<YieldResult> {
 			state = State::EXECUTING;
-			auto yieldPromise = yieldReturner();
-			yieldPromise.then(nullptr, [=](YieldResult result) {
+			return yieldReturner().template map<YieldResult>(nullptr, [=](YieldResult result) -> YieldResult {
 				std::unique_lock<std::recursive_mutex> lock(self->mutex);
 				if(result.done) {
 					state = State::FINISHED;
@@ -338,13 +337,14 @@ namespace fgl {
 					state = State::WAITING;
 				}
 				self->nextPromise = std::nullopt;
-			}, [=](std::exception_ptr error) {
+				return result;
+			}).except([=](std::exception_ptr error) -> YieldResult {
 				std::unique_lock<std::recursive_mutex> lock(self->mutex);
 				state = State::FINISHED;
 				self->yieldReturner = nullptr;
 				self->nextPromise = std::nullopt;
+				std::rethrow_exception(error);
 			});
-			return yieldPromise;
 		};
 		if(nextPromise.has_value()) {
 			auto promise = nextPromise->then(nullptr, [=]() -> Promise<YieldResult> {
