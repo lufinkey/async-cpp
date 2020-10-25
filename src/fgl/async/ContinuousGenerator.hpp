@@ -79,6 +79,14 @@ namespace fgl {
 		ContinuousGenerator(BaseGenerator&&);
 		explicit ContinuousGenerator(YieldReturner yieldReturner, Function<void()> destructor=nullptr);
 		
+		template<typename _Yield=Yield,
+			typename std::enable_if<(std::is_same<_Yield,Yield>::value &&
+				!std::is_same<_Yield,void>::value), std::nullptr_t>::type = nullptr>
+		static ContinuousGenerator<Yield,Next> resolve(_Yield);
+		static ContinuousGenerator<Yield,Next> resolve();
+		template<typename ErrorType>
+		static ContinuousGenerator<Yield,Next> reject(ErrorType error);
+		
 		template<typename _Next=Next,
 			typename std::enable_if<(std::is_same<_Next,Next>::value && !std::is_same<_Next,void>::value), std::nullptr_t>::type = nullptr>
 		inline Promise<YieldResult> next(_Next nextValue);
@@ -174,6 +182,63 @@ namespace fgl {
 	})(), destructor) {
 		//
 	}
+
+
+
+	template<typename Yield, typename Next>
+	template<typename _Yield,
+		typename std::enable_if<(std::is_same<_Yield,Yield>::value &&
+			!std::is_same<_Yield,void>::value), std::nullptr_t>::type>
+	ContinuousGenerator<Yield,Next> ContinuousGenerator<Yield,Next>::resolve(_Yield yieldVal) {
+		if constexpr(std::is_same<Next,void>::value) {
+			return Generator<Yield,Next>([=]() {
+				return Promise<YieldResult>::resolve({
+					.value=yieldVal,
+					.done=true
+				});
+			});
+		} else {
+			return Generator<Yield,Next>([=](Next nextVal) {
+				return Promise<YieldResult>::resolve(YieldResult{
+					.value=yieldVal,
+					.done=true
+				});
+			});
+		}
+	}
+
+	template<typename Yield, typename Next>
+	ContinuousGenerator<Yield,Next> ContinuousGenerator<Yield,Next>::resolve() {
+		if constexpr(std::is_same<Next,void>::value) {
+			return Generator<Yield,Next>([=]() {
+				return Promise<YieldResult>::resolve(YieldResult{
+					.done=true
+				});
+			});
+		} else {
+			return Generator<Yield,Next>([=](Next nextVal) {
+				return Promise<YieldResult>::resolve(YieldResult{
+					.done=true
+				});
+			});
+		}
+	}
+
+	template<typename Yield, typename Next>
+	template<typename ErrorType>
+	ContinuousGenerator<Yield,Next> ContinuousGenerator<Yield,Next>::reject(ErrorType error) {
+		if constexpr(std::is_same<Next,void>::value) {
+			return Generator<Yield,Next>([=]() {
+				return Promise<YieldResult>::reject(error);
+			});
+		} else {
+			return Generator<Yield,Next>([=](Next nextVal) {
+				return Promise<YieldResult>::reject(error);
+			});
+		}
+	}
+
+
 
 	template<typename Yield, typename Next>
 	template<typename _Next,
