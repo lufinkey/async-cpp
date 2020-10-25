@@ -396,10 +396,12 @@ namespace fgl {
 			std::mutex waitMutex;
 			std::unique_lock<std::mutex> waitLock(waitMutex);
 			sharedData->cv.wait(waitLock, [&]() {
-				return sharedData->yieldDefer.has_value();
+				return sharedData->yieldDefer.has_value() || sharedData->destroyed;
 			});
+			if(sharedData->destroyed) {
+				return;
+			}
 			auto threadId = std::this_thread::get_id();
-			
 			if constexpr(std::is_same<Yield,void>::value) {
 				auto yielder = [&]() {
 					if(threadId != std::this_thread::get_id()) {
