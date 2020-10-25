@@ -251,7 +251,7 @@ namespace fgl {
 			// promise
 			std::unique_ptr<ReturnType> returnVal;
 			try {
-				returnVal = std::make_unique<ReturnType>(work());
+				returnVal = std::make_unique<ReturnType>(work(task));
 			} catch(...) {
 				return Promise<void>::reject(std::current_exception());
 			}
@@ -264,7 +264,7 @@ namespace fgl {
 			// generator
 			std::unique_ptr<ReturnType> returnVal;
 			try {
-				returnVal = std::make_unique<ReturnType>(work());
+				returnVal = std::make_unique<ReturnType>(work(task));
 			} catch(...) {
 				return Promise<void>::reject(std::current_exception());
 			}
