@@ -15,6 +15,7 @@
 #include <mutex>
 #ifdef __APPLE__
 #include <dispatch/dispatch.h>
+#include <fgl/async/ObjCCallStack.h>
 #endif
 
 namespace fgl {
@@ -319,7 +320,13 @@ namespace fgl {
 		} else {
 			auto nativeData = std::get<NativeData*>(this->data);
 		#if defined(__APPLE__)
+			#ifdef DISPATCH_PRESERVE_CALL_STACK
+				auto callStack = getObjCCallStack();
+			#endif
 			dispatch_async(nativeData->queue, ^{
+				#ifdef DISPATCH_PRESERVE_CALL_STACK
+					if(false) { callStack; } // ensure callStack is preserved in memory
+				#endif
 				workItem->perform();
 			});
 		#elif defined(__ANDROID__)
@@ -368,7 +375,13 @@ namespace fgl {
 			if(nanoseconds < 0) {
 				nanoseconds = 0;
 			}
+			#ifdef DISPATCH_PRESERVE_CALL_STACK
+				auto callStack = getObjCCallStack();
+			#endif
 			dispatch_after(dispatch_time(DISPATCH_TIME_NOW, nanoseconds), nativeData->queue, ^{
+				#ifdef DISPATCH_PRESERVE_CALL_STACK
+					if(false) { callStack; } // ensure callStack is preserved in memory
+				#endif
 				workItem->perform();
 			});
 		#elif defined(__ANDROID__)

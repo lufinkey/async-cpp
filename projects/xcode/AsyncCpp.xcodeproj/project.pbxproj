@@ -39,6 +39,9 @@
 		A5B9737F23824A8C00FB3F1C /* Generator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A5B9737D23824A8C00FB3F1C /* Generator.cpp */; };
 		A5B9738023824A8C00FB3F1C /* Generator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A5B9737D23824A8C00FB3F1C /* Generator.cpp */; };
 		A5B9738123824A8C00FB3F1C /* Generator.hpp in Headers */ = {isa = PBXBuildFile; fileRef = A5B9737E23824A8C00FB3F1C /* Generator.hpp */; };
+		A5F086A72545FB1900C41A36 /* ObjCCallStack.h in Headers */ = {isa = PBXBuildFile; fileRef = A5F086A52545FB1900C41A36 /* ObjCCallStack.h */; };
+		A5F086A82545FB1900C41A36 /* ObjCCallStack.mm in Sources */ = {isa = PBXBuildFile; fileRef = A5F086A62545FB1900C41A36 /* ObjCCallStack.mm */; };
+		A5F086A92545FB1900C41A36 /* ObjCCallStack.mm in Sources */ = {isa = PBXBuildFile; fileRef = A5F086A62545FB1900C41A36 /* ObjCCallStack.mm */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -131,6 +134,8 @@
 		A5B7A7D0233EE80200301FC0 /* Timer.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Timer.hpp; sourceTree = "<group>"; };
 		A5B9737D23824A8C00FB3F1C /* Generator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Generator.cpp; sourceTree = "<group>"; };
 		A5B9737E23824A8C00FB3F1C /* Generator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Generator.hpp; sourceTree = "<group>"; };
+		A5F086A52545FB1900C41A36 /* ObjCCallStack.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjCCallStack.h; sourceTree = "<group>"; };
+		A5F086A62545FB1900C41A36 /* ObjCCallStack.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ObjCCallStack.mm; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -195,6 +200,8 @@
 				A563A63F24B8DECB0036A842 /* AsyncList.impl.hpp */,
 				A563A64124B8DEDF0036A842 /* AsyncListMutator.impl.h */,
 				A50F74A72389D93C0061D9FD /* AsyncList.cpp */,
+				A5F086A52545FB1900C41A36 /* ObjCCallStack.h */,
+				A5F086A62545FB1900C41A36 /* ObjCCallStack.mm */,
 			);
 			path = async;
 			sourceTree = "<group>";
@@ -274,6 +281,7 @@
 				A53E4E852304D1C8000BB7D8 /* PromiseErrorPtr.hpp in Headers */,
 				A5B9738123824A8C00FB3F1C /* Generator.hpp in Headers */,
 				A598D10824672B8E00C2B1BF /* ContinuousGenerator.hpp in Headers */,
+				A5F086A72545FB1900C41A36 /* ObjCCallStack.h in Headers */,
 				A53E4E832304D1C8000BB7D8 /* DispatchWorkItem.hpp in Headers */,
 				A5B7A7D2233EE80200301FC0 /* Timer.hpp in Headers */,
 				A53E4E802304D1C8000BB7D8 /* DispatchQueue.hpp in Headers */,
@@ -437,6 +445,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A5B9737F23824A8C00FB3F1C /* Generator.cpp in Sources */,
+				A5F086A82545FB1900C41A36 /* ObjCCallStack.mm in Sources */,
 				A563A57F24A660980036A842 /* AsyncQueue.mm in Sources */,
 				A53E4E872304D1C8000BB7D8 /* Promise.cpp in Sources */,
 				A53E4E812304D1C8000BB7D8 /* DispatchQueue.cpp in Sources */,
@@ -453,6 +462,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A5B9738023824A8C00FB3F1C /* Generator.cpp in Sources */,
+				A5F086A92545FB1900C41A36 /* ObjCCallStack.mm in Sources */,
 				A563A58024A660980036A842 /* AsyncQueue.mm in Sources */,
 				A53E4E952304D261000BB7D8 /* DispatchQueue.cpp in Sources */,
 				A53E4E962304D261000BB7D8 /* DispatchWorkItem.cpp in Sources */,
