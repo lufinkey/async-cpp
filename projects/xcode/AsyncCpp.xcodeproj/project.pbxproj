@@ -327,6 +327,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = A53E4EA72304D2E1000BB7D8 /* Build configuration list for PBXNativeTarget "AsyncCppTest-macOS" */;
 			buildPhases = (
+				A5F0861D2545EE5400C41A36 /* Fetch dependencies */,
 				A53E4E9F2304D2E1000BB7D8 /* Sources */,
 				A53E4EA02304D2E1000BB7D8 /* Frameworks */,
 				A53E4EA12304D2E1000BB7D8 /* CopyFiles */,
@@ -409,6 +410,27 @@
 		};
 /* End PBXReferenceProxy section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		A5F0861D2545EE5400C41A36 /* Fetch dependencies */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Fetch dependencies";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "../../tools/fetch_dependencies.sh\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		A53E4E782304D166000BB7D8 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -477,6 +499,7 @@
 					"$(PROJECT_DIR)/../../src",
 					"$(PROJECT_DIR)/../../../data-cpp/src",
 					"$(PROJECT_DIR)/../../../dtl",
+					"$(PROJECT_DIR)/../../external/dtl",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -496,6 +519,7 @@
 					"$(PROJECT_DIR)/../../src",
 					"$(PROJECT_DIR)/../../../data-cpp/src",
 					"$(PROJECT_DIR)/../../../dtl",
+					"$(PROJECT_DIR)/../../external/dtl",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -513,6 +537,7 @@
 					"$(PROJECT_DIR)/../../src",
 					"$(PROJECT_DIR)/../../../data-cpp/src",
 					"$(PROJECT_DIR)/../../../dtl",
+					"$(PROJECT_DIR)/../../external/dtl",
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 12.4;
 				OTHER_LDFLAGS = "-ObjC";
@@ -531,6 +556,7 @@
 					"$(PROJECT_DIR)/../../src",
 					"$(PROJECT_DIR)/../../../data-cpp/src",
 					"$(PROJECT_DIR)/../../../dtl",
+					"$(PROJECT_DIR)/../../external/dtl",
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 12.4;
 				OTHER_LDFLAGS = "-ObjC";
@@ -550,6 +576,7 @@
 					"$(PROJECT_DIR)/../../src",
 					"$(PROJECT_DIR)/../../../data-cpp/src",
 					"$(PROJECT_DIR)/../../../dtl",
+					"$(PROJECT_DIR)/../../external/dtl",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -567,6 +594,7 @@
 					"$(PROJECT_DIR)/../../src",
 					"$(PROJECT_DIR)/../../../data-cpp/src",
 					"$(PROJECT_DIR)/../../../dtl",
+					"$(PROJECT_DIR)/../../external/dtl",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				PRODUCT_NAME = "$(TARGET_NAME)";
