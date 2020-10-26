@@ -273,6 +273,7 @@ namespace fgl {
 
 	Promise<void> AsyncQueue::Task::perform() {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
+		FGL_ASSERT(!executor, "Cannot call Task::perform without an executor");
 		FGL_ASSERT(!promise.has_value(), "Cannot call Task::perform more than once");
 		FGL_ASSERT(!done, "Cannot call Task::perform on a finished task");
 		auto self = shared_from_this();
@@ -280,7 +281,7 @@ namespace fgl {
 		for(auto listener : eventListeners) {
 			listener->onAsyncQueueTaskBegin(self);
 		}
-		promise = executor(self).then(nullptr, [=]() {
+		auto promise = executor(self).then(nullptr, [=]() {
 			std::unique_lock<std::recursive_mutex> lock(self->mutex);
 			self->done = true;
 			self->promise = std::nullopt;
@@ -300,8 +301,12 @@ namespace fgl {
 			}
 			std::rethrow_exception(error);
 		});
+		self->promise = promise;
 		executor = nullptr;
-		return promise.valueOr(Promise<void>::resolve());
+		if(self->promise && self->promise->isComplete()) {
+			self->promise = std::nullopt;
+		}
+		return promise;
 	}
 
 	const String& AsyncQueue::Task::getTag() const {
