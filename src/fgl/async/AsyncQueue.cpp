@@ -273,7 +273,7 @@ namespace fgl {
 
 	Promise<void> AsyncQueue::Task::perform() {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
-		FGL_ASSERT(!executor, "Cannot call Task::perform without an executor");
+		FGL_ASSERT(executor != nullptr, "Cannot call Task::perform without an executor");
 		FGL_ASSERT(!promise.has_value(), "Cannot call Task::perform more than once");
 		FGL_ASSERT(!done, "Cannot call Task::perform on a finished task");
 		auto self = shared_from_this();
