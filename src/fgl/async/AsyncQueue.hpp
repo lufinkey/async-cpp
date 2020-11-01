@@ -300,7 +300,9 @@ namespace fgl {
 			return gen.next();
 		} else {
 			return Promise<typename GeneratorType::YieldResult>([=](auto resolve, auto reject) {
-				gen.next().then(nullptr,resolve,reject);
+				dispatchQueue->async([=]() {
+					gen.next().then(nullptr,resolve,reject);
+				});
 			});
 		}
 	}
