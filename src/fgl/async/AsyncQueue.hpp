@@ -155,10 +155,9 @@ namespace fgl {
 		static Promise<void> performWork(DispatchQueue* dispatchQueue, std::shared_ptr<Task> task, Work work);
 		
 		template<typename GeneratorType>
-		static Promise<void> runGenerator(DispatchQueue* dispatchQueue, GeneratorType generator, Function<bool()> shouldStop);
-		
-		template<typename GeneratorType>
 		static Promise<typename GeneratorType::YieldResult> runNextGenerate(DispatchQueue* dispatchQueue, GeneratorType generator);
+		template<typename GeneratorType>
+		static Promise<void> runGenerator(DispatchQueue* dispatchQueue, GeneratorType generator, Function<bool()> shouldStop);
 		
 		void removeTask(std::shared_ptr<Task> task);
 		
@@ -250,6 +249,13 @@ namespace fgl {
 	template<typename Work>
 	Promise<void> AsyncQueue::performWork(DispatchQueue* dispatchQueue, std::shared_ptr<Task> task, Work work) {
 		using ReturnType = decltype(work(task));
+		if(dispatchQueue != nullptr && !dispatchQueue->isLocal()) {
+			return Promise<void>([=](auto resolve, auto reject) {
+				dispatchQueue->async([=]() {
+					performWork(dispatchQueue, task, work).then(nullptr,resolve,reject);
+				});
+			});
+		}
 		if constexpr(is_promise<ReturnType>::value) {
 			// promise
 			std::unique_ptr<ReturnType> returnVal;
@@ -294,7 +300,7 @@ namespace fgl {
 			return gen.next();
 		} else {
 			return Promise<typename GeneratorType::YieldResult>([=](auto resolve, auto reject) {
-				gen.next().then(resolve,reject);
+				gen.next().then(nullptr,resolve,reject);
 			});
 		}
 	}
