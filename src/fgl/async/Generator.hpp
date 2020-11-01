@@ -399,7 +399,7 @@ namespace fgl {
 				}
 				self->nextPromise = std::nullopt;
 				return result;
-			}).except([=](std::exception_ptr error) -> YieldResult {
+			}).except(nullptr, [=](std::exception_ptr error) -> YieldResult {
 				std::unique_lock<std::recursive_mutex> lock(self->mutex);
 				state = State::FINISHED;
 				self->yieldReturner = nullptr;

@@ -157,6 +157,9 @@ namespace fgl {
 		template<typename GeneratorType>
 		static Promise<void> runGenerator(DispatchQueue* dispatchQueue, GeneratorType generator, Function<bool()> shouldStop);
 		
+		template<typename GeneratorType>
+		static Promise<typename GeneratorType::YieldResult> runNextGenerate(DispatchQueue* dispatchQueue, GeneratorType generator);
+		
 		void removeTask(std::shared_ptr<Task> task);
 		
 		Options options;
@@ -286,8 +289,19 @@ namespace fgl {
 	}
 
 	template<typename GeneratorType>
+	Promise<typename GeneratorType::YieldResult> AsyncQueue::runNextGenerate(DispatchQueue *dispatchQueue, GeneratorType gen) {
+		if(dispatchQueue == nullptr || dispatchQueue->isLocal()) {
+			return gen.next();
+		} else {
+			return Promise<typename GeneratorType::YieldResult>([=](auto resolve, auto reject) {
+				gen.next().then(resolve,reject);
+			});
+		}
+	}
+
+	template<typename GeneratorType>
 	Promise<void> AsyncQueue::runGenerator(DispatchQueue* dispatchQueue, GeneratorType gen, Function<bool()> shouldStop) {
-		return gen.next().then(dispatchQueue, [=](typename GeneratorType::YieldResult yieldResult) -> Promise<void> {
+		return runNextGenerate(dispatchQueue, gen).then(nullptr, [=](typename GeneratorType::YieldResult yieldResult) -> Promise<void> {
 			if(yieldResult.done || shouldStop()) {
 				return Promise<void>::resolve();
 			}
