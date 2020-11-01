@@ -295,13 +295,14 @@ namespace fgl {
 	}
 
 	template<typename GeneratorType>
-	Promise<typename GeneratorType::YieldResult> AsyncQueue::runNextGenerate(DispatchQueue *dispatchQueue, GeneratorType gen) {
+	Promise<typename GeneratorType::YieldResult> AsyncQueue::runNextGenerate(DispatchQueue* dispatchQueue, GeneratorType gen) {
 		if(dispatchQueue == nullptr || dispatchQueue->isLocal()) {
 			return gen.next();
 		} else {
 			return Promise<typename GeneratorType::YieldResult>([=](auto resolve, auto reject) {
 				dispatchQueue->async([=]() {
-					gen.next().then(nullptr,resolve,reject);
+					auto generator = gen;
+					generator.next().then(nullptr,resolve,reject);
 				});
 			});
 		}
