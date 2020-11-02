@@ -300,7 +300,7 @@ namespace fgl {
 	void AsyncQueue::performRunGenerator(DispatchQueue* queue, GeneratorType gen, typename Promise<typename GeneratorType::YieldResult>::Resolver resolve, typename Promise<typename GeneratorType::YieldResult>::Rejecter reject, Function<bool()> shouldStop) {
 		runNextGenerate(queue, gen).then(nullptr, [=](typename GeneratorType::YieldResult yieldResult) {
 			if(yieldResult.done || shouldStop()) {
-				resolve();
+				resolve(yieldResult);
 				return;
 			}
 			performRunGenerator(queue, gen, resolve, reject, shouldStop);
