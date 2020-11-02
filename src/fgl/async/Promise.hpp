@@ -291,11 +291,19 @@ namespace fgl {
 			Result get();
 			
 		private:
+			struct ThenBlock {
+				DispatchQueue* queue;
+				Then<void> resolve;
+			};
+			struct CatchBlock {
+				DispatchQueue* queue;
+				Catch<std::exception_ptr,void> reject;
+			};
 			std::weak_ptr<Continuer> self;
 			std::promise<Result> promise;
 			std::shared_future<Result> future;
-			std::list<Then<void>> resolvers;
-			std::list<Catch<std::exception_ptr,void>> rejecters;
+			std::list<ThenBlock> resolvers;
+			std::list<CatchBlock> rejecters;
 			std::mutex mutex;
 			String name;
 			State state;
@@ -1648,14 +1656,20 @@ namespace fgl {
 		promise.set_value(result);
 		state = State::RESOLVED;
 		// copy callbacks and clear
-		std::list<Resolver> callbacks;
+		std::list<ThenBlock> callbacks;
 		callbacks.swap(resolvers);
 		resolvers.clear();
 		rejecters.clear();
 		lock.unlock();
 		// call callbacks
 		for(auto& callback : callbacks) {
-			callback(result);
+			if(callback.queue == nullptr || callback.queue->isLocal()) {
+				callback.resolve(result);
+			} else {
+				callback.queue->async([=]() {
+					callback.resolve(result);
+				});
+			}
 		}
 	}
 	
@@ -1669,14 +1683,20 @@ namespace fgl {
 		promise.set_value();
 		state = State::RESOLVED;
 		// copy callbacks and clear
-		std::list<Then<void>> callbacks;
+		std::list<ThenBlock> callbacks;
 		callbacks.swap(resolvers);
 		resolvers.clear();
 		rejecters.clear();
 		lock.unlock();
 		// call callbacks
 		for(auto& callback : callbacks) {
-			callback();
+			if(callback.queue == nullptr || callback.queue->isLocal()) {
+				callback.resolve();
+			} else {
+				callback.queue->async([=]() {
+					callback.resolve();
+				});
+			}
 		}
 	}
 	
@@ -1688,14 +1708,20 @@ namespace fgl {
 		promise.set_exception(error);
 		state = State::REJECTED;
 		// copy callbacks and clear
-		std::list<Catch<std::exception_ptr,void>> callbacks;
+		std::list<CatchBlock> callbacks;
 		callbacks.swap(rejecters);
 		resolvers.clear();
 		rejecters.clear();
 		lock.unlock();
 		// call callbacks
 		for(auto& callback : callbacks) {
-			callback(error);
+			if(callback.queue == nullptr || callback.queue->isLocal()) {
+				callback.reject(error);
+			} else {
+				callback.queue->async([=]() {
+					callback.reject(error);
+				});
+			}
 		}
 	}
 	
@@ -1705,38 +1731,15 @@ namespace fgl {
 		switch(state) {
 			case State::EXECUTING: {
 				if(onresolve) {
-					if constexpr(std::is_same<Result,void>::value) {
-						resolvers.push_back([=]() {
-							if(thenQueue != nullptr && !thenQueue->isLocal()) {
-								thenQueue->async([=]() {
-									onresolve();
-								});
-							} else {
-								onresolve();
-							}
-						});
-					}
-					else {
-						resolvers.push_back([=](auto result) {
-							if(thenQueue != nullptr && !thenQueue->isLocal()) {
-								thenQueue->async([=]() {
-									onresolve(result);
-								});
-							} else {
-								onresolve(result);
-							}
-						});
-					}
+					resolvers.push_back({
+						.queue=thenQueue,
+						.resolve=onresolve
+					});
 				}
 				if(onreject) {
-					rejecters.push_back([=](auto error) {
-						if(catchQueue != nullptr && !catchQueue->isLocal()) {
-							catchQueue->async([=]() {
-								onreject(error);
-							});
-						} else {
-							onreject(error);
-						}
+					rejecters.push_back({
+						.queue=catchQueue,
+						.reject=onreject
 					});
 				}
 			}

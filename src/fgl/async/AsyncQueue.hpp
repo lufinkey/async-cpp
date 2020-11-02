@@ -158,6 +158,8 @@ namespace fgl {
 		static Promise<typename GeneratorType::YieldResult> runNextGenerate(DispatchQueue* dispatchQueue, GeneratorType generator);
 		template<typename GeneratorType>
 		static Promise<void> runGenerator(DispatchQueue* dispatchQueue, GeneratorType generator, Function<bool()> shouldStop);
+		template<typename GeneratorType>
+		static void performRunGenerator(DispatchQueue* queue, GeneratorType gen, typename Promise<typename GeneratorType::YieldResult>::Resolver resolve, typename Promise<typename GeneratorType::YieldResult>::Rejecter reject, Function<bool()> shouldStop);
 		
 		void removeTask(std::shared_ptr<Task> task);
 		
@@ -295,6 +297,17 @@ namespace fgl {
 	}
 
 	template<typename GeneratorType>
+	void AsyncQueue::performRunGenerator(DispatchQueue* queue, GeneratorType gen, typename Promise<typename GeneratorType::YieldResult>::Resolver resolve, typename Promise<typename GeneratorType::YieldResult>::Rejecter reject, Function<bool()> shouldStop) {
+		runNextGenerate(queue, gen).then(nullptr, [=](typename GeneratorType::YieldResult yieldResult) {
+			if(yieldResult.done || shouldStop()) {
+				resolve();
+				return;
+			}
+			performRunGenerator(queue, gen, resolve, reject, shouldStop);
+		}, reject);
+	}
+
+	template<typename GeneratorType>
 	Promise<typename GeneratorType::YieldResult> AsyncQueue::runNextGenerate(DispatchQueue* dispatchQueue, GeneratorType gen) {
 		if(dispatchQueue == nullptr || dispatchQueue->isLocal()) {
 			return gen.next();
@@ -309,12 +322,11 @@ namespace fgl {
 	}
 
 	template<typename GeneratorType>
-	Promise<void> AsyncQueue::runGenerator(DispatchQueue* dispatchQueue, GeneratorType gen, Function<bool()> shouldStop) {
-		return runNextGenerate(dispatchQueue, gen).then(nullptr, [=](typename GeneratorType::YieldResult yieldResult) -> Promise<void> {
-			if(yieldResult.done || shouldStop()) {
-				return Promise<void>::resolve();
-			}
-			return runGenerator(dispatchQueue,gen,shouldStop);
+	Promise<void> AsyncQueue::runGenerator(DispatchQueue* queue, GeneratorType gen, Function<bool()> shouldStop) {
+		return Promise<void>([=](auto resolve, auto reject) {
+			performRunGenerator(queue, gen, [=](auto yieldResult) {
+				resolve();
+			}, reject, shouldStop);
 		});
 	}
 }
