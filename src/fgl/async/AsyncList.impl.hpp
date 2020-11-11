@@ -58,7 +58,7 @@ namespace fgl {
 		mutator.reset();
 		if(mutationQueue.taskCount() > 0) {
 			mutate([=](auto mutator) {
-				mutator.reset();
+				mutator->reset();
 			});
 		}
 	}
@@ -70,7 +70,7 @@ namespace fgl {
 		mutator.resetItems();
 		if(mutationQueue.taskCount() > 0) {
 			mutate([=](auto mutator) {
-				mutator.resetItems();
+				mutator->resetItems();
 			});
 		}
 	}
@@ -82,7 +82,7 @@ namespace fgl {
 		mutator.resetSize();
 		if(mutationQueue.taskCount() > 0) {
 			mutate([=](auto mutator) {
-				mutator.resetSize();
+				mutator->resetSize();
 			});
 		}
 	}
