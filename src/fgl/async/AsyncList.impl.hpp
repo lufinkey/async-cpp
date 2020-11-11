@@ -709,18 +709,19 @@ namespace fgl {
 				return Promise<void>::reject(std::runtime_error("Could not locate items to be removed"));
 			}
 			// sort list consecutively
-			indexMarkers.sort([](auto& a, auto& b) {
+			auto mutIndexMarkers = indexMarkers;
+			mutIndexMarkers.sort([](auto& a, auto& b) {
 				return (a->index <= b->index);
 			});
 			// ensure removal block is consecutive
 			Optional<size_t> lastIndex;
-			for(auto& marker : indexMarkers) {
+			for(auto& marker : mutIndexMarkers) {
 				if(!lastIndex) {
 					lastIndex = marker->index;
 				} else {
 					size_t expectedIndex = lastIndex.value() + 1;
 					if(marker->index != expectedIndex && marker->index != lastIndex.value()) {
-						for(auto& marker : indexMarkers) {
+						for(auto& marker : mutIndexMarkers) {
 							self->unwatchIndex(marker);
 						}
 						return Promise<void>::reject(std::runtime_error("list has changed and removal block is no longer consecutive"));
@@ -729,12 +730,12 @@ namespace fgl {
 				}
 			}
 			// unwatch indexes
-			for(auto& marker : indexMarkers) {
+			for(auto& marker : mutIndexMarkers) {
 				self->unwatchIndex(marker);
 			}
 			// remove block
-			size_t index = indexMarkers.front()->index;
-			size_t count = (indexMarkers.back()->index + 1) - index;
+			size_t index = mutIndexMarkers.front()->index;
+			size_t count = (mutIndexMarkers.back()->index + 1) - index;
 			return self->delegate->removeAsyncListItems(mutator, index, count);
 		});
 	}
@@ -771,18 +772,19 @@ namespace fgl {
 				return Promise<void>::reject(std::runtime_error("Could not locate items to be removed"));
 			}
 			// sort list consecutively
-			indexMarkers.sort([](auto& a, auto& b) {
+			auto mutIndexMarkers = indexMarkers;
+			mutIndexMarkers.sort([](auto& a, auto& b) {
 				return (a->index <= b->index);
 			});
 			// ensure move block is consecutive
 			Optional<size_t> lastIndex;
-			for(auto& marker : indexMarkers) {
+			for(auto& marker : mutIndexMarkers) {
 				if(!lastIndex) {
 					lastIndex = marker->index;
 				} else {
 					size_t expectedIndex = lastIndex.value() + 1;
 					if(marker->index != expectedIndex && marker->index != lastIndex.value()) {
-						for(auto& marker : indexMarkers) {
+						for(auto& marker : mutIndexMarkers) {
 							self->unwatchIndex(marker);
 						}
 						self->unwatchIndex(newIndexMarker);
@@ -792,13 +794,13 @@ namespace fgl {
 				}
 			}
 			// unwatch indexes
-			for(auto& marker : indexMarkers) {
+			for(auto& marker : mutIndexMarkers) {
 				self->unwatchIndex(marker);
 			}
 			self->unwatchIndex(newIndexMarker);
 			// move block
-			size_t index = indexMarkers.front()->index;
-			size_t count = (indexMarkers.back()->index + 1) - index;
+			size_t index = mutIndexMarkers.front()->index;
+			size_t count = (mutIndexMarkers.back()->index + 1) - index;
 			return self->delegate->moveAsyncListItems(mutator, index, count, newIndexMarker->index);
 		});
 	}
