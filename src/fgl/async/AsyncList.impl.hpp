@@ -58,7 +58,7 @@ namespace fgl {
 		mutator.reset();
 		if(mutationQueue.taskCount() > 0) {
 			mutate([=](auto mutator) {
-				self->mutator.reset();
+				mutator.reset();
 			});
 		}
 	}
@@ -70,7 +70,7 @@ namespace fgl {
 		mutator.resetItems();
 		if(mutationQueue.taskCount() > 0) {
 			mutate([=](auto mutator) {
-				self->mutator.resetItems();
+				mutator.resetItems();
 			});
 		}
 	}
@@ -82,7 +82,7 @@ namespace fgl {
 		mutator.resetSize();
 		if(mutationQueue.taskCount() > 0) {
 			mutate([=](auto mutator) {
-				self->mutator.resetSize();
+				mutator.resetSize();
 			});
 		}
 	}
@@ -664,13 +664,13 @@ namespace fgl {
 		auto self = this->shared_from_this();
 		auto indexMarker = watchIndex(index);
 		indexMarker->state = AsyncListIndexMarkerState::REMOVED;
-		return mutate([=]() {
+		return mutate([=](auto mutator) {
 			std::unique_lock<std::recursive_mutex> lock(mutex);
 			if(self->delegate == nullptr) {
 				return Promise<void>::reject(std::runtime_error("AsyncList is destroyed"));
 			}
 			self->unwatchIndex(indexMarker);
-			return self->delegate->insertAsyncListItems(&self->mutator, indexMarker->index, items);
+			return self->delegate->insertAsyncListItems(mutator, indexMarker->index, items);
 		});
 	}
 
@@ -678,12 +678,12 @@ namespace fgl {
 	Promise<void> AsyncList<T,InsT>::appendItems(LinkedList<InsT> items) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto self = this->shared_from_this();
-		return mutate([=]() {
+		return mutate([=](auto mutator) {
 			std::unique_lock<std::recursive_mutex> lock(mutex);
 			if(self->delegate == nullptr) {
 				return Promise<void>::reject(std::runtime_error("AsyncList is destroyed"));
 			}
-			return self->delegate->appendAsyncListItems(&self->mutator, items);
+			return self->delegate->appendAsyncListItems(mutator, items);
 		});
 	}
 
@@ -700,7 +700,7 @@ namespace fgl {
 			indexMarkers.pushBack(watchIndex(index+i));
 		}
 		// queue mutation
-		return mutate([=]() {
+		return mutate([=](auto mutator) {
 			std::unique_lock<std::recursive_mutex> lock(mutex);
 			if(self->delegate == nullptr) {
 				for(auto& marker : indexMarkers) {
@@ -742,7 +742,7 @@ namespace fgl {
 			// remove block
 			size_t index = indexMarkers.front()->index;
 			size_t count = (indexMarkers.back()->index + 1) - index;
-			return self->delegate->removeAsyncListItems(&self->mutator, index, count);
+			return self->delegate->removeAsyncListItems(mutator, index, count);
 		});
 	}
 
@@ -760,7 +760,7 @@ namespace fgl {
 		}
 		auto newIndexMarker = watchIndex(newIndex);
 		// queue mutation
-		return mutate([=]() {
+		return mutate([=](auto mutator) {
 			std::unique_lock<std::recursive_mutex> lock(mutex);
 			if(self->delegate == nullptr) {
 				for(auto& marker : indexMarkers) {
@@ -806,7 +806,7 @@ namespace fgl {
 			// move block
 			size_t index = indexMarkers.front()->index;
 			size_t count = (indexMarkers.back()->index + 1) - index;
-			return self->delegate->moveAsyncListItems(&self->mutator, index, count, newIndexMarker->index);
+			return self->delegate->moveAsyncListItems(mutator, index, count, newIndexMarker->index);
 		});
 	}
 }
