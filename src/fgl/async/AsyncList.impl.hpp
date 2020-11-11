@@ -57,7 +57,7 @@ namespace fgl {
 		auto self = this->shared_from_this();
 		mutator.reset();
 		if(mutationQueue.taskCount() > 0) {
-			mutate([=](auto mutator) {
+			mutate([=](auto mutator) -> void {
 				mutator->reset();
 			});
 		}
@@ -69,7 +69,7 @@ namespace fgl {
 		auto self = this->shared_from_this();
 		mutator.resetItems();
 		if(mutationQueue.taskCount() > 0) {
-			mutate([=](auto mutator) {
+			mutate([=](auto mutator) -> void {
 				mutator->resetItems();
 			});
 		}
@@ -81,7 +81,7 @@ namespace fgl {
 		auto self = this->shared_from_this();
 		mutator.resetSize();
 		if(mutationQueue.taskCount() > 0) {
-			mutate([=](auto mutator) {
+			mutate([=](auto mutator) -> void {
 				mutator->resetSize();
 			});
 		}
@@ -664,7 +664,7 @@ namespace fgl {
 		auto self = this->shared_from_this();
 		auto indexMarker = watchIndex(index);
 		indexMarker->state = AsyncListIndexMarkerState::REMOVED;
-		return mutate([=](auto mutator) {
+		return mutate([=](auto mutator) -> Promise<void> {
 			std::unique_lock<std::recursive_mutex> lock(mutex);
 			if(self->delegate == nullptr) {
 				return Promise<void>::reject(std::runtime_error("AsyncList is destroyed"));
@@ -678,7 +678,7 @@ namespace fgl {
 	Promise<void> AsyncList<T,InsT>::appendItems(LinkedList<InsT> items) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto self = this->shared_from_this();
-		return mutate([=](auto mutator) {
+		return mutate([=](auto mutator) -> Promise<void> {
 			std::unique_lock<std::recursive_mutex> lock(mutex);
 			if(self->delegate == nullptr) {
 				return Promise<void>::reject(std::runtime_error("AsyncList is destroyed"));
@@ -700,7 +700,7 @@ namespace fgl {
 			indexMarkers.pushBack(watchIndex(index+i));
 		}
 		// queue mutation
-		return mutate([=](auto mutator) {
+		return mutate([=](auto mutator) -> Promise<void> {
 			std::unique_lock<std::recursive_mutex> lock(mutex);
 			if(self->delegate == nullptr) {
 				for(auto& marker : indexMarkers) {
@@ -760,7 +760,7 @@ namespace fgl {
 		}
 		auto newIndexMarker = watchIndex(newIndex);
 		// queue mutation
-		return mutate([=](auto mutator) {
+		return mutate([=](auto mutator) -> Promise<void> {
 			std::unique_lock<std::recursive_mutex> lock(mutex);
 			if(self->delegate == nullptr) {
 				for(auto& marker : indexMarkers) {
