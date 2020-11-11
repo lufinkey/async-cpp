@@ -605,7 +605,7 @@ namespace fgl {
 	template<typename MutatorFunc>
 	Promise<void> AsyncList<T,InsT>::mutate(MutatorFunc executor) {
 		auto self = this->shared_from_this();
-		return mutationQueue.run([=](auto task) -> Promise<void> {
+		return mutationQueue.run([=](auto task) {
 			return executor(&self->mutator);
 		}).promise.then(nullptr, [self]() {});
 	}
