@@ -209,8 +209,8 @@ namespace fgl {
 		void forEachInRange(size_t startIndex, size_t endIndex, Function<void(T&,size_t)> executor, const AsyncListIndexAccessOptions& options = AsyncListIndexAccessOptions());
 		void forEachInRange(size_t startIndex, size_t endIndex, Function<void(const T&,size_t)> executor, const AsyncListIndexAccessOptions& options = AsyncListIndexAccessOptions()) const;
 		
-		Promise<void> mutate(Function<Promise<void>(Mutator*)> executor);
-		Promise<void> mutate(Function<void(Mutator*)> executor);
+		template<typename MutatorFunc>
+		Promise<void> mutate(MutatorFunc executor);
 		template<typename Work>
 		auto lock(Work work) -> decltype(work((Mutator*)nullptr));
 		

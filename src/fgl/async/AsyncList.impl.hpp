@@ -602,19 +602,12 @@ namespace fgl {
 
 
 	template<typename T, typename InsT>
-	Promise<void> AsyncList<T,InsT>::mutate(Function<Promise<void>(Mutator*)> executor) {
+	template<typename MutatorFunc>
+	Promise<void> AsyncList<T,InsT>::mutate(MutatorFunc executor) {
 		auto self = this->shared_from_this();
 		return mutationQueue.run([=](auto task) -> Promise<void> {
-			return executor(&self->mutator).then(nullptr, [self]() {});
-		}).promise;
-	}
-
-	template<typename T, typename InsT>
-	Promise<void> AsyncList<T,InsT>::mutate(Function<void(Mutator*)> executor) {
-		auto self = this->shared_from_this();
-		return mutationQueue.run([=](auto task) -> void {
 			return executor(&self->mutator);
-		}).promise;
+		}).promise.then(nullptr, [self]() {});
 	}
 
 	template<typename T, typename InsT>
