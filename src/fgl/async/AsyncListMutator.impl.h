@@ -645,7 +645,7 @@ namespace fgl {
 				while(it != list->items.end() && it->first < endIndex) {
 					auto nextIt = std::next(it, 1);
 					auto node = list->items.extract(it);
-					extractedNodes.emplace_back(node);
+					extractedNodes.emplace_back(std::move(node));
 					it = nextIt;
 				}
 				// shift items displaced by move
