@@ -654,21 +654,22 @@ namespace fgl {
 					   (revIt != list->items.rend()) && (revIt->first >= newIndex);
 					   revIt++) {
 						auto insertIt = revIt.base();
-						auto extractIt = std::prev(insertIt, 1);
+						auto extractIt = std::prev(insertIt,1);
 						auto node = list->items.extract(extractIt);
 						node.key() += count;
-						revIt = list->items.insert(insertIt, std::move(node));
+						auto insertedIt = list->items.insert(insertIt, std::move(node));
+						revIt = std::make_reverse_iterator(std::next(insertedIt,1));
 					}
 				}
 				else if(newIndex > index) {
-					for(auto revIt = std::make_reverse_iterator(list->items.upper_bound(newIndex));
-					   (revIt != list->items.rend()) && (revIt->first >= index);
-					   revIt++) {
-						auto insertIt = revIt.base();
-						auto extractIt = std::prev(insertIt, 1);
-						auto node = list->items.extract(extractIt);
-						node.key() += count;
-						revIt = list->items.insert(insertIt, std::move(node));
+					size_t newIndexEnd = newIndex + count;
+					for(;
+					   (it != list->items.end()) && (it->first < newIndexEnd);
+					   it++) {
+						auto insertIt = std::next(it, 1);
+						auto node = list->items.extract(it);
+						node.key() -= count;
+						it = list->items.insert(insertIt, std::move(node));
 					}
 				}
 				// reinsert extracted items
@@ -678,7 +679,7 @@ namespace fgl {
 					it++;
 				}
 			}
-			// get insertion count to pad list
+			// get insertion count to pad list (if move comes from outside the list, it should increase the list size)
 			size_t prevListSize = list->itemsSize.value_or(0);
 			size_t shrunkListSize = prevListSize;
 			if(index < prevListSize) {
