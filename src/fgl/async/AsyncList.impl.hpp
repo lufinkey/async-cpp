@@ -742,7 +742,7 @@ namespace fgl {
 
 	template<typename T, typename InsT>
 	Promise<void> AsyncList<T,InsT>::moveItems(size_t index, size_t count, size_t newIndex) {
-		if(count == 0) {
+		if(count == 0 || index == newIndex) {
 			return Promise<void>::resolve();
 		}
 		std::unique_lock<std::recursive_mutex> lock(mutex);
@@ -752,7 +752,7 @@ namespace fgl {
 		for(size_t i=0; i<count; i++) {
 			indexMarkers.pushBack(watchIndex(index+i));
 		}
-		auto newIndexMarker = watchIndex(newIndex);
+		auto newIndexMarker = (newIndex <= index) ? watchRemovedIndex(newIndex) : watchRemovedIndex(newIndex+count);
 		// queue mutation
 		return mutate([=](auto mutator) -> Promise<void> {
 			std::unique_lock<std::recursive_mutex> lock(mutex);
@@ -801,7 +801,12 @@ namespace fgl {
 			// move block
 			size_t index = mutIndexMarkers.front()->index;
 			size_t count = (mutIndexMarkers.back()->index + 1) - index;
-			return self->delegate->moveAsyncListItems(mutator, index, count, newIndexMarker->index);
+			size_t newIndex = (newIndexMarker->index <= index) ?
+				newIndexMarker->index
+				: ((newIndexMarker->index >= count) ?
+					(newIndexMarker->index - count)
+					: 0);
+			return self->delegate->moveAsyncListItems(mutator, index, count, newIndex);
 		});
 	}
 }
