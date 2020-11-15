@@ -742,7 +742,7 @@ namespace fgl {
 
 	template<typename T, typename InsT>
 	Promise<void> AsyncList<T,InsT>::moveItems(size_t index, size_t count, size_t newIndex) {
-		if(count == 0 || index == newIndex) {
+		if(count == 0) {
 			return Promise<void>::resolve();
 		}
 		std::unique_lock<std::recursive_mutex> lock(mutex);
