@@ -673,10 +673,13 @@ namespace fgl {
 					}
 				}
 				// reinsert extracted items
+				size_t insertIndex = newIndex;
 				it = list->items.lower_bound(newIndex);
 				for(auto& node : extractedNodes) {
+					node.key() = insertIndex;
 					it = list->items.insert(it, std::move(node));
 					it++;
+					insertIndex++;
 				}
 			}
 			// get insertion count to pad list (if move comes from outside the list, it should increase the list size)
