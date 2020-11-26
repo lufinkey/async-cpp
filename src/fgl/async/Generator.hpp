@@ -39,12 +39,16 @@ namespace fgl {
 
 	template<typename Yield>
 	struct GeneratorYieldResult {
-		Optionalized<Yield> value;
+		using YieldType = Yield;
+		using OptionalYieldType = Optionalized<Yield>;
+		OptionalYieldType value;
 		bool done = false;
 	};
 	
 	template<>
 	struct GeneratorYieldResult<void> {
+		using YieldType = void;
+		using OptionalYieldType = void;
 		bool done = false;
 	};
 

@@ -48,12 +48,16 @@ namespace fgl {
 
 	template<typename Yield>
 	struct ContinuousGeneratorResult {
-		Optionalized<Yield> result;
+		using YieldType = Yield;
+		using OptionalYieldType = Optionalized<Yield>;
+		OptionalYieldType result;
 		std::exception_ptr error;
 	};
 
 	template<>
 	struct ContinuousGeneratorResult<void> {
+		using YieldType = void;
+		using OptionalYieldType = void;
 		std::exception_ptr error;
 	};
 
