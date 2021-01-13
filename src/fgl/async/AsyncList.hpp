@@ -106,7 +106,9 @@ namespace fgl {
 			template<typename Work>
 			void lock(Work work);
 			void apply(size_t index, LinkedList<T> items);
+			void apply(std::map<size_t,T> items);
 			void applyAndResize(size_t index, size_t listSize, LinkedList<T> items);
+			void applyAndResize(size_t listSize, std::map<size_t,T> items);
 			void set(size_t index, LinkedList<T> items);
 			void insert(size_t index, LinkedList<T> items);
 			void remove(size_t index, size_t count);

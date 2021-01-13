@@ -527,8 +527,64 @@ namespace fgl {
 	}
 
 	template<typename T, typename InsT>
+	void AsyncList<T,InsT>::Mutator::apply(std::map<size_t,T> items) {
+		lock([&]() {
+			Optional<size_t> offset;
+			LinkedList<T> itemList;
+			for(auto& pair : items) {
+				if(!offset) {
+					offset = pair.first;
+					itemList.pushBack(std::move(pair.second));
+					continue;
+				}
+				size_t expectedIndex = offset.value() + itemList.size();
+				if(pair.first == expectedIndex) {
+					itemList.pushBack(std::move(pair.second));
+					continue;
+				}
+				apply(offset.value(), items);
+				offset = pair.first;
+				itemList.clear();
+				itemList.pushBack(std::move(pair.second));
+			}
+			if(offset && itemList.size() > 0) {
+				apply(offset.value(), itemList);
+			}
+		});
+	}
+
+	template<typename T, typename InsT>
 	void AsyncList<T,InsT>::Mutator::applyAndResize(size_t index, size_t listSize, LinkedList<T> items) {
 		applyMerge(index, listSize, items);
+	}
+
+	template<typename T, typename InsT>
+	void AsyncList<T,InsT>::Mutator::applyAndResize(size_t listSize, std::map<size_t,T> items) {
+		lock([&]() {
+			Optional<size_t> offset;
+			LinkedList<T> itemList;
+			for(auto& pair : items) {
+				if(!offset) {
+					offset = pair.first;
+					itemList.pushBack(std::move(pair.second));
+					continue;
+				}
+				size_t expectedIndex = offset.value() + itemList.size();
+				if(pair.first == expectedIndex) {
+					itemList.pushBack(std::move(pair.second));
+					continue;
+				}
+				applyAndResize(offset.value(), listSize, items);
+				offset = pair.first;
+				itemList.clear();
+				itemList.pushBack(std::move(pair.second));
+			}
+			if(offset && itemList.size() > 0) {
+				applyAndResize(offset.value(), listSize, itemList);
+			} else {
+				resize(listSize);
+			}
+		});
 	}
 
 	template<typename T, typename InsT>
