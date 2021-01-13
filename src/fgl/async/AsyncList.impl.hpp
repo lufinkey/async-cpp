@@ -28,19 +28,11 @@ namespace fgl {
 		}
 		
 		// set initial items
-		for(auto& pair : options.initialItemsMap) {
+		for(auto& pair : options.initialItems) {
 			items.insert_or_assign(pair.first, ItemNode{
 				.item = pair.second,
 				.valid = true
 			});
-		}
-		size_t initialItemsOffset = options.initialItemsOffset;
-		for(auto& item : options.initialItems) {
-			items.insert_or_assign(initialItemsOffset, ItemNode{
-				.item = item,
-				.valid = true
-			});
-			initialItemsOffset++;
 		}
 	}
 
