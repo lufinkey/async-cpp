@@ -542,7 +542,7 @@ namespace fgl {
 					itemList.pushBack(std::move(pair.second));
 					continue;
 				}
-				apply(offset.value(), items);
+				apply(offset.value(), itemList);
 				offset = pair.first;
 				itemList.clear();
 				itemList.pushBack(std::move(pair.second));
@@ -574,7 +574,7 @@ namespace fgl {
 					itemList.pushBack(std::move(pair.second));
 					continue;
 				}
-				applyAndResize(offset.value(), listSize, items);
+				applyAndResize(offset.value(), listSize, itemList);
 				offset = pair.first;
 				itemList.clear();
 				itemList.pushBack(std::move(pair.second));
