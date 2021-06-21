@@ -44,7 +44,7 @@ android {
 dependencies {
 	implementation fileTree(dir: 'libs', include: ['*.jar'])
 
-	api project(':libdatacpp')
+	//api project(':libdatacpp')
 
 	implementation 'androidx.appcompat:appcompat:1.2.0'
 	testImplementation 'junit:junit:4.12'
