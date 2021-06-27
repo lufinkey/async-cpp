@@ -25,8 +25,9 @@
 
 namespace fgl {
 	class DispatchQueue;
-	
-	DispatchQueue* getDefaultPromiseQueue();
+
+	DispatchQueue* backgroundPromiseQueue();
+	DispatchQueue* defaultPromiseQueue();
 	
 	template<typename Result>
 	class Promise;
@@ -423,7 +424,7 @@ namespace fgl {
 	
 	template<typename Result>
 	Promise<void> Promise<Result>::then(String name, Then<void> onresolve, Catch<std::exception_ptr,void> onreject) {
-		return then(name, getDefaultPromiseQueue(), onresolve, onreject);
+		return then(name, defaultPromiseQueue(), onresolve, onreject);
 	}
 
 	template<typename Result>
@@ -464,7 +465,7 @@ namespace fgl {
 		typename Return,
 		typename std::enable_if<std::is_same<Return,void>::value, std::nullptr_t>::type>
 	Promise<void> Promise<Result>::then(String name, OnResolve onresolve) {
-		return then(name, getDefaultPromiseQueue(), onresolve, nullptr);
+		return then(name, defaultPromiseQueue(), onresolve, nullptr);
 	}
 
 	template<typename Result>
@@ -537,7 +538,7 @@ namespace fgl {
 		typename NextResult,
 		typename std::enable_if<(is_promise<Return>::value && std::is_same<Return,Promise<NextResult>>::value), std::nullptr_t>::type>
 	Promise<NextResult> Promise<Result>::then(String name, OnResolve onresolve) {
-		return then(name, getDefaultPromiseQueue(), onresolve);
+		return then(name, defaultPromiseQueue(), onresolve);
 	}
 	
 	template<typename Result>
@@ -674,7 +675,7 @@ namespace fgl {
 	template<typename Result>
 	template<typename OnReject, typename _>
 	Promise<Result> Promise<Result>::except(String name, OnReject onreject) {
-		return except(name, getDefaultPromiseQueue(), onreject);
+		return except(name, defaultPromiseQueue(), onreject);
 	}
 
 	template<typename Result>
@@ -751,7 +752,7 @@ namespace fgl {
 	
 	template<typename Result>
 	Promise<Result> Promise<Result>::finally(String name, Function<void()> onfinally) {
-		return finally(name, getDefaultPromiseQueue(), onfinally);
+		return finally(name, defaultPromiseQueue(), onfinally);
 	}
 
 	template<typename Result>
@@ -836,7 +837,7 @@ namespace fgl {
 	template<typename Result>
 	template<typename NextResult>
 	Promise<NextResult> Promise<Result>::map(String name, Then<NextResult> transform) {
-		return map<NextResult>(name, getDefaultPromiseQueue(), transform);
+		return map<NextResult>(name, defaultPromiseQueue(), transform);
 	}
 
 	template<typename Result>
@@ -905,7 +906,7 @@ namespace fgl {
 	template<typename Result>
 	template<typename Rep, typename Period>
 	Promise<Result> Promise<Result>::delay(String name, std::chrono::duration<Rep,Period> delay) {
-		return this->delay(name, getDefaultPromiseQueue(), delay);
+		return this->delay(name, defaultPromiseQueue(), delay);
 	}
 
 	template<typename Result>
@@ -1070,7 +1071,7 @@ namespace fgl {
 	template<typename Result>
 	template<typename Rep, typename Period, typename OnTimeout, typename _>
 	Promise<Result> Promise<Result>::timeout(String name, std::chrono::duration<Rep,Period> timeout, OnTimeout onTimeout) {
-		return this->timeout(name, getDefaultPromiseQueue(), timeout, onTimeout);
+		return this->timeout(name, defaultPromiseQueue(), timeout, onTimeout);
 	}
 	
 	template<typename Result>
@@ -1605,7 +1606,7 @@ namespace fgl {
 	template<typename Result>
 	template<typename Rep, typename Period, typename AfterDelay, typename _>
 	Promise<Result> Promise<Result>::delayed(String name, std::chrono::duration<Rep,Period> delay, AfterDelay afterDelay) {
-		return delayed(name, delay, getDefaultPromiseQueue(), afterDelay);
+		return delayed(name, delay, defaultPromiseQueue(), afterDelay);
 	}
 
 	template<typename Result>

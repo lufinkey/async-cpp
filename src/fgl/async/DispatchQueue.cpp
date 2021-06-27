@@ -22,11 +22,6 @@ namespace fgl {
 	std::mutex DispatchQueue_mainQueueMutex;
 	DispatchQueue* DispatchQueue::mainQueue = nullptr;
 	bool DispatchQueue_mainQueueRunning = false;
-	#ifdef FGL_DISPATCH_USES_MAIN
-		bool DispatchQueue_mainQueueEnabled = true;
-	#else
-		bool DispatchQueue_mainQueueEnabled = false;
-	#endif
 	thread_local DispatchQueue* localDispatchQueue = nullptr;
 
 
@@ -470,13 +465,48 @@ namespace fgl {
 		}
 		cv.wait_until(waitLock, deadline, pred);
 	}
-	
-	
-	
+
+
+
+	bool DispatchQueue::mainQueueEnabled() {
+		#if defined(__APPLE__)
+			return true;
+		#elif defined(__ANDROID__)
+			return true;
+		#else
+			if(mainQueue != nullptr) {
+				return true;
+			}
+			#ifdef FGL_DISABLE_AUTOMATIC_LOCAL_MAIN_QUEUE
+				return false;
+			#else
+				return true
+			#endif
+		#endif
+	}
+
+	void DispatchQueue::instantiateLocalMainQueue() {
+		FGL_ASSERT(mainQueue == nullptr, "Cannot call DispatchQueue::instantiateLocalMainQueue more than once")
+		mainQueue = new DispatchQueue(DispatchQueue::Type::LOCAL, "Main", {
+			.keepThreadAlive=true
+		});
+	}
+
+	void DispatchQueue::allowLocalMainQueue() {
+		if(mainQueue != nullptr) {
+			return;
+		}
+		#if defined(__APPLE__) || defined(__ANDROID__)
+			FGL_ASSERT(DispatchQueue::main() != nullptr, "platform-specific main queue could not be instantiated or found")
+		#else
+			instantiateLocalMainQueue();
+		#endif
+	}
+
 	void DispatchQueue::dispatchMain() {
-		FGL_ASSERT(usesMainQueue(), "enableMainQueue() must be called in order to use this function");
 		FGL_ASSERT(!DispatchQueue_mainQueueRunning, "main DispatchQueue has already been dispatched");
 		DispatchQueue_mainQueueRunning = true;
+		// generate main queue
 		DispatchQueue::main();
 		#if defined(__APPLE__)
 			dispatch_main();
@@ -489,7 +519,7 @@ namespace fgl {
 	}
 	
 	DispatchQueue* DispatchQueue::main() {
-		if(mainQueue == nullptr && usesMainQueue()) {
+		if(mainQueue == nullptr) {
 			std::unique_lock<std::mutex> lock(DispatchQueue_mainQueueMutex);
 			if(mainQueue != nullptr) {
 				return mainQueue;
@@ -500,7 +530,7 @@ namespace fgl {
 					localDispatchQueue = mainQueue;
 				});
 			#elif defined(__ANDROID__)
-				JavaVM* vm = getAsyncCppJavaVM();
+				JavaVM* vm = getJavaVM();
 				if(vm == nullptr) {
 					throw std::runtime_error("Java VM not found");
 				}
@@ -514,21 +544,14 @@ namespace fgl {
 					localDispatchQueue = mainQueue;
 				});
 			#else
-				mainQueue = new DispatchQueue(Type::LOCAL, "Main", {
-					.keepThreadAlive=true
-				});
+				#ifndef FGL_DISABLE_AUTOMATIC_LOCAL_MAIN_QUEUE
+					instantiateLocalMainQueue();
+				#else
+					throw std::logic_error("FGL_DISABLE_AUTOMATIC_LOCAL_MAIN_QUEUE is set, so main queue is disabled. Try using defaultPromiseQueue for this logic");
+				#endif
 			#endif
 		}
 		return mainQueue;
-	}
-
-	bool DispatchQueue::usesMainQueue() {
-		return DispatchQueue_mainQueueEnabled;
-	}
-
-	bool DispatchQueue::enableMainQueue() {
-		DispatchQueue_mainQueueEnabled = true;
-		return true;
 	}
 	
 	DispatchQueue* DispatchQueue::local() {

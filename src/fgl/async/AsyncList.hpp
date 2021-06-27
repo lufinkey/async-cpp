@@ -156,7 +156,7 @@ namespace fgl {
 		
 		struct Options {
 			Delegate* delegate = nullptr;
-			DispatchQueue* dispatchQueue = getDefaultPromiseQueue();
+			DispatchQueue* dispatchQueue = defaultPromiseQueue();
 			std::map<size_t,T> initialItems;
 			Optional<size_t> initialSize;
 		};

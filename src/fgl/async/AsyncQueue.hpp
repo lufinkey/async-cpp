@@ -112,11 +112,11 @@ namespace fgl {
 		};
 		
 		struct Options {
-			DispatchQueue* dispatchQueue = getDefaultPromiseQueue();
+			DispatchQueue* dispatchQueue = defaultPromiseQueue();
 			bool cancelUnfinishedTasks = false;
 		};
 		
-		AsyncQueue(Options options = Options{.dispatchQueue=getDefaultPromiseQueue(),.cancelUnfinishedTasks=false});
+		AsyncQueue(Options options = Options{ .dispatchQueue=defaultPromiseQueue(), .cancelUnfinishedTasks=false });
 		~AsyncQueue();
 		
 		size_t taskCount() const;

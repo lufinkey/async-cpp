@@ -9,17 +9,19 @@
 #include <fgl/async/Promise.hpp>
 
 namespace fgl {
-	static DispatchQueue* defaultPromiseQueue = nullptr;
-	
-	DispatchQueue* getDefaultPromiseQueue() {
-		if(defaultPromiseQueue == nullptr) {
-			if(DispatchQueue::usesMainQueue()) {
-				defaultPromiseQueue = DispatchQueue::main();
-			}
-			else {
-				defaultPromiseQueue = new DispatchQueue("Promise Main");
-			}
+	DispatchQueue* defaultPromiseQueue() {
+		if(DispatchQueue::mainQueueEnabled()) {
+			return DispatchQueue::main();
+		} else {
+			return backgroundPromiseQueue();
 		}
-		return defaultPromiseQueue;
+	}
+
+	static DispatchQueue* _backgroundPromiseQueue = nullptr;
+	DispatchQueue* backgroundPromiseQueue() {
+		if(_backgroundPromiseQueue == nullptr) {
+			_backgroundPromiseQueue = new DispatchQueue("Promise Main");
+		}
+		return _backgroundPromiseQueue;
 	}
 }

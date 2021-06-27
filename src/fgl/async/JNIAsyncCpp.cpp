@@ -9,24 +9,55 @@
 #ifdef __ANDROID__
 #include <fgl/async/JNIAsyncCpp.hpp>
 #include <android/log.h>
+#include <dlfcn.h>
+
+int property_get(const char *key, char *value, const char *default_value);
 
 namespace fgl {
-	JavaVM* mainAsyncCppJavaVM = nullptr;
+	JavaVM* sharedJavaVM = nullptr;
 
-	JavaVM* getAsyncCppJavaVM() {
-		return mainAsyncCppJavaVM;
-	}
-
-	void setAsyncCppJavaVM(JavaVM* javaVm) {
-		mainAsyncCppJavaVM = javaVm;
+	JavaVM* getJavaVM() {
+		// get java vm from JNI_OnLoad, if it's been called
+		if(sharedJavaVM != nullptr) {
+			return sharedJavaVM;
+		}
+		// attempt to find JNI_GetCreatedJavaVMs in several shared libraries
+		using JNI_GetCreatedJavaVMs_t = jint(*)(JavaVM**,jsize,jsize*);
+		JNI_GetCreatedJavaVMs_t getJavaVMs = nullptr;
+		auto libraries = ArrayList<String>{ "libart.so", "libartd.so", "libjvm.so", "libdvm.so", "/system/lib/libvdm.so" };
+		for(auto& library : libraries) {
+			void *so_handle = dlopen(library.c_str(), RTLD_NOW);
+			if (so_handle != nullptr) {
+				getJavaVMs = (JNI_GetCreatedJavaVMs_t) dlsym(so_handle, "JNI_GetCreatedJavaVMs");
+				if(getJavaVMs != nullptr) {
+					__android_log_print(ANDROID_LOG_DEBUG, "AsyncCpp", "found JNI_GetCreatedJavaVMs in %s", library.c_str());
+					break;
+				}
+			} else {
+				__android_log_print(ANDROID_LOG_DEBUG, "AsyncCpp", "Could not load shared library %s", library.c_str());
+			}
+		}
+		if(getJavaVMs == nullptr) {
+			getJavaVMs = (JNI_GetCreatedJavaVMs_t) dlsym(RTLD_DEFAULT, "JNI_GetCreatedJavaVMs");
+		}
+		if(getJavaVMs == nullptr) {
+			__android_log_print(ANDROID_LOG_DEBUG, "AsyncCpp", "could not find JNI_GetCreatedJavaVMs in any shared objects");
+			return nullptr;
+		}
+		// get java vm
+		JavaVM* vm = nullptr;
+		jsize vms_size = 0;
+		getJavaVMs(&vm, 1, &vms_size);
+		if (vms_size == 0) {
+			return nullptr;
+		}
+		return vm;
 	}
 }
 
-extern "C"
-JNIEXPORT
-jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved) {
+JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
 	__android_log_print(ANDROID_LOG_DEBUG, "AsyncCpp", "JNI module loaded");
-	fgl::mainAsyncCppJavaVM = vm;
+	fgl::sharedJavaVM = vm;
 	return JNI_VERSION_1_6;
 }
 

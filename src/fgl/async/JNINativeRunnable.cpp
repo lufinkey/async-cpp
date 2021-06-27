@@ -18,4 +18,3 @@ Java_com_lufinkey_libasynccpp_NativeRunnable_destroyNativeFunction(JNIEnv* env, 
 }
 
 #endif
-

@@ -8,12 +8,13 @@
 
 #pragma once
 
+#include <fgl/async/Common.hpp>
+
 #ifdef __ANDROID__
 #include <jni.h>
 
 namespace fgl {
-	JavaVM* getAsyncCppJavaVM();
-	void setAsyncCppJavaVM(JavaVM*);
+	JavaVM* getJavaVM();
 }
 
 #endif

@@ -62,8 +62,8 @@ namespace fgl {
 		[[noreturn]]
 		static void dispatchMain();
 		static DispatchQueue* main();
-		static bool usesMainQueue();
-		static bool enableMainQueue();
+		static bool mainQueueEnabled();
+		static void allowLocalMainQueue();
 		
 		static DispatchQueue* local();
 
@@ -82,6 +82,8 @@ namespace fgl {
 		void notify();
 		void run();
 		bool shouldWake() const;
+
+		static void instantiateLocalMainQueue();
 		
 		struct QueueItem {
 			DispatchWorkItem* workItem;
@@ -113,7 +115,7 @@ namespace fgl {
 		using NativeData = _DispatchQueueNativeData;
 		
 		std::variant<Data*,NativeData*> data;
-		
+
 		static DispatchQueue* mainQueue;
 	};
 	
@@ -121,7 +123,7 @@ namespace fgl {
 	
 	
 #pragma mark DispatchQueue implementation
-	
+
 	template<typename Duration>
 	void DispatchQueue::asyncAfter(std::chrono::time_point<Clock,Duration> deadline, Function<void()> work) {
 		asyncAfter(deadline, new DispatchWorkItem({ .deleteAfterRunning=true }, work));
