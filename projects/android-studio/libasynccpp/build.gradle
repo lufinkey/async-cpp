@@ -19,6 +19,12 @@ android {
 		}
 	}
 
+	sourceSets {
+		main {
+			java.srcDirs += "../../../src/fgl"
+		}
+	}
+
 	buildTypes {
 		debug {
 			minifyEnabled false
