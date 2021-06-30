@@ -9,5 +9,5 @@
 #include <fgl/async.hpp>
 
 namespace fgl_async_cpp_tests {
-	void runTests();
+	fgl::Promise<void> runTests();
 }

@@ -44,53 +44,58 @@ namespace fgl_async_cpp_tests {
 	}
 
 
-	void runTests() {
-		println("Starting AsyncCpp tests");
-		auto backgroundQueue = fgl::backgroundPromiseQueue();
-		auto promise = waitFor(2000, 23)
-		.then(backgroundQueue, [](int result) {
-			println((String)"result 1: " + result);
-			return waitFor(5000, 16);
-		}).then(backgroundQueue, [](int result) {
-			println((String)"result 2: " + result);
-			throw std::logic_error("eyy some shit happened");
-		}).except(backgroundQueue, [](std::exception& error) {
-			println((String)"we caught an error: " + error.what());
-		}).then(backgroundQueue, []() -> Promise<String> {
-			return Promise<String>::resolve("ayy");
-		}).timeout(backgroundQueue, std::chrono::seconds(2), []() -> Promise<String> {
-			// do nothing
-			println((String)"timed out");
-			return Promise<String>::resolve("nayyy");
-		});
-		
-		println(fgl::stringify_type<decltype(promise)>());
-		
-		auto result = await(promise);
-		println((String)"got result: " + result);
+	Promise<void> runTests() {
+		return async<void>([=]() {
+			println("Starting AsyncCpp tests");
+			fgl::DispatchQueue::main()->async([]() {
+				println("We queued something to the main thread");
+			});
 
-		auto gen = generate<int>([](auto yield) {
-			println("we're gonna yield 4");
-			yield(4);
-			println("we're gonna yield 5");
-			yield(5);
-			println("we're gonna return 6");
-			return 6;
-		});
-		println("running generator");
-		int genCounter = 0;
-		bool genDone = false;
-		while(!genDone) {
-			auto genResult = gen.next().get();
-			genDone = genResult.done;
-			println((String)"we got gen result " + genCounter + ". done? " + genResult.done + ", has value? " + genResult.value.has_value() + ", value? " + genResult.value.value_or(-1));
-			genCounter++;
-		}
+			auto promise = waitFor(2000, 23)
+			.then([](int result) {
+				println((String)"result 1: " + result);
+				return waitFor(5000, 16);
+			}).then([](int result) {
+				println((String)"result 2: " + result);
+				throw std::logic_error("eyy some shit happened");
+			}).except([](std::exception& error) {
+				println((String)"we caught an error: " + error.what());
+			}).then([]() -> Promise<String> {
+				return Promise<String>::resolve("ayy");
+			}).timeout(std::chrono::seconds(2), []() -> Promise<String> {
+				// do nothing
+				println((String)"timed out");
+				return Promise<String>::resolve("nayyy");
+			});
+			
+			println(fgl::stringify_type<decltype(promise)>());
+			
+			auto result = await(promise);
+			println((String)"got result: " + result);
 
-		std::shared_ptr<AsyncList<String>> asyncList;
-		
-		await(waitFor(12000));
-		println("Done running AsyncCpp tests");
+			auto gen = generate<int>([](auto yield) {
+				println("we're gonna yield 4");
+				yield(4);
+				println("we're gonna yield 5");
+				yield(5);
+				println("we're gonna return 6");
+				return 6;
+			});
+			println("running generator");
+			int genCounter = 0;
+			bool genDone = false;
+			while(!genDone) {
+				auto genResult = gen.next().get();
+				genDone = genResult.done;
+				println((String)"we got gen result " + genCounter + ". done? " + genResult.done + ", has value? " + genResult.value.has_value() + ", value? " + genResult.value.value_or(-1));
+				genCounter++;
+			}
+
+			std::shared_ptr<AsyncList<String>> asyncList;
+			
+			await(waitFor(6000));
+			println("Done running AsyncCpp tests");
+		});
 	}
 
 }

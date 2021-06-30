@@ -9,7 +9,15 @@
 #include "AsyncCppTests.hpp"
 
 int main(int argc, const char* argv[]) {
-	fgl_async_cpp_tests::runTests();
-	std::this_thread::sleep_for(std::chrono::seconds(4));
+	auto promise = fgl_async_cpp_tests::runTests();
+	promise.then([]() {
+		printf("finished tests successfully\n");
+		exit(0);
+	}, [](std::exception_ptr error) {
+		fgl::DispatchQueue::main()->async([=]() {
+			std::rethrow_exception(error);
+		});
+	});
+	fgl::DispatchQueue::dispatchMain();
 	return 0;
 }

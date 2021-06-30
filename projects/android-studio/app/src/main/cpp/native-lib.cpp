@@ -10,13 +10,8 @@ Java_com_lufinkey_asynccpp_MainActivity_stringFromJNI(
 		JNIEnv *env,
 		jobject /* this */) {
 	__android_log_print(ANDROID_LOG_DEBUG, "native-lib", "Calling MainActivity.stringFromJNI");
-	auto stringTest = fgl::String("Hello from C++");
-	auto mainQueue = fgl::DispatchQueue::main();
-	mainQueue->async([]() {
-		printf("running tests from the main thread\n");
-		fgl_async_cpp_tests::runTests();
-	});
-	return env->NewStringUTF(stringTest.c_str());
+	fgl_async_cpp_tests::runTests();
+	return env->NewStringUTF("Hello from C++");
 }
 
 JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {

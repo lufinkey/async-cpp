@@ -8,6 +8,7 @@
 
 #ifdef __ANDROID__
 #include <fgl/async/JNIAsyncCpp.hpp>
+#include <fgl/async/DispatchQueue.hpp>
 #include <android/log.h>
 #include <dlfcn.h>
 
@@ -55,7 +56,10 @@ namespace fgl {
 
 JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
 	__android_log_print(ANDROID_LOG_DEBUG, "AsyncCpp", "JNI module loaded");
+	// save java vm
 	fgl::sharedJavaVM = vm;
+	// ensure we instantiate the main DispatchQueue
+	fgl::DispatchQueue::main();
 	return JNI_VERSION_1_6;
 }
 
