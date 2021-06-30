@@ -9,6 +9,9 @@ public class MainActivity extends AppCompatActivity {
 
 	// Used to load the 'native-lib' library on application startup.
 	static {
+		System.out.println("loading dependent libraries");
+		com.lufinkey.libdatacpp.DataCpp.loadLibraries();
+		com.lufinkey.libasynccpp.AsyncCpp.loadLibraries();
 		System.loadLibrary("native-lib");
 	}
 

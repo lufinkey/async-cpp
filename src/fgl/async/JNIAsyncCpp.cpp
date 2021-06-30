@@ -11,8 +11,6 @@
 #include <android/log.h>
 #include <dlfcn.h>
 
-int property_get(const char *key, char *value, const char *default_value);
-
 namespace fgl {
 	JavaVM* sharedJavaVM = nullptr;
 
