@@ -90,6 +90,7 @@ namespace fgl_async_cpp_tests {
 		std::shared_ptr<AsyncList<String>> asyncList;
 		
 		await(waitFor(12000));
+		println("Done running AsyncCpp tests");
 	}
 
 }
