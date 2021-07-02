@@ -55,7 +55,7 @@ namespace fgl {
 }
 
 JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
-	__android_log_print(ANDROID_LOG_DEBUG, "AsyncCpp", "JNI module loaded");
+	__android_log_print(ANDROID_LOG_DEBUG, "AsyncCpp", "JNI module initialized");
 	// save java vm
 	fgl::sharedJavaVM = vm;
 	// ensure we instantiate the main DispatchQueue
