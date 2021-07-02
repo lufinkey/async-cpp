@@ -11,6 +11,12 @@ android {
 
 		testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 		consumerProguardFiles 'consumer-rules.pro'
+
+		externalNativeBuild {
+			cmake {
+				targets "AsyncCpp"
+			}
+		}
 	}
 
 	sourceSets {
@@ -34,7 +40,7 @@ android {
 	externalNativeBuild {
 		cmake {
 			path "src/main/cpp/CMakeLists.txt"
-			version "3.10.2"
+			version "3.18.1"
 		}
 	}
 }

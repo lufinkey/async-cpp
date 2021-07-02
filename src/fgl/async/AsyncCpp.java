@@ -1,4 +1,4 @@
-package com.lufinkey.libasynccpp;
+package com.lufinkey;
 
 public class AsyncCpp {
 	static {
@@ -6,7 +6,7 @@ public class AsyncCpp {
 	}
 
 	public static void loadLibraries() {
-		com.lufinkey.libdatacpp.DataCpp.loadLibraries();
+		com.lufinkey.DataCpp.loadLibraries();
 		System.loadLibrary("AsyncCpp");
 	}
 }
