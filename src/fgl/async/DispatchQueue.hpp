@@ -66,10 +66,6 @@ namespace fgl {
 		static void allowLocalMainQueue();
 		
 		static DispatchQueue* local();
-
-		#ifdef JNIEXPORT
-		static void jniScope(JavaVM* vm, Function<void(JNIEnv*)> work);
-		#endif
 		
 	private:
 		enum class Type {

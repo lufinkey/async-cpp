@@ -1,4 +1,4 @@
-package com.lufinkey.asynccpp;
+package com.lufinkey.asynccpptestapp;
 
 import org.junit.Test;
 

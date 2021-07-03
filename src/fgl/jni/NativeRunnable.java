@@ -1,4 +1,4 @@
-package com.lufinkey.libasynccpp;
+package com.lufinkey.asynccpp;
 
 public class NativeRunnable implements Runnable {
 	private long func;

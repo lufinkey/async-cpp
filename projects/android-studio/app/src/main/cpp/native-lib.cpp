@@ -7,7 +7,7 @@
 #include <test/AsyncCppTests.hpp>
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_lufinkey_asynccpp_MainActivity_stringFromJNI(
+Java_com_lufinkey_asynccpptestapp_MainActivity_stringFromJNI(
 		JNIEnv *env,
 		jobject /* this */) {
 	__android_log_print(ANDROID_LOG_DEBUG, "TestApp", "Calling MainActivity.stringFromJNI");

@@ -9,10 +9,13 @@
 
 #ifdef __ANDROID__
 #include <jni.h>
-#include <fgl/async/JNIAsyncCpp.hpp>
 #endif
 #include <fgl/async/DispatchQueue.hpp>
 #include <mutex>
+
+#ifdef __ANDROID__
+	#include <fgl/async/JNIAsyncCpp.hpp>
+#endif
 #ifdef __APPLE__
 #include <dispatch/dispatch.h>
 #include <fgl/async/ObjCCallStack.h>
@@ -34,49 +37,11 @@ namespace fgl {
 	struct _DispatchQueueNativeData {
 		JavaVM* vm;
 		jobject handler;
-		jclass nativeRunnableClass;
-		jmethodID NativeRunnable_init;
-		jmethodID Handler_getLooper;
-		jmethodID Handler_post;
-		jmethodID Handler_postDelayed;
-		jmethodID Looper_getThread;
-		jmethodID Thread_getName;
-
-		jobject newNativeRunnable(JNIEnv* env, std::function<void(JNIEnv*,std::vector<jobject>)> func) {
-			auto nativeFunc = new std::function<void(JNIEnv*,std::vector<jobject>)>(func);
-			return env->NewObject(nativeRunnableClass, NativeRunnable_init, (jlong)nativeFunc);
-		}
 	};
 	#else
 	struct _DispatchQueueNativeData {
 		//
 	};
-	#endif
-
-
-
-	#ifdef JNIEXPORT
-	void DispatchQueue::jniScope(JavaVM* vm, Function<void(JNIEnv*)> work) {
-		if(vm == nullptr) {
-			throw std::runtime_error("given VM is null");
-		}
-		JNIEnv* env = nullptr;
-		bool attachedToThread = false;
-		auto envResult = vm->GetEnv((void**)&env, JNI_VERSION_1_6);
-		if (envResult == JNI_EDETACHED) {
-			if (vm->AttachCurrentThread(&env, NULL) == JNI_OK) {
-				attachedToThread = true;
-			} else {
-				throw std::runtime_error("Failed to attach to thread");
-			}
-		} else if (envResult == JNI_EVERSION) {
-			throw std::runtime_error("Unsupported JNI version");
-		}
-		work(env);
-		if(attachedToThread) {
-			vm->DetachCurrentThread();
-		}
-	}
 	#endif
 
 
@@ -119,24 +84,11 @@ namespace fgl {
 		if(vm == nullptr) {
 			throw std::runtime_error("Unable to get JavaVM");
 		}
-		jclass handlerClass = env->FindClass("android/os/Handler");
-		jclass looperClass = env->FindClass("android/os/Looper");
-		jclass threadClass = env->FindClass("java/lang/Thread");
-		jclass nativeRunnableClass = env->FindClass("com/lufinkey/libasynccpp/NativeRunnable");
-		nativeRunnableClass = (jclass)env->NewGlobalRef(nativeRunnableClass);
-		jmethodID handlerInit = env->GetMethodID(handlerClass, "<init>", "(Landroid/os/Looper;)V");
-		jobject handler = env->NewObject(handlerClass, handlerInit, looper);
+		jobject handler = jni::android::Handler::newObject(env, {.looper = looper});
 		handler = env->NewGlobalRef(handler);
 		data = new NativeData{
 			.vm=vm,
-			.handler=handler,
-			.nativeRunnableClass=nativeRunnableClass,
-			.NativeRunnable_init=env->GetMethodID(nativeRunnableClass, "<init>", "(J)V"),
-			.Handler_getLooper=env->GetMethodID(handlerClass, "getLooper", "()Landroid/os/Looper;"),
-			.Handler_post=env->GetMethodID(handlerClass, "post", "(Ljava/lang/Runnable;)Z"),
-			.Handler_postDelayed=env->GetMethodID(handlerClass, "postDelayed", "(Ljava/lang/Runnable;J)Z"),
-			.Looper_getThread=env->GetMethodID(looperClass, "getThread", "()Ljava/lang/Thread;"),
-			.Thread_getName=env->GetMethodID(threadClass, "getName", "()Ljava/lang/String;")
+			.handler=handler
 		};
 	}
 	#endif
@@ -158,7 +110,6 @@ namespace fgl {
 			#elif defined(__ANDROID__)
 				jniScope(nativeData->vm, [=](auto env) {
 					env->DeleteGlobalRef(nativeData->handler);
-					env->DeleteGlobalRef(nativeData->nativeRunnableClass);
 				});
 			#endif
 			delete nativeData;
@@ -179,10 +130,10 @@ namespace fgl {
 			auto& nativeData = *std::get<NativeData*>(this->data);
 			String label;
 			jniScope(nativeData.vm, [&](auto env) {
-				jobject looper = env->CallObjectMethod(nativeData.handler, nativeData.Handler_getLooper);
-				jobject thread = env->CallObjectMethod(looper, nativeData.Looper_getThread);
-				jobject name = env->CallObjectMethod(thread, nativeData.Thread_getName);
-				label = String(env, (jstring)name);
+				jobject looper = jni::android::Handler::getLooper(env, nativeData.handler);
+				jobject thread = jni::android::Looper::getThread(env, looper);
+				jstring name = jni::Thread::getName(env, thread);
+				label = String(env, name);
 			});
 			return label;
 		#else
@@ -326,10 +277,10 @@ namespace fgl {
 			});
 		#elif defined(__ANDROID__)
 			jniScope(nativeData->vm, [=](auto env) {
-				jobject runnable = nativeData->newNativeRunnable(env, [=](auto env, auto args) {
+				jobject runnable = jni::NativeRunnable::newObject(env, [=](auto env, auto args) {
 					workItem->perform();
 				});
-				jboolean success = env->CallBooleanMethod(nativeData->handler, nativeData->Handler_post, runnable);
+				jboolean success = jni::android::Handler::post(env, nativeData->handler, runnable);
 				if(!success) {
 					throw std::runtime_error("unable to add item to DispatchQueue: Handler.post failed");
 				}
@@ -385,10 +336,10 @@ namespace fgl {
 				milliseconds = 0;
 			}
 			jniScope(nativeData->vm, [=](auto env) {
-				jobject runnable = nativeData->newNativeRunnable(env, [=](auto env, auto args) {
+				jobject runnable = jni::NativeRunnable::newObject(env, [=](auto env, auto args) {
 					workItem->perform();
 				});
-				jboolean success = env->CallBooleanMethod(nativeData->handler, nativeData->Handler_postDelayed, runnable, (jlong)milliseconds);
+				jboolean success = jni::android::Handler::postDelayed(env, nativeData->handler, runnable, (jlong)milliseconds);
 				if(!success) {
 					throw std::runtime_error("unable to add item to DispatchQueue: Handler.postDelayed failed");
 				}
@@ -435,12 +386,12 @@ namespace fgl {
 			bool finished = false;
 
 			jniScope(nativeData->vm, [&](auto env) {
-				jobject runnable = nativeData->newNativeRunnable(env, [&](auto env, auto args) {
+				jobject runnable = jni::NativeRunnable::newObject(env, [&](auto env, auto args) {
 					workItem->perform();
 					finished = true;
 					cv.notify_one();
 				});
-				jboolean success = env->CallBooleanMethod(nativeData->handler, nativeData->Handler_post, runnable);
+				jboolean success = jni::android::Handler::post(env, nativeData->handler, runnable);
 				if(!success) {
 					throw std::runtime_error("unable to add item to DispatchQueue: Handler.post failed");
 				}
@@ -534,7 +485,7 @@ namespace fgl {
 				if(vm == nullptr) {
 					throw std::runtime_error("Java VM not found");
 				}
-				DispatchQueue::jniScope(vm, [&](auto env) {
+				jniScope(vm, [&](auto env) {
 					jclass looperClass = env->FindClass("android/os/Looper");
 					jmethodID Looper_getMainLooper = env->GetStaticMethodID(looperClass, "getMainLooper", "()Landroid/os/Looper;");
 					jobject looper = env->CallStaticObjectMethod(looperClass, Looper_getMainLooper);
