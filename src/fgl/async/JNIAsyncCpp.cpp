@@ -25,13 +25,13 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
 		// ensure we instantiate the main DispatchQueue
 		DispatchQueue::main();
 		// instantiate linked methods
-		jni::NativeRunnable::method_constructor(env);
-		jni::Thread::method_getName(env);
-		jni::android::Handler::method_constructor_looper(env);
-		jni::android::Handler::method_getLooper(env);
-		jni::android::Handler::method_post(env);
-		jni::android::Handler::method_postDelayed(env);
-		jni::android::Looper::method_getThread(env);
+		jni::NativeRunnable::methodID_constructor(env);
+		jni::Thread::methodID_getName(env);
+		jni::android::Handler::methodID_constructor_looper(env);
+		jni::android::Handler::methodID_getLooper(env);
+		jni::android::Handler::methodID_post(env);
+		jni::android::Handler::methodID_postDelayed(env);
+		jni::android::Looper::methodID_getThread(env);
 	});
 	return JNI_VERSION_1_6;
 }
@@ -107,14 +107,12 @@ namespace fgl {
 #pragma mark NativeRunnable
 
 namespace fgl::jni {
-	namespace NativeRunnable {
-		FGL_JNI_DEF_JCLASS("com/lufinkey/asynccpp/NativeRunnable")
-		FGL_JNI_DEF_JCONSTRUCTOR(,"(J)V")
+	FGL_JNI_DEF_JCLASS(NativeRunnable, "com/lufinkey/asynccpp/NativeRunnable")
+	FGL_JNI_DEF_JCONSTRUCTOR(NativeRunnable, ,"(J)V")
 
-		jobject newObject(JNIEnv *env, Callback callback) {
-			auto callbackPtr = new std::function<void(JNIEnv *, std::vector<jobject>)>(callback);
-			return env->NewObject(javaClass(env), method_constructor(env), (jlong) callbackPtr);
-		}
+	jobject NativeRunnable::newObject(JNIEnv *env, Callback callback) {
+		auto callbackPtr = new std::function<void(JNIEnv *, std::vector<jobject>)>(callback);
+		return env->NewObject(javaClass(env), methodID_constructor(env), (jlong) callbackPtr);
 	}
 }
 
@@ -135,13 +133,11 @@ Java_com_lufinkey_asynccpp_NativeRunnable_destroyNativeFunction(JNIEnv* env, jcl
 #pragma mark Thread
 
 namespace fgl::jni {
-	namespace Thread {
-		FGL_JNI_DEF_JCLASS("java/lang/Thread")
-		FGL_JNI_DEF_JMETHOD(getName, "getName", "()Ljava/lang/String;")
+	FGL_JNI_DEF_JCLASS(Thread, "java/lang/Thread")
+	FGL_JNI_DEF_JMETHOD(Thread, getName, "getName", "()Ljava/lang/String;")
 
-		jstring getName(JNIEnv* env, jobject self) {
-			return (jstring)env->CallObjectMethod(self, method_getName(env));
-		}
+	jstring Thread::getName(JNIEnv* env, jobject self) {
+		return (jstring)env->CallObjectMethod(self, methodID_getName(env));
 	}
 }
 
@@ -150,36 +146,43 @@ namespace fgl::jni {
 #pragma mark Android classes
 
 namespace fgl::jni::android {
-	namespace Handler {
-		FGL_JNI_DEF_JCLASS("android/os/Handler")
-		FGL_JNI_DEF_JCONSTRUCTOR(_looper, "(Landroid/os/Looper;)V")
-		FGL_JNI_DEF_JMETHOD(getLooper, "getLooper", "()Landroid/os/Looper;")
-		FGL_JNI_DEF_JMETHOD(post, "post", "(Ljava/lang/Runnable;)Z")
-		FGL_JNI_DEF_JMETHOD(postDelayed, "postDelayed", "(Ljava/lang/Runnable;J)Z")
 
-		jobject newObject(JNIEnv* env, LooperInitParams params) {
-			return env->NewObject(javaClass(env), method_constructor_looper(env), params.looper);
-		}
+	#pragma mark Handler
 
-		jobject getLooper(JNIEnv* env, jobject self) {
-			return env->CallObjectMethod(self, method_getLooper(env));
-		}
-		jboolean post(JNIEnv* env, jobject self, jobject runnable) {
-			return env->CallBooleanMethod(self, method_post(env), runnable);
-		}
-		jboolean postDelayed(JNIEnv* env, jobject self, jobject runnable, jlong delayMillis) {
-			return env->CallBooleanMethod(self, method_postDelayed(env), runnable, delayMillis);
-		}
+	FGL_JNI_DEF_JCLASS(Handler, "android/os/Handler")
+	FGL_JNI_DEF_JCONSTRUCTOR(Handler, _looper, "(Landroid/os/Looper;)V")
+	FGL_JNI_DEF_JMETHOD(Handler, getLooper, "getLooper", "()Landroid/os/Looper;")
+	FGL_JNI_DEF_JMETHOD(Handler, post, "post", "(Ljava/lang/Runnable;)Z")
+	FGL_JNI_DEF_JMETHOD(Handler, postDelayed, "postDelayed", "(Ljava/lang/Runnable;J)Z")
+
+	jobject Handler::newObject(JNIEnv* env, LooperInitParams params) {
+		return env->NewObject(javaClass(env), methodID_constructor_looper(env), params.looper);
+	}
+
+	jobject Handler::getLooper(JNIEnv* env, jobject self) {
+		return env->CallObjectMethod(self, methodID_getLooper(env));
+	}
+	jboolean Handler::post(JNIEnv* env, jobject self, jobject runnable) {
+		return env->CallBooleanMethod(self, methodID_post(env), runnable);
+	}
+	jboolean Handler::postDelayed(JNIEnv* env, jobject self, jobject runnable, jlong delayMillis) {
+		return env->CallBooleanMethod(self, methodID_postDelayed(env), runnable, delayMillis);
 	}
 
 
-	namespace Looper {
-		FGL_JNI_DEF_JCLASS("android/os/Looper")
-		FGL_JNI_DEF_JMETHOD(getThread, "getThread", "()Ljava/lang/Thread;")
 
-		jobject getThread(JNIEnv* env, jobject self) {
-			return env->CallObjectMethod(self, method_getThread(env));
-		}
+	#pragma mark Looper
+
+	FGL_JNI_DEF_JCLASS(Looper, "android/os/Looper")
+	FGL_JNI_DEF_JMETHOD(Looper, getThread, "getThread", "()Ljava/lang/Thread;")
+	FGL_JNI_DEF_STATIC_JMETHOD(Looper, getMainLooper, "getMainLooper", "()Landroid/os/Looper;")
+
+	jobject Looper::getThread(JNIEnv* env, jobject self) {
+		return env->CallObjectMethod(self, methodID_getThread(env));
+	}
+
+	jobject Looper::getMainLooper(JNIEnv *env) {
+		return env->CallStaticObjectMethod(javaClass(env), methodID_static_getMainLooper(env));
 	}
 }
 

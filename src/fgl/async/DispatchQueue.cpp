@@ -486,10 +486,7 @@ namespace fgl {
 					throw std::runtime_error("Java VM not found");
 				}
 				jniScope(vm, [&](auto env) {
-					jclass looperClass = env->FindClass("android/os/Looper");
-					jmethodID Looper_getMainLooper = env->GetStaticMethodID(looperClass, "getMainLooper", "()Landroid/os/Looper;");
-					jobject looper = env->CallStaticObjectMethod(looperClass, Looper_getMainLooper);
-					mainQueue = new DispatchQueue(env, looper);
+					mainQueue = new DispatchQueue(env, jni::android::Looper::getMainLooper(env));
 				});
 				mainQueue->async([]() {
 					localDispatchQueue = mainQueue;

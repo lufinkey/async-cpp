@@ -25,44 +25,61 @@ namespace fgl {
 	jclass javaClass(JNIEnv* env);
 
 #define FGL_JNI_DECL_JMETHOD(name) \
-	jmethodID method_##name(JNIEnv* env);
+	jmethodID methodID_##name(JNIEnv* env);
+
+#define FGL_JNI_DECL_STATIC_JMETHOD(name) \
+	jmethodID methodID_static_##name(JNIEnv* env);
 
 #define FGL_JNI_DECL_JCONSTRUCTOR(suffix) \
 	FGL_JNI_DECL_JMETHOD(constructor##suffix)
 
-#define FGL_JNI_DEF_JCLASS(classpath) \
-	jclass _javaClass = nullptr; \
-	jclass javaClass(JNIEnv *env) { \
-		if (_javaClass == nullptr) { \
-			_javaClass = env->FindClass(classpath); \
+#define FGL_JNI_DEF_JCLASS(enclosure, classpath) \
+	jclass _##enclosure##_javaClass = nullptr; \
+	jclass enclosure::javaClass(JNIEnv *env) { \
+		if (_##enclosure##_javaClass == nullptr) { \
+			_##enclosure##_javaClass = env->FindClass(classpath); \
 			if (env->ExceptionOccurred() != nullptr) { \
 				env->ExceptionDescribe(); \
 				env->ExceptionClear(); \
 				throw std::runtime_error((std::string)"Unable to find java class " + classpath); \
 			} \
-			if (_javaClass != nullptr) { \
-				_javaClass = (jclass) env->NewGlobalRef(_javaClass); \
+			if (_##enclosure##_javaClass != nullptr) { \
+				_##enclosure##_javaClass = (jclass) env->NewGlobalRef(_##enclosure##_javaClass); \
 			} \
 		} \
-		return _javaClass; \
+		return _##enclosure##_javaClass; \
 	}
 
-#define FGL_JNI_DEF_JMETHOD(name, id, signature) \
-	jmethodID _method_##name = nullptr; \
-	jmethodID method_##name(JNIEnv* env) {          \
-		if (_method_##name == nullptr) { \
-			_method_##name = env->GetMethodID(javaClass(env), id, signature); \
+#define FGL_JNI_DEF_JMETHOD(enclosure, name, id, signature) \
+	jmethodID _##enclosure##_methodID_##name = nullptr; \
+	jmethodID enclosure::methodID_##name(JNIEnv* env) {          \
+		if (_##enclosure##_methodID_##name == nullptr) { \
+			_##enclosure##_methodID_##name = env->GetMethodID(javaClass(env), id, signature); \
 			if (env->ExceptionOccurred() != nullptr) { \
 				env->ExceptionDescribe(); \
 				env->ExceptionClear(); \
 				throw std::runtime_error((std::string)"Unable to find method ID for " + id + " with signature " + signature); \
 			} \
 		} \
-		return _method_##name; \
+		return _##enclosure##_methodID_##name; \
 	}
 
-#define FGL_JNI_DEF_JCONSTRUCTOR(suffix, signature) \
-	FGL_JNI_DEF_JMETHOD(constructor##suffix, "<init>", signature)
+#define FGL_JNI_DEF_JCONSTRUCTOR(enclosure, suffix, signature) \
+	FGL_JNI_DEF_JMETHOD(enclosure, constructor##suffix, "<init>", signature)
+
+#define FGL_JNI_DEF_STATIC_JMETHOD(enclosure, name, id, signature) \
+	jmethodID _##enclosure##_methodID_static_##name = nullptr; \
+	jmethodID enclosure::methodID_static_##name(JNIEnv* env) {          \
+		if (_##enclosure##_methodID_static_##name == nullptr) { \
+			_##enclosure##_methodID_static_##name = env->GetStaticMethodID(javaClass(env), id, signature); \
+			if (env->ExceptionOccurred() != nullptr) { \
+				env->ExceptionDescribe(); \
+				env->ExceptionClear(); \
+				throw std::runtime_error((std::string)"Unable to find method ID for " + id + " with signature " + signature); \
+			} \
+		} \
+		return _##enclosure##_methodID_static_##name; \
+	}
 
 
 
@@ -104,8 +121,10 @@ namespace fgl::jni::android {
 	namespace Looper {
 		FGL_JNI_DECL_JCLASS
 		FGL_JNI_DECL_JMETHOD(getThread)
+		FGL_JNI_DECL_STATIC_JMETHOD(getMainLooper)
 
 		jobject getThread(JNIEnv* env, jobject self);
+		jobject getMainLooper(JNIEnv* env);
 	}
 }
 
