@@ -30,6 +30,12 @@ namespace fgl {
 #define FGL_JNI_DECL_STATIC_JMETHOD(name) \
 	jmethodID methodID_static_##name(JNIEnv* env);
 
+#define FGL_JNI_DECL_JFIELD(name) \
+	jfieldID fieldID_##name(JNIEnv* env);
+
+#define FGL_JNI_DECL_STATIC_JFIELD(name) \
+	jfieldID fieldID_static_##name(JNIEnv* env);
+
 #define FGL_JNI_DECL_JCONSTRUCTOR(suffix) \
 	FGL_JNI_DECL_JMETHOD(constructor##suffix)
 
@@ -67,6 +73,20 @@ namespace fgl {
 #define FGL_JNI_DEF_JCONSTRUCTOR(enclosure, suffix, signature) \
 	FGL_JNI_DEF_JMETHOD(enclosure, constructor##suffix, "<init>", signature)
 
+#define FGL_JNI_DEF_JFIELD(enclosure, name, id, signature) \
+	jfieldID _##enclosure##_fieldID_##name = nullptr; \
+	jfieldID enclosure::fieldID_##name(JNIEnv* env) { \
+        if (_##enclosure##_fieldID_##name == nullptr) { \
+            _##enclosure##_fieldID_##name = env->GetFieldID(javaClass(env), id, signature); \
+            if (env->ExceptionOccurred() != nullptr) { \
+                env->ExceptionDescribe(); \
+                env->ExceptionClear(); \
+                throw std::runtime_error((std::string)"Unable to find field ID for " + id + " with signature " + signature); \
+            } \
+        } \
+        return _##enclosure##_fieldID_##name; \
+    }
+
 #define FGL_JNI_DEF_STATIC_JMETHOD(enclosure, name, id, signature) \
 	jmethodID _##enclosure##_methodID_static_##name = nullptr; \
 	jmethodID enclosure::methodID_static_##name(JNIEnv* env) {          \
@@ -75,10 +95,24 @@ namespace fgl {
 			if (env->ExceptionOccurred() != nullptr) { \
 				env->ExceptionDescribe(); \
 				env->ExceptionClear(); \
-				throw std::runtime_error((std::string)"Unable to find method ID for " + id + " with signature " + signature); \
+				throw std::runtime_error((std::string)"Unable to find static method ID for " + id + " with signature " + signature); \
 			} \
 		} \
 		return _##enclosure##_methodID_static_##name; \
+	}
+
+#define FGL_JNI_DEF_STATIC_JFIELD(enclosure, name, id, signature) \
+	jfieldID _##enclosure##_fieldID_static_##name = nullptr; \
+	jfieldID enclosure::fieldID_static_##name(JNIEnv* env) {          \
+		if (_##enclosure##_fieldID_static_##name == nullptr) { \
+			_##enclosure##_fieldID_static_##name = env->GetStaticFieldID(javaClass(env), id, signature); \
+			if (env->ExceptionOccurred() != nullptr) { \
+				env->ExceptionDescribe(); \
+				env->ExceptionClear(); \
+				throw std::runtime_error((std::string)"Unable to find static field ID for " + id + " with signature " + signature); \
+			} \
+		} \
+		return _##enclosure##_fieldID_static_##name; \
 	}
 
 

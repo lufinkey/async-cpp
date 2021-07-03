@@ -22,8 +22,6 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
 	__android_log_print(ANDROID_LOG_DEBUG, "AsyncCpp", "JNI module initialized");
 	sharedJavaVM = vm;
 	jniScope(vm, [](JNIEnv* env) {
-		// ensure we instantiate the main DispatchQueue
-		DispatchQueue::main();
 		// instantiate linked methods
 		jni::NativeRunnable::methodID_constructor(env);
 		jni::Thread::methodID_getName(env);
@@ -32,6 +30,9 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
 		jni::android::Handler::methodID_post(env);
 		jni::android::Handler::methodID_postDelayed(env);
 		jni::android::Looper::methodID_getThread(env);
+		jni::android::Looper::methodID_static_getMainLooper(env);
+		// ensure we instantiate the main DispatchQueue
+		DispatchQueue::main();
 	});
 	return JNI_VERSION_1_6;
 }
