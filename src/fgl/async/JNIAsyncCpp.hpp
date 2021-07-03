@@ -16,9 +16,7 @@
 namespace fgl {
 	JavaVM* getJavaVM();
 
-	#ifdef JNIEXPORT
 	void jniScope(JavaVM* vm, Function<void(JNIEnv*)> work);
-	#endif
 }
 
 
