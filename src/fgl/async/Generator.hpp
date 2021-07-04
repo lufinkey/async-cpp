@@ -61,10 +61,7 @@ namespace fgl {
 		using NextType = Next;
 		
 		using YieldResult = GeneratorYieldResult<Yield>;
-		
 		using YieldReturner = typename lambda_block<Next,Promise<YieldResult>>::type;
-		template<typename T>
-		using Mapper = typename lambda_block<Yield,T>::type;
 		
 		Generator();
 		explicit Generator(YieldReturner yieldReturner, Function<void()> destructor=nullptr);
@@ -85,14 +82,14 @@ namespace fgl {
 			typename std::enable_if<(std::is_same<_Next,Next>::value && std::is_same<_Next,void>::value), std::nullptr_t>::type = nullptr>
 		inline Promise<YieldResult> next();
 		
-		template<typename NewYield>
-		Generator<NewYield,Next> map(DispatchQueue* queue, Mapper<NewYield> transform);
-		template<typename NewYield>
-		Generator<NewYield,Next> map(Mapper<NewYield> transform);
-		template<typename NewYield>
-		Generator<NewYield,Next> mapAsync(DispatchQueue* queue, Mapper<Promise<NewYield>> transform);
-		template<typename NewYield>
-		Generator<NewYield,Next> mapAsync(Mapper<Promise<NewYield>> transform);
+		template<typename Transform>
+		auto map(DispatchQueue* queue, Transform transform);
+		template<typename Transform>
+		inline auto map(Transform transform);
+		template<typename Transform>
+		auto mapAsync(DispatchQueue* queue, Transform transform);
+		template<typename Transform>
+		inline auto mapAsync(Transform transform);
 		
 	private:
 		enum class State {
@@ -223,90 +220,197 @@ namespace fgl {
 
 
 	template<typename Yield, typename Next>
-	template<typename NewYield>
-	Generator<NewYield,Next> Generator<Yield,Next>::map(DispatchQueue* queue, Mapper<NewYield> transform) {
-		using NewYieldResult = typename Generator<NewYield,Next>::YieldResult;
-		auto resultTransform = [=](auto yieldResult) {
-			if constexpr(std::is_same<Optionalized<Yield>,Yield>::value) {
-				return NewYieldResult{
-					.value=transform(std::move(yieldResult.value)),
-					.done=yieldResult.done
-				};
-			} else {
-				if(yieldResult.value.has_value()) {
-					return NewYieldResult{
-						.value=transform(std::move(yieldResult.value.value())),
+	template<typename Transform>
+	auto Generator<Yield,Next>::map(DispatchQueue* queue, Transform transform) {
+		if constexpr(std::is_same<Yield,void>::value) {
+			using NewYield = decltype(transform());
+			using NewYieldResult = typename Generator<NewYield,Next>::YieldResult;
+			auto resultTransform = [=](auto yieldResult) {
+				if constexpr(std::is_same<NewYield,void>::value) {
+					transform();
+					return NewYieldResult {
 						.done=yieldResult.done
 					};
 				} else {
 					return NewYieldResult{
-						.value=std::nullopt,
+						.value=transform(),
 						.done=yieldResult.done
 					};
 				}
+			};
+			auto _continuer = this->continuer;
+			if constexpr(std::is_same<Next,void>::value) {
+				return Generator<NewYield,Next>([=]() {
+					return _continuer->next().map(queue, resultTransform);
+				});
+			} else {
+				return Generator<NewYield,Next>([=](Next nextValue) {
+					return _continuer->next(nextValue).map(queue, resultTransform);
+				});
 			}
-		};
-		auto _continuer = this->continuer;
-		if constexpr(std::is_same<Next,void>::value) {
-			return Generator<NewYield,Next>([=]() {
-				return _continuer->next().template map<NewYieldResult>(queue, resultTransform);
-			});
-		} else {
-			return Generator<NewYield,Next>([=](Next nextValue) {
-				return _continuer->next(nextValue).template map<NewYieldResult>(queue, resultTransform);
-			});
+		}
+		else {
+			using NewYield = decltype(transform(std::declval<Yield>()));
+			using NewYieldResult = typename Generator<NewYield,Next>::YieldResult;
+			auto resultTransform = [=](auto yieldResult) {
+				if constexpr(std::is_same<NewYield,void>::value) {
+					if constexpr(std::is_same<Optionalized<Yield>,Yield>::value) {
+						transform(std::move(yieldResult.value));
+						return NewYieldResult{
+							.done=yieldResult.done
+						};
+					} else {
+						if(yieldResult.value.has_value()) {
+							transform(std::move(yieldResult.value.value()));
+							return NewYieldResult{
+								.done=yieldResult.done
+							};
+						} else {
+							return NewYieldResult{
+								.done=yieldResult.done
+							};
+						}
+					}
+				} else {
+					if constexpr(std::is_same<Optionalized<Yield>,Yield>::value) {
+						return NewYieldResult{
+							.value=transform(std::move(yieldResult.value)),
+							.done=yieldResult.done
+						};
+					} else {
+						if(yieldResult.value.has_value()) {
+							return NewYieldResult{
+								.value=transform(std::move(yieldResult.value.value())),
+								.done=yieldResult.done
+							};
+						} else {
+							return NewYieldResult{
+								.value=std::nullopt,
+								.done=yieldResult.done
+							};
+						}
+					}
+				}
+			};
+			auto _continuer = this->continuer;
+			if constexpr(std::is_same<Next,void>::value) {
+				return Generator<NewYield,Next>([=]() {
+					return _continuer->next().map(queue, resultTransform);
+				});
+			} else {
+				return Generator<NewYield,Next>([=](Next nextValue) {
+					return _continuer->next(nextValue).map(queue, resultTransform);
+				});
+			}
 		}
 	}
 
 	template<typename Yield, typename Next>
-	template<typename NewYield>
-	Generator<NewYield,Next> Generator<Yield,Next>::map(Mapper<NewYield> transform) {
-		return map<NewYield>(nullptr, transform);
+	template<typename Transform>
+	auto Generator<Yield,Next>::map(Transform transform) {
+		return map<Transform>(nullptr, transform);
 	}
 
 	template<typename Yield, typename Next>
-	template<typename NewYield>
-	Generator<NewYield,Next> Generator<Yield,Next>::mapAsync(DispatchQueue* queue, Mapper<Promise<NewYield>> transform) {
-		using NewYieldResult = typename Generator<NewYield,Next>::YieldResult;
-		auto resultTransform = [=](auto yieldResult) {
-			if constexpr(std::is_same<Optionalized<Yield>,Yield>::value) {
-				return transform(std::move(yieldResult.value)).template map<NewYieldResult>(nullptr, [=](NewYield newValue) {
-					return NewYieldResult{
-						.value=newValue,
-						.done=yieldResult.done
-					};
-				});
-			} else {
-				if(yieldResult.value.has_value()) {
-					return transform(std::move(yieldResult.value.value())).template map<NewYieldResult>(nullptr, [=](NewYield newValue) {
+	template<typename Transform>
+	auto Generator<Yield,Next>::mapAsync(DispatchQueue* queue, Transform transform) {
+		if constexpr(std::is_same<Yield,void>::value) {
+			using NewYieldPromise = decltype(transform());
+			using NewYield = typename IsPromise<NewYieldPromise>::ResultType;
+			using NewYieldResult = typename Generator<NewYield,Next>::YieldResult;
+			auto resultTransform = [=](auto yieldResult) {
+				if constexpr(std::is_same<NewYield,void>::value) {
+					return transform().map([=]() {
+						return NewYieldResult{
+							.done=yieldResult.done
+						};
+					});
+				} else {
+					return transform().map([=](auto newValue) {
 						return NewYieldResult{
 							.value=newValue,
 							.done=yieldResult.done
 						};
 					});
-				} else {
-					return NewYieldResult{
-						.value=std::nullopt,
-						.done=yieldResult.done
-					};
 				}
+			};
+			auto _continuer = this->continuer;
+			if constexpr(std::is_same<Next,void>::value) {
+				return Generator<NewYield,Next>([=]() {
+					return _continuer->next().then(queue, resultTransform);
+				});
+			} else {
+				return Generator<NewYield,Next>([=](Next nextValue) {
+					return _continuer->next(nextValue).then(queue, resultTransform);
+				});
 			}
-		};
-		auto _continuer = this->continuer;
-		if constexpr(std::is_same<Next,void>::value) {
-			return Generator<NewYield,Next>([=]() {
-				return _continuer->next().template then<NewYieldResult>(queue, resultTransform);
-			});
-		} else {
-			return Generator<NewYield,Next>([=](Next nextValue) {
-				return _continuer->next(nextValue).template then<NewYieldResult>(queue, resultTransform);
-			});
+		}
+		else {
+			using NewYieldPromise = decltype(transform(std::declval<Yield>()));
+			using NewYield = typename IsPromise<NewYieldPromise>::ResultType;
+			using NewYieldResult = typename Generator<NewYield,Next>::YieldResult;
+			auto resultTransform = [=](auto yieldResult) {
+				if constexpr(std::is_same<NewYield,void>::value) {
+					if constexpr(std::is_same<Optionalized<Yield>,Yield>::value) {
+						return transform(std::move(yieldResult.value)).map(nullptr, [=]() {
+							return NewYieldResult{
+								.done=yieldResult.done
+							};
+						});
+					} else {
+						if(yieldResult.value.has_value()) {
+							return transform(std::move(yieldResult.value.value())).map(nullptr, [=]() {
+								return NewYieldResult{
+									.done=yieldResult.done
+								};
+							});
+						} else {
+							return NewYieldResult{
+								.done=yieldResult.done
+							};
+						}
+					}
+				} else {
+					if constexpr(std::is_same<Optionalized<Yield>,Yield>::value) {
+						return transform(std::move(yieldResult.value)).map(nullptr, [=](auto newValue) {
+							return NewYieldResult{
+								.value=newValue,
+								.done=yieldResult.done
+							};
+						});
+					} else {
+						if(yieldResult.value.has_value()) {
+							return transform(std::move(yieldResult.value.value())).map(nullptr, [=](auto newValue) {
+								return NewYieldResult{
+									.value=newValue,
+									.done=yieldResult.done
+								};
+							});
+						} else {
+							return NewYieldResult{
+								.value=std::nullopt,
+								.done=yieldResult.done
+							};
+						}
+					}
+				}
+			};
+			auto _continuer = this->continuer;
+			if constexpr(std::is_same<Next,void>::value) {
+				return Generator<NewYield,Next>([=]() {
+					return _continuer->next().then(queue, resultTransform);
+				});
+			} else {
+				return Generator<NewYield,Next>([=](Next nextValue) {
+					return _continuer->next(nextValue).then(queue, resultTransform);
+				});
+			}
 		}
 	}
 
 	template<typename Yield, typename Next>
-	template<typename NewYield>
-	Generator<NewYield,Next> Generator<Yield,Next>::mapAsync(Mapper<Promise<NewYield>> transform) {
+	template<typename Transform>
+	auto Generator<Yield,Next>::mapAsync(Transform transform) {
 		return mapAsync(nullptr, transform);
 	}
 
@@ -393,7 +497,7 @@ namespace fgl {
 		auto yieldReturner = this->yieldReturner;
 		auto performNext = [=]() -> Promise<YieldResult> {
 			state = State::EXECUTING;
-			return yieldReturner().template map<YieldResult>(nullptr, [=](YieldResult result) -> YieldResult {
+			return yieldReturner().map(nullptr, [=](YieldResult result) -> YieldResult {
 				std::unique_lock<std::recursive_mutex> lock(self->mutex);
 				if(result.done) {
 					state = State::FINISHED;

@@ -65,6 +65,19 @@ namespace fgl {
 		|| std::is_same<typename lambda_traits<Func>::return_type,Promise<Result>>::value),Func>::type;
 
 
+	template<typename T>
+	struct promisize_t {
+		using type = Promise<T>;
+	};
+	template<typename T>
+	struct promisize_t<Promise<T>> {
+		using type = Promise<T>;
+	};
+
+	template<typename T>
+	using Promisized = typename promisize_t<T>::type;
+
+
 
 	template<typename Result>
 	class Promise {
@@ -80,106 +93,74 @@ namespace fgl {
 		template<typename ErrorType, typename Return>
 		using Catch = Function<Return(ErrorType)>;
 
-		explicit Promise(const Function<void(Resolver,Rejecter)>& executor);
-		Promise(String name, const Function<void(Resolver,Rejecter)>& executor);
+		template<typename Executor>
+		explicit Promise(Executor executor);
+		template<typename Executor>
+		Promise(String name, Executor executor);
 
 
 		Promise<void> then(String name, DispatchQueue* queue, Then<void> onresolve, Catch<std::exception_ptr,void> onreject);
 		inline Promise<void> then(DispatchQueue* queue, Then<void> onresolve, Catch<std::exception_ptr,void> onreject);
-
-		Promise<void> then(String name, Then<void> onresolve, Catch<std::exception_ptr,void> onreject);
+		inline Promise<void> then(String name, Then<void> onresolve, Catch<std::exception_ptr,void> onreject);
 		inline Promise<void> then(Then<void> onresolve, Catch<std::exception_ptr,void> onreject);
 
-		template<typename OnResolve,
-			typename Return = typename lambda_traits<OnResolve>::return_type,
-			typename std::enable_if<std::is_same<Return,void>::value, std::nullptr_t>::type = nullptr>
-		Promise<void> then(String name, DispatchQueue* queue, OnResolve onresolve);
-		template<typename OnResolve,
-			typename Return = typename lambda_traits<OnResolve>::return_type,
-			typename std::enable_if<std::is_same<Return,void>::value, std::nullptr_t>::type = nullptr>
-		inline Promise<void> then(DispatchQueue* queue, OnResolve onresolve);
-
-		template<typename OnResolve,
-			typename Return = typename lambda_traits<OnResolve>::return_type,
-			typename std::enable_if<std::is_same<Return,void>::value, std::nullptr_t>::type = nullptr>
-		Promise<void> then(String name, OnResolve onresolve);
-		template<typename OnResolve,
-			typename Return = typename lambda_traits<OnResolve>::return_type,
-			typename std::enable_if<std::is_same<Return,void>::value, std::nullptr_t>::type = nullptr>
-		inline Promise<void> then(OnResolve onresolve);
-
-		template<typename OnResolve,
-			typename Return = typename lambda_traits<OnResolve>::return_type,
-			typename NextResult = typename is_promise<Return>::result_type,
-			typename std::enable_if<(is_promise<Return>::value && std::is_same<Return,Promise<NextResult>>::value), std::nullptr_t>::type = nullptr>
-		Promise<NextResult> then(String name, DispatchQueue* queue, OnResolve onresolve);
-		template<typename OnResolve,
-			typename Return = typename lambda_traits<OnResolve>::return_type,
-			typename NextResult = typename is_promise<Return>::result_type,
-			typename std::enable_if<(is_promise<Return>::value && std::is_same<Return,Promise<NextResult>>::value), std::nullptr_t>::type = nullptr>
-		inline Promise<NextResult> then(DispatchQueue* queue, OnResolve onresolve);
-
-		template<typename OnResolve,
-				typename Return = typename lambda_traits<OnResolve>::return_type,
-				typename NextResult = typename is_promise<Return>::result_type,
-				typename std::enable_if<(is_promise<Return>::value && std::is_same<Return,Promise<NextResult>>::value), std::nullptr_t>::type = nullptr>
-		Promise<NextResult> then(String name, OnResolve onresolve);
-		template<typename OnResolve,
-			typename Return = typename lambda_traits<OnResolve>::return_type,
-			typename NextResult = typename is_promise<Return>::result_type,
-			typename std::enable_if<(is_promise<Return>::value && std::is_same<Return,Promise<NextResult>>::value), std::nullptr_t>::type = nullptr>
-		inline Promise<NextResult> then(OnResolve onresolve);
-
-
-		template<typename OnReject, typename = IsPromiseOrTFunction<Result,OnReject>>
+		template<typename OnResolve>
+		auto then(String name, DispatchQueue* queue, OnResolve onresolve);
+		template<typename OnResolve>
+		inline auto then(DispatchQueue* queue, OnResolve onresolve);
+		template<typename OnResolve>
+		inline auto then(String name, OnResolve onresolve);
+		template<typename OnResolve>
+		inline auto then(OnResolve onresolve);
+		
+		
+		template<typename OnReject>
 		Promise<Result> except(String name, DispatchQueue* queue, OnReject onreject);
-		template<typename OnReject, typename = IsPromiseOrTFunction<Result,OnReject>>
+		template<typename OnReject>
 		inline Promise<Result> except(DispatchQueue* queue, OnReject onreject);
-
-		template<typename OnReject, typename = IsPromiseOrTFunction<Result,OnReject>>
-		Promise<Result> except(String name, OnReject onreject);
-		template<typename OnReject, typename = IsPromiseOrTFunction<Result,OnReject>>
+		template<typename OnReject>
+		inline Promise<Result> except(String name, OnReject onreject);
+		template<typename OnReject>
 		inline Promise<Result> except(OnReject onreject);
 
 
-		Promise<Result> finally(String name, DispatchQueue* queue, Function<void()> onfinally);
-		inline Promise<Result> finally(DispatchQueue* queue, Function<void()> onfinally);
-		Promise<Result> finally(String name, Function<void()> onfinally);
-		inline Promise<Result> finally(Function<void()> onfinally);
+		template<typename OnFinally>
+		Promise<Result> finally(String name, DispatchQueue* queue, OnFinally onfinally);
+		template<typename OnFinally>
+		inline Promise<Result> finally(DispatchQueue* queue, OnFinally onfinally);
+		template<typename OnFinally>
+		inline Promise<Result> finally(String name, OnFinally onfinally);
+		template<typename OnFinally>
+		inline Promise<Result> finally(OnFinally onfinally);
 
 
-		template<typename NextResult>
-		Promise<NextResult> map(String name, DispatchQueue* queue, Then<NextResult> transform);
-		template<typename NextResult>
-		inline Promise<NextResult> map(DispatchQueue* queue, Then<NextResult> transform);
-		template<typename NextResult>
-		Promise<NextResult> map(String name, Then<NextResult> transform);
-		template<typename NextResult>
-		inline Promise<NextResult> map(Then<NextResult> transform);
+		template<typename Transform>
+		auto map(String name, DispatchQueue* queue, Transform transform);
+		template<typename Transform>
+		inline auto map(DispatchQueue* queue, Transform transform);
+		template<typename Transform>
+		inline auto map(String name, Transform transform);
+		template<typename Transform>
+		inline auto map(Transform transform);
 
 
 		template<typename Rep, typename Period>
 		Promise<Result> delay(String name, DispatchQueue* queue, std::chrono::duration<Rep,Period> delay);
 		template<typename Rep, typename Period>
 		inline Promise<Result> delay(DispatchQueue* queue, std::chrono::duration<Rep,Period> delay);
-
 		template<typename Rep, typename Period>
 		inline Promise<Result> delay(String name, std::chrono::duration<Rep,Period> delay);
 		template<typename Rep, typename Period>
 		inline Promise<Result> delay(std::chrono::duration<Rep,Period> delay);
 		
 		
-		template<typename Rep, typename Period, typename OnTimeout,
-			typename = IsPromiseOrTFunction<Result,OnTimeout>>
+		template<typename Rep, typename Period, typename OnTimeout>
 		Promise<Result> timeout(String name, DispatchQueue* queue, std::chrono::duration<Rep,Period> timeout, OnTimeout onTimeout);
-		template<typename Rep, typename Period, typename OnTimeout,
-			typename = IsPromiseOrTFunction<Result,OnTimeout>>
+		template<typename Rep, typename Period, typename OnTimeout>
 		inline Promise<Result> timeout(DispatchQueue* queue, std::chrono::duration<Rep,Period> timeout, OnTimeout onTimeout);
-		template<typename Rep, typename Period, typename OnTimeout,
-			typename = IsPromiseOrTFunction<Result,OnTimeout>>
+		template<typename Rep, typename Period, typename OnTimeout>
 		inline Promise<Result> timeout(String name, std::chrono::duration<Rep,Period> timeout, OnTimeout onTimeout);
-		template<typename Rep, typename Period, typename OnTimeout,
-			typename = IsPromiseOrTFunction<Result,OnTimeout>>
+		template<typename Rep, typename Period, typename OnTimeout>
 		inline Promise<Result> timeout(std::chrono::duration<Rep,Period> timeout, OnTimeout onTimeout);
 
 
@@ -246,18 +227,14 @@ namespace fgl {
 		static Promise<void> race(ArrayList<Promise<_Result>> promises);
 
 
-		template<typename Rep, typename Period, typename AfterDelay,
-			typename = IsPromiseOrTFunction<Result,AfterDelay>>
+		template<typename Rep, typename Period, typename AfterDelay>
 		static Promise<Result> delayed(String name, std::chrono::duration<Rep,Period> delay, DispatchQueue* queue, AfterDelay afterDelay);
-		template<typename Rep, typename Period, typename AfterDelay,
-			typename = IsPromiseOrTFunction<Result,AfterDelay>>
+		template<typename Rep, typename Period, typename AfterDelay>
 		inline static Promise<Result> delayed(std::chrono::duration<Rep,Period> delay, DispatchQueue* queue, AfterDelay afterDelay);
 
-		template<typename Rep, typename Period, typename AfterDelay,
-			typename = IsPromiseOrTFunction<Result,AfterDelay>>
+		template<typename Rep, typename Period, typename AfterDelay>
 		inline static Promise<Result> delayed(String name, std::chrono::duration<Rep,Period> delay, AfterDelay afterDelay);
-		template<typename Rep, typename Period, typename AfterDelay,
-			typename = IsPromiseOrTFunction<Result,AfterDelay>>
+		template<typename Rep, typename Period, typename AfterDelay>
 		inline static Promise<Result> delayed(std::chrono::duration<Rep,Period> delay, AfterDelay afterDelay);
 
 
@@ -268,9 +245,9 @@ namespace fgl {
 			REJECTED
 		};
 		
-		class Continuer {
+		class Continuer: std::enable_shared_from_this<Continuer> {
 		public:
-			Continuer(std::shared_ptr<Continuer>& ptr, String name);
+			Continuer(String name);
 
 			inline const String& getName() const;
 			inline const std::shared_future<Result>& getFuture() const;
@@ -328,7 +305,8 @@ namespace fgl {
 #pragma mark Promise implementation
 
 	template<typename Result>
-	Promise<Result>::Promise(const Function<void(Resolver,Rejecter)>& executor)
+	template<typename Executor>
+	Promise<Result>::Promise(Executor executor)
 	#ifdef DEBUG_PROMISE_NAMING
 	: Promise(String("untitled:") + typeid(Result).name(), executor) {
 	#else
@@ -338,9 +316,9 @@ namespace fgl {
 	}
 	
 	template<typename Result>
-	Promise<Result>::Promise(String name, const Function<void(Resolver,Rejecter)>& executor) {
-		FGL_ASSERT(executor != nullptr, "promise executor cannot be null");
-		new Continuer(this->continuer, name);
+	template<typename Executor>
+	Promise<Result>::Promise(String name, Executor executor)
+		: continuer(std::make_shared<Continuer>(name)) {
 		auto _continuer = this->continuer;
 		if constexpr(std::is_same<Result,void>::value) {
 			executor([=]() {
@@ -364,7 +342,7 @@ namespace fgl {
 	Promise<void> Promise<Result>::then(String name, DispatchQueue* queue, Then<void> onresolve, Catch<std::exception_ptr,void> onreject) {
 		return Promise<void>(name, [=](auto resolve, auto reject) {
 			if constexpr(std::is_same<Result,void>::value) {
-				auto resolveHandler = onresolve ? [=]() {
+				auto resolveHandler = onresolve ? Then<void>([=]() {
 					try {
 						onresolve();
 					} catch(...) {
@@ -372,9 +350,9 @@ namespace fgl {
 						return;
 					}
 					resolve();
-				} : resolve;
+				}) : resolve;
 				auto thenQueue = onresolve ? queue : nullptr;
-				auto rejectHandler = (onreject != nullptr) ? [=](std::exception_ptr error) {
+				auto rejectHandler = (onreject != nullptr) ? Catch<std::exception_ptr,void>([=](std::exception_ptr error) {
 					try {
 						onreject(error);
 					} catch(...) {
@@ -382,7 +360,7 @@ namespace fgl {
 						return;
 					}
 					resolve();
-				} : reject;
+				}) : reject;
 				auto catchQueue = onreject ? queue : nullptr;
 				this->continuer->handle(thenQueue, resolveHandler, catchQueue, rejectHandler);
 			}
@@ -440,140 +418,129 @@ namespace fgl {
 	
 	
 	template<typename Result>
-	template<typename OnResolve,
-		typename Return,
-		typename std::enable_if<std::is_same<Return,void>::value, std::nullptr_t>::type>
-	Promise<void> Promise<Result>::then(String name, DispatchQueue* queue, OnResolve onresolve) {
-		return then(name, queue, onresolve, nullptr);
+	template<typename OnResolve>
+	auto Promise<Result>::then(String name, DispatchQueue* queue, OnResolve onresolve) {
+		if constexpr(std::is_same<Result,void>::value) {
+			using ReturnType = decltype(onresolve());
+			using NextPromise = Promisized<ReturnType>;
+			return NextPromise([=](auto resolve, auto reject) {
+				this->continuer->handle(queue, [=]() {
+					if constexpr(std::is_same<ReturnType,void>::value) {
+						try {
+							onresolve();
+						} catch(...) {
+							reject(std::current_exception());
+							return;
+						}
+						resolve();
+					}
+					else if constexpr(is_promise<ReturnType>::value) {
+						std::unique_ptr<ReturnType> nextPromise;
+						try {
+							nextPromise = std::make_unique<ReturnType>(onresolve());
+						} catch(...) {
+							reject(std::current_exception());
+							return;
+						}
+						nextPromise->continuer->handle(nullptr, resolve, nullptr, reject);
+					}
+					else {
+						std::unique_ptr<ReturnType> nextResult;
+						try {
+							nextResult = std::make_unique<ReturnType>(onresolve());
+						} catch(...) {
+							reject(std::current_exception());
+							return;
+						}
+						resolve(std::move(*nextResult));
+					}
+				}, nullptr, reject);
+			});
+		} else {
+			using ReturnType = decltype(onresolve(get()));
+			using NextPromise = Promisized<ReturnType>;
+			return NextPromise([=](auto resolve, auto reject) {
+				this->continuer->handle(queue, [=](auto result) {
+					if constexpr(std::is_same<ReturnType,void>::value) {
+						try {
+							onresolve(result);
+						} catch(...) {
+							reject(std::current_exception());
+							return;
+						}
+						resolve();
+					}
+					else if constexpr(is_promise<ReturnType>::value) {
+						std::unique_ptr<ReturnType> nextPromise;
+						try {
+							nextPromise = std::make_unique<ReturnType>(onresolve(result));
+						} catch(...) {
+							reject(std::current_exception());
+							return;
+						}
+						nextPromise->continuer->handle(nullptr, resolve, nullptr, reject);
+					}
+					else {
+						std::unique_ptr<ReturnType> nextResult;
+						try {
+							nextResult = std::make_unique<ReturnType>(onresolve());
+						} catch(...) {
+							reject(std::current_exception());
+							return;
+						}
+						resolve(std::move(*nextResult));
+					}
+				}, nullptr, reject);
+			});
+		}
 	}
 
 	template<typename Result>
-	template<typename OnResolve,
-		typename Return,
-		typename std::enable_if<std::is_same<Return,void>::value, std::nullptr_t>::type>
-	Promise<void> Promise<Result>::then(DispatchQueue* queue, OnResolve onresolve) {
+	template<typename OnResolve>
+	auto Promise<Result>::then(DispatchQueue* queue, OnResolve onresolve) {
 		#ifdef DEBUG_PROMISE_NAMING
 		auto thenName = this->continuer->getName() + " -> then(queue,onresolve)";
 		#else
 		auto thenName = "";
 		#endif
-		return then(thenName, queue, onresolve);
+		return then<OnResolve>(thenName, queue, onresolve);
 	}
 	
 	template<typename Result>
-	template<typename OnResolve,
-		typename Return,
-		typename std::enable_if<std::is_same<Return,void>::value, std::nullptr_t>::type>
-	Promise<void> Promise<Result>::then(String name, OnResolve onresolve) {
-		return then(name, defaultPromiseQueue(), onresolve, nullptr);
+	template<typename OnResolve>
+	auto Promise<Result>::then(String name, OnResolve onresolve) {
+		return then<OnResolve>(name, defaultPromiseQueue(), onresolve);
 	}
 
 	template<typename Result>
-	template<typename OnResolve,
-		typename Return,
-		typename std::enable_if<std::is_same<Return,void>::value, std::nullptr_t>::type>
-	Promise<void> Promise<Result>::then(OnResolve onresolve) {
+	template<typename OnResolve>
+	auto Promise<Result>::then(OnResolve onresolve) {
 		#ifdef DEBUG_PROMISE_NAMING
 		auto thenName = this->continuer->getName() + " -> then(onresolve)";
 		#else
 		auto thenName = "";
 		#endif
-		return then(thenName, onresolve);
-	}
-	
-	template<typename Result>
-	template<typename OnResolve,
-		typename Return,
-		typename NextResult,
-		typename std::enable_if<(is_promise<Return>::value && std::is_same<Return,Promise<NextResult>>::value), std::nullptr_t>::type>
-	Promise<NextResult> Promise<Result>::then(String name, DispatchQueue* queue, OnResolve onresolve) {
-		return Promise<NextResult>(name, [=](auto resolve, auto reject) {
-			if constexpr(std::is_same<Result,void>::value) {
-				this->continuer->handle(queue, [=]() {
-					std::unique_ptr<Promise<NextResult>> nextPromise;
-					try {
-						nextPromise = std::make_unique<Promise<NextResult>>(onresolve());
-					} catch(...) {
-						reject(std::current_exception());
-						return;
-					}
-					nextPromise->continuer->handle(nullptr, resolve, nullptr, reject);
-				}, nullptr, reject);
-			}
-			else {
-				this->continuer->handle(queue, [=](auto result) {
-					std::unique_ptr<Promise<NextResult>> nextPromise;
-					try {
-						nextPromise = std::make_unique<Promise<NextResult>>(onresolve(result));
-					} catch(...) {
-						reject(std::current_exception());
-						return;
-					}
-					nextPromise->continuer->handle(nullptr, resolve, nullptr, reject);
-				}, nullptr, reject);
-			}
-		});
-	}
-
-	template<typename Result>
-	template<typename OnResolve,
-		typename Return,
-		typename NextResult,
-		typename std::enable_if<(is_promise<Return>::value && std::is_same<Return,Promise<NextResult>>::value), std::nullptr_t>::type>
-	Promise<NextResult> Promise<Result>::then(DispatchQueue* queue, OnResolve onresolve) {
-		#ifdef DEBUG_PROMISE_NAMING
-		auto thenName = String::join({
-			this->continuer->getName(),
-			" -> then<", typeid(NextResult).name(), ">(queue,onresolve)"
-		});
-		#else
-		auto thenName = "";
-		#endif
-		return then(thenName, queue, onresolve);
-	}
-
-	template<typename Result>
-	template<typename OnResolve,
-		typename Return,
-		typename NextResult,
-		typename std::enable_if<(is_promise<Return>::value && std::is_same<Return,Promise<NextResult>>::value), std::nullptr_t>::type>
-	Promise<NextResult> Promise<Result>::then(String name, OnResolve onresolve) {
-		return then(name, defaultPromiseQueue(), onresolve);
-	}
-	
-	template<typename Result>
-	template<typename OnResolve,
-		typename Return,
-		typename NextResult,
-		typename std::enable_if<(is_promise<Return>::value && std::is_same<Return,Promise<NextResult>>::value), std::nullptr_t>::type>
-	Promise<NextResult> Promise<Result>::then(OnResolve onresolve) {
-		#ifdef DEBUG_PROMISE_NAMING
-		auto thenName = String::join({
-			this->continuer->getName(),
-			" -> then<", typeid(NextResult).name(), ">(onresolve)"
-		});
-		#else
-		auto thenName = "";
-		#endif
-		return then(thenName, onresolve);
+		return then<OnResolve>(thenName, onresolve);
 	}
 	
 	
 	
 	template<typename Result>
-	template<typename OnReject, typename _>
+	template<typename OnReject>
 	Promise<Result> Promise<Result>::except(String name, DispatchQueue* queue, OnReject onreject) {
 		using ErrorType = typename std::remove_reference<typename std::remove_cv<typename lambda_traits<OnReject>::template arg<0>::type>::type>::type;
-		using Return = typename lambda_traits<OnReject>::return_type;
+		using ReturnType = typename lambda_traits<OnReject>::return_type;
+		static_assert(
+			std::is_same<Result,void>::value
+			|| std::is_convertible<typename Promisized<ReturnType>::ResultType, Result>::value,
+			"return value of OnReject must be convertible to Result");
 		return Promise<Result>(name, [=](auto resolve, auto reject) {
 			this->continuer->handle(nullptr, resolve, queue, [=](auto error) {
-				// TODO poossibly have the error type checking happen on a null queue and then queue the callback if the error type actually does match
-				if constexpr(is_promise<Return>::value) {
-					// async
+				if constexpr(is_promise<ReturnType>::value) {
 					if constexpr(std::is_same<ErrorType,std::exception_ptr>::value) {
-						std::unique_ptr<Promise<Result>> resultPromise;
+						std::unique_ptr<ReturnType> resultPromise;
 						try {
-							resultPromise = std::make_unique<Promise<Result>>(onreject(error));
+							resultPromise = std::make_unique<ReturnType>(onreject(error));
 						} catch(...) {
 							reject(std::current_exception());
 							return;
@@ -584,9 +551,9 @@ namespace fgl {
 						try {
 							std::rethrow_exception(error);
 						} catch(ErrorType& error) {
-							std::unique_ptr<Promise<Result>> resultPromise;
+							std::unique_ptr<ReturnType> resultPromise;
 							try {
-								resultPromise = std::make_unique<Promise<Result>>(onreject(error));
+								resultPromise = std::make_unique<ReturnType>(onreject(error));
 							} catch(...) {
 								reject(std::current_exception());
 								return;
@@ -596,10 +563,21 @@ namespace fgl {
 							reject(std::current_exception());
 						}
 					}
-				} else {
-					// sync
-					if constexpr(std::is_same<Result,void>::value) {
-						if constexpr(std::is_same<ErrorType,std::exception_ptr>::value) {
+				}
+				else if constexpr(std::is_same<Result,void>::value) {
+					if constexpr(std::is_same<ErrorType,std::exception_ptr>::value) {
+						try {
+							onreject(error);
+						} catch(...) {
+							reject(std::current_exception());
+							return;
+						}
+						resolve();
+					}
+					else {
+						try {
+							std::rethrow_exception(error);
+						} catch(ErrorType& error) {
 							try {
 								onreject(error);
 							} catch(...) {
@@ -607,25 +585,26 @@ namespace fgl {
 								return;
 							}
 							resolve();
-						}
-						else {
-							try {
-								std::rethrow_exception(error);
-							} catch(ErrorType& error) {
-								try {
-									onreject(error);
-								} catch(...) {
-									reject(std::current_exception());
-									return;
-								}
-								resolve();
-							} catch(...) {
-								reject(std::current_exception());
-							}
+						} catch(...) {
+							reject(std::current_exception());
 						}
 					}
+				}
+				else {
+					if constexpr(std::is_same<ErrorType,std::exception_ptr>::value) {
+						std::unique_ptr<Result> result;
+						try {
+							result = std::make_unique<Result>(onreject(error));
+						} catch(...) {
+							reject(std::current_exception());
+							return;
+						}
+						resolve(std::move(*result));
+					}
 					else {
-						if constexpr(std::is_same<ErrorType,std::exception_ptr>::value) {
+						try {
+							std::rethrow_exception(error);
+						} catch(ErrorType& error) {
 							std::unique_ptr<Result> result;
 							try {
 								result = std::make_unique<Result>(onreject(error));
@@ -634,22 +613,8 @@ namespace fgl {
 								return;
 							}
 							resolve(std::move(*result));
-						}
-						else {
-							try {
-								std::rethrow_exception(error);
-							} catch(ErrorType& error) {
-								std::unique_ptr<Result> result;
-								try {
-									result = std::make_unique<Result>(onreject(error));
-								} catch(...) {
-									reject(std::current_exception());
-									return;
-								}
-								resolve(std::move(*result));
-							} catch(...) {
-								reject(std::current_exception());
-							}
+						} catch(...) {
+							reject(std::current_exception());
 						}
 					}
 				}
@@ -658,7 +623,7 @@ namespace fgl {
 	}
 
 	template<typename Result>
-	template<typename OnReject, typename _>
+	template<typename OnReject>
 	Promise<Result> Promise<Result>::except(DispatchQueue* queue, OnReject onreject) {
 		#ifdef DEBUG_PROMISE_NAMING
 		using ErrorType = typename std::remove_reference<typename std::remove_cv<typename lambda_traits<OnReject>::template arg<0>::type>::type>::type;
@@ -669,17 +634,17 @@ namespace fgl {
 		#else
 		auto exceptName = "";
 		#endif
-		return except(exceptName, queue, onreject);
+		return except<OnReject>(exceptName, queue, onreject);
 	}
 	
 	template<typename Result>
-	template<typename OnReject, typename _>
+	template<typename OnReject>
 	Promise<Result> Promise<Result>::except(String name, OnReject onreject) {
-		return except(name, defaultPromiseQueue(), onreject);
+		return except<OnReject>(name, defaultPromiseQueue(), onreject);
 	}
 
 	template<typename Result>
-	template<typename OnReject, typename _>
+	template<typename OnReject>
 	Promise<Result> Promise<Result>::except(OnReject onreject) {
 		#ifdef DEBUG_PROMISE_NAMING
 		using ErrorType = typename std::remove_reference<typename std::remove_cv<typename lambda_traits<OnReject>::template arg<0>::type>::type>::type;
@@ -690,13 +655,14 @@ namespace fgl {
 		#else
 		auto exceptName = "";
 		#endif
-		return except(exceptName, onreject);
+		return except<OnReject>(exceptName, onreject);
 	}
 	
 	
 	
 	template<typename Result>
-	Promise<Result> Promise<Result>::finally(String name, DispatchQueue* queue, Function<void()> onfinally) {
+	template<typename OnFinally>
+	Promise<Result> Promise<Result>::finally(String name, DispatchQueue* queue, OnFinally onfinally) {
 		FGL_ASSERT(onfinally, "onfinally cannot be null");
 		return Promise<Result>(name, [=](auto resolve, auto reject) {
 			if constexpr(std::is_same<Result,void>::value) {
@@ -741,37 +707,41 @@ namespace fgl {
 	}
 
 	template<typename Result>
-	Promise<Result> Promise<Result>::finally(DispatchQueue* queue, Function<void()> onfinally) {
+	template<typename OnFinally>
+	Promise<Result> Promise<Result>::finally(DispatchQueue* queue, OnFinally onfinally) {
 		#ifdef DEBUG_PROMISE_NAMING
 		auto finallyName = this->continuer->getName() + " -> finally(queue,onfinally)";
 		#else
 		auto finallyName = "";
 		#endif
-		return finally(finallyName, queue, onfinally);
+		return finally<OnFinally>(finallyName, queue, onfinally);
 	}
 	
 	template<typename Result>
-	Promise<Result> Promise<Result>::finally(String name, Function<void()> onfinally) {
-		return finally(name, defaultPromiseQueue(), onfinally);
+	template<typename OnFinally>
+	Promise<Result> Promise<Result>::finally(String name, OnFinally onfinally) {
+		return finally<OnFinally>(name, defaultPromiseQueue(), onfinally);
 	}
 
 	template<typename Result>
-	Promise<Result> Promise<Result>::finally(Function<void()> onfinally) {
+	template<typename OnFinally>
+	Promise<Result> Promise<Result>::finally(OnFinally onfinally) {
 		#ifdef DEBUG_PROMISE_NAMING
 		auto finallyName = this->continuer->getName() + " -> finally(onfinally)";
 		#else
 		auto finallyName = "";
 		#endif
-		return finally(finallyName, onfinally);
+		return finally<OnFinally>(finallyName, onfinally);
 	}
 	
 	
 	
 	template<typename Result>
-	template<typename NextResult>
-	Promise<NextResult> Promise<Result>::map(String name, DispatchQueue* queue, Then<NextResult> transform) {
-		return Promise<NextResult>(name, [=](auto resolve, auto reject) {
-			if constexpr(std::is_same<Result,void>::value) {
+	template<typename Transform>
+	auto Promise<Result>::map(String name, DispatchQueue* queue, Transform transform) {
+		if constexpr(std::is_same<Result,void>::value) {
+			using NextResult = decltype(transform());
+			return Promise<NextResult>(name, [=](auto resolve, auto reject) {
 				this->continuer->handle(queue, [=]() {
 					if constexpr(std::is_same<NextResult,void>::value) {
 						try {
@@ -793,8 +763,10 @@ namespace fgl {
 						resolve(std::move(*newResult));
 					}
 				}, nullptr, reject);
-			}
-			else {
+			});
+		} else {
+			using NextResult = decltype(transform(get()));
+			return Promise<NextResult>(name, [=](auto resolve, auto reject) {
 				this->continuer->handle(queue, [=](auto result) {
 					if constexpr(std::is_same<NextResult,void>::value) {
 						try {
@@ -816,13 +788,13 @@ namespace fgl {
 						resolve(std::move(*newResult));
 					}
 				}, nullptr, reject);
-			}
-		});
+			});
+		}
 	}
 
 	template<typename Result>
-	template<typename NextResult>
-	Promise<NextResult> Promise<Result>::map(DispatchQueue* queue, Then<NextResult> transform) {
+	template<typename Transform>
+	auto Promise<Result>::map(DispatchQueue* queue, Transform transform) {
 		#ifdef DEBUG_PROMISE_NAMING
 		auto mapName = String::join({
 			this->continuer->getName(),
@@ -831,18 +803,18 @@ namespace fgl {
 		#else
 		auto mapName = "";
 		#endif
-		return map<NextResult>(mapName, queue, transform);
+		return map<Transform>(mapName, queue, transform);
 	}
 	
 	template<typename Result>
-	template<typename NextResult>
-	Promise<NextResult> Promise<Result>::map(String name, Then<NextResult> transform) {
-		return map<NextResult>(name, defaultPromiseQueue(), transform);
+	template<typename Transform>
+	auto Promise<Result>::map(String name, Transform transform) {
+		return map<Transform>(name, defaultPromiseQueue(), transform);
 	}
 
 	template<typename Result>
-	template<typename NextResult>
-	Promise<NextResult> Promise<Result>::map(Then<NextResult> transform) {
+	template<typename Transform>
+	auto Promise<Result>::map(Transform transform) {
 		#ifdef DEBUG_PROMISE_NAMING
 		auto mapName = String::join({
 			this->continuer->getName(),
@@ -851,8 +823,9 @@ namespace fgl {
 		#else
 		auto mapName = "";
 		#endif
-		return map<NextResult>(mapName, transform);
+		return map<Transform>(mapName, transform);
 	}
+
 
 
 	template<typename Result>
@@ -926,16 +899,16 @@ namespace fgl {
 	
 	
 	template<typename Result>
-	template<typename Rep, typename Period, typename OnTimeout, typename _>
+	template<typename Rep, typename Period, typename OnTimeout>
 	Promise<Result> Promise<Result>::timeout(String name, DispatchQueue* queue, std::chrono::duration<Rep,Period> timeout, OnTimeout onTimeout) {
-		using Return = typename lambda_traits<OnTimeout>::return_type;
+		using ReturnType = decltype(onTimeout());
 		return Promise<Result>(name, [=](auto resolve, auto reject) {
 			struct SharedData {
 				std::mutex mutex;
 				std::condition_variable cv;
 				bool finished = false;
 			};
-			auto sharedData = std::shared_ptr<SharedData>(new SharedData());
+			auto sharedData = std::make_shared<SharedData>();
 			auto endTime = std::chrono::steady_clock::now() + timeout;
 			auto handleTimeout = [=]() {
 				std::unique_lock<std::mutex> lock(sharedData->mutex);
@@ -944,7 +917,7 @@ namespace fgl {
 				}
 				sharedData->finished = true;
 				lock.unlock();
-				if constexpr(is_promise<Return>::value) {
+				if constexpr(is_promise<ReturnType>::value) {
 					std::unique_ptr<Promise<Result>> resultPromise;
 					try {
 						resultPromise = std::make_unique<Promise<Result>>(onTimeout());
@@ -1055,7 +1028,7 @@ namespace fgl {
 	}
 	
 	template<typename Result>
-	template<typename Rep, typename Period, typename OnTimeout, typename _>
+	template<typename Rep, typename Period, typename OnTimeout>
 	Promise<Result> Promise<Result>::timeout(DispatchQueue* queue, std::chrono::duration<Rep,Period> timeout, OnTimeout onTimeout) {
 		#ifdef DEBUG_PROMISE_NAMING
 		auto timeoutName = String::join({
@@ -1069,13 +1042,13 @@ namespace fgl {
 	}
 	
 	template<typename Result>
-	template<typename Rep, typename Period, typename OnTimeout, typename _>
+	template<typename Rep, typename Period, typename OnTimeout>
 	Promise<Result> Promise<Result>::timeout(String name, std::chrono::duration<Rep,Period> timeout, OnTimeout onTimeout) {
 		return this->timeout(name, defaultPromiseQueue(), timeout, onTimeout);
 	}
 	
 	template<typename Result>
-	template<typename Rep, typename Period, typename OnTimeout, typename _>
+	template<typename Rep, typename Period, typename OnTimeout>
 	Promise<Result> Promise<Result>::timeout(std::chrono::duration<Rep,Period> timeout, OnTimeout onTimeout) {
 		#ifdef DEBUG_PROMISE_NAMING
 		auto timeoutName = String::join({
@@ -1116,9 +1089,9 @@ namespace fgl {
 	template<typename Result>
 	Promise<void> Promise<Result>::toVoid(String name) {
 		if constexpr(std::is_same<Result,void>::value) {
-			return map<void>(name, nullptr, Then<void>([=]() {}));
+			return map(name, nullptr, [=]() {});
 		} else {
-			return map<void>(name, nullptr, Then<void>([=](auto result) -> void {}));
+			return map(name, nullptr, [=](auto result) -> void {});
 		}
 	}
 
@@ -1542,12 +1515,12 @@ namespace fgl {
 
 
 	template<typename Result>
-	template<typename Rep, typename Period, typename AfterDelay, typename _>
+	template<typename Rep, typename Period, typename AfterDelay>
 	Promise<Result> Promise<Result>::delayed(String name, std::chrono::duration<Rep,Period> delay, DispatchQueue* queue, AfterDelay afterDelay) {
-		using Return = typename lambda_traits<AfterDelay>::return_type;
+		using ReturnType = decltype(afterDelay());
 		return Promise<Result>(name, [=](auto resolve, auto reject) {
 			auto finishDelay = [=]() {
-				if constexpr(is_promise<Return>::value) {
+				if constexpr(is_promise<ReturnType>::value) {
 					std::unique_ptr<Promise<Result>> resultPromise;
 					try {
 						resultPromise = std::make_unique<Promise<Result>>(afterDelay());
@@ -1591,7 +1564,7 @@ namespace fgl {
 	}
 
 	template<typename Result>
-	template<typename Rep, typename Period, typename AfterDelay, typename _>
+	template<typename Rep, typename Period, typename AfterDelay>
 	Promise<Result> Promise<Result>::delayed(std::chrono::duration<Rep,Period> delay, DispatchQueue* queue, AfterDelay afterDelay) {
 		#ifdef DEBUG_PROMISE_NAMING
 		auto delayedName = String::join({
@@ -1604,13 +1577,13 @@ namespace fgl {
 	}
 
 	template<typename Result>
-	template<typename Rep, typename Period, typename AfterDelay, typename _>
+	template<typename Rep, typename Period, typename AfterDelay>
 	Promise<Result> Promise<Result>::delayed(String name, std::chrono::duration<Rep,Period> delay, AfterDelay afterDelay) {
 		return delayed(name, delay, defaultPromiseQueue(), afterDelay);
 	}
 
 	template<typename Result>
-	template<typename Rep, typename Period, typename AfterDelay, typename _>
+	template<typename Rep, typename Period, typename AfterDelay>
 	Promise<Result> Promise<Result>::delayed(std::chrono::duration<Rep,Period> delay, AfterDelay afterDelay) {
 		#ifdef DEBUG_PROMISE_NAMING
 		auto delayedName = String::join({
@@ -1626,10 +1599,9 @@ namespace fgl {
 	
 	
 	template<typename Result>
-	Promise<Result>::Continuer::Continuer(std::shared_ptr<Continuer>& ptr, String name)
+	Promise<Result>::Continuer::Continuer(String name)
 	: future(promise.get_future().share()), name(name), state(State::EXECUTING) {
-		ptr = std::shared_ptr<Continuer>(this);
-		self = ptr;
+		//
 	}
 
 	template<typename Result>
