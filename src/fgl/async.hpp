@@ -15,3 +15,6 @@
 #include <fgl/async/Timer.hpp>
 #include <fgl/async/AsyncQueue.hpp>
 #include <fgl/async/AsyncList.hpp>
+#ifdef JNIEXPORT
+#include <fgl/async/JNIAsyncCpp.hpp>
+#endif

@@ -16,7 +16,37 @@
 namespace fgl {
 	JavaVM* getJavaVM();
 
-	void jniScope(JavaVM* vm, Function<void(JNIEnv*)> work);
+	template<typename Work>
+	auto jniScope(JavaVM* vm, Work work) {
+		using ReturnType = decltype(work(std::declval<JNIEnv*>()));
+		if(vm == nullptr) {
+			throw std::runtime_error("given VM is null");
+		}
+		JNIEnv* env = nullptr;
+		bool attachedToThread = false;
+		auto envResult = vm->GetEnv((void**)&env, JNI_VERSION_1_6);
+		if (envResult == JNI_EDETACHED) {
+			if (vm->AttachCurrentThread(&env, NULL) == JNI_OK) {
+				attachedToThread = true;
+			} else {
+				throw std::runtime_error("Failed to attach to thread");
+			}
+		} else if (envResult == JNI_EVERSION) {
+			throw std::runtime_error("Unsupported JNI version");
+		}
+		if constexpr (std::is_same<ReturnType,void>::value) {
+			work(env);
+			if (attachedToThread) {
+				vm->DetachCurrentThread();
+			}
+		} else {
+			auto retVal = work(env);
+			if (attachedToThread) {
+				vm->DetachCurrentThread();
+			}
+			return retVal;
+		}
+	}
 }
 
 

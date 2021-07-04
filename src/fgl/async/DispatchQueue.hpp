@@ -114,10 +114,6 @@ namespace fgl {
 
 		static DispatchQueue* mainQueue;
 	};
-
-	#ifdef JNIEXPORT
-		void jniScope(JavaVM* vm, Function<void(JNIEnv*)> work);
-	#endif
 	
 	
 	

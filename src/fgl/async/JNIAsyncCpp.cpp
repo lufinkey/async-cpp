@@ -39,30 +39,6 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
 
 
 namespace fgl {
-	void jniScope(JavaVM* vm, Function<void(JNIEnv*)> work) {
-		if(vm == nullptr) {
-			throw std::runtime_error("given VM is null");
-		}
-		JNIEnv* env = nullptr;
-		bool attachedToThread = false;
-		auto envResult = vm->GetEnv((void**)&env, JNI_VERSION_1_6);
-		if (envResult == JNI_EDETACHED) {
-			if (vm->AttachCurrentThread(&env, NULL) == JNI_OK) {
-				attachedToThread = true;
-			} else {
-				throw std::runtime_error("Failed to attach to thread");
-			}
-		} else if (envResult == JNI_EVERSION) {
-			throw std::runtime_error("Unsupported JNI version");
-		}
-		work(env);
-		if(attachedToThread) {
-			vm->DetachCurrentThread();
-		}
-	}
-
-
-
 	JavaVM* getJavaVM() {
 		// get java vm from JNI_OnLoad, if it's been called
 		if(sharedJavaVM != nullptr) {
