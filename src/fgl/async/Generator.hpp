@@ -442,7 +442,7 @@ namespace fgl {
 		auto yieldReturner = this->yieldReturner;
 		auto performNext = [=]() -> Promise<YieldResult> {
 			state = State::EXECUTING;
-			return yieldReturner(nextValue).template map<YieldResult>(nullptr, [=](YieldResult result) {
+			return yieldReturner(nextValue).map(nullptr, [=](YieldResult result) -> YieldResult {
 				std::unique_lock<std::recursive_mutex> lock(self->mutex);
 				if(result.done) {
 					state = State::FINISHED;
@@ -768,13 +768,13 @@ namespace fgl {
 				}
 				auto nextFunc = sharedItems->extractFront();
 				if constexpr(std::is_same<Yield,void>::value) {
-					return nextFunc(nextVal).template map<YieldResult>(nullptr, [=](auto yieldVal) {
+					return nextFunc(nextVal).map(nullptr, [=](auto yieldVal) -> YieldResult {
 						return YieldResult{
 							.done=(sharedItems->size() == 0)
 						};
 					});
 				} else {
-					return nextFunc(nextVal).template map<YieldResult>(nullptr, [=](auto yieldVal) {
+					return nextFunc(nextVal).map(nullptr, [=](auto yieldVal) -> YieldResult {
 						return YieldResult{
 							.value=yieldVal,
 							.done=(sharedItems->size() == 0)

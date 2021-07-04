@@ -1372,7 +1372,7 @@ namespace fgl {
 		#ifdef DEBUG_PROMISE_NAMING
 		auto allName = String::join({
 			"all{ ",
-			String::join(promises.template map<String>([&](auto& promise) {
+			String::join(promises.map([&](auto& promise) -> String {
 				return promise.getName();
 			}), ", "),
 			" }"
