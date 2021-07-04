@@ -271,7 +271,7 @@ namespace fgl {
 	template<typename _Next,
 		typename std::enable_if<(std::is_same<_Next,Next>::value && std::is_same<_Next,void>::value), std::nullptr_t>::type>
 	Promise<typename ContinuousGenerator<Yield,Next>::YieldResult> ContinuousGenerator<Yield,Next>::next() {
-		return BaseGenerator::next().template map<YieldResult>([=](BaseYieldResult yieldResult) {
+		return BaseGenerator::next().map([=](BaseYieldResult yieldResult) -> YieldResult {
 			if(yieldResult.value) {
 				if(yieldResult.value->error) {
 					std::rethrow_exception(yieldResult.value->error);
@@ -304,7 +304,8 @@ namespace fgl {
 		if constexpr(std::is_same<Yield,void>::value) {
 			using NewYield = decltype(transform());
 			using NewGenResult = ContinuousGeneratorResult<NewYield>;
-			return BaseGenerator::map(queue, [=](ContinuousGeneratorResult<Yield> genResult) {
+			using NewGen = ContinuousGenerator<NewYield,Next>;
+			return NewGen(BaseGenerator::map(queue, [=](ContinuousGeneratorResult<Yield> genResult) -> NewGenResult {
 				if(genResult.error) {
 					return NewGenResult{
 						.error=genResult.error
@@ -331,12 +332,13 @@ namespace fgl {
 						}
 					}
 				}
-			});
+			}));
 		}
 		else {
 			using NewYield = decltype(transform(std::declval<Yield>()));
 			using NewGenResult = ContinuousGeneratorResult<NewYield>;
-			return BaseGenerator::map(queue, [=](ContinuousGeneratorResult<Yield> genResult) {
+			using NewGen = ContinuousGenerator<NewYield,Next>;
+			return NewGen(BaseGenerator::map(queue, [=](ContinuousGeneratorResult<Yield> genResult) -> NewGenResult {
 				if(genResult.error) {
 					return NewGenResult{
 						.error=genResult.error
@@ -396,7 +398,7 @@ namespace fgl {
 						}
 					}
 				}
-			});
+			}));
 		}
 	}
 
@@ -413,7 +415,8 @@ namespace fgl {
 			using NewYieldPromise = decltype(transform());
 			using NewYield = typename IsPromise<NewYieldPromise>::ResultType;
 			using NewGenResult = ContinuousGeneratorResult<NewYield>;
-			return BaseGenerator::mapAsync(queue, [=](auto genResult) {
+			using NewGen = ContinuousGenerator<NewYield,Next>;
+			return NewGen(BaseGenerator::mapAsync(queue, [=](auto genResult) -> NewGenResult {
 				if(genResult.error) {
 					return NewGenResult{
 						.error=genResult.error
@@ -431,12 +434,13 @@ namespace fgl {
 						});
 					}
 				}
-			});
+			}));
 		} else {
 			using NewYieldPromise = decltype(transform(std::declval<Yield>()));
 			using NewYield = typename IsPromise<NewYieldPromise>::ResultType;
 			using NewGenResult = ContinuousGeneratorResult<NewYield>;
-			return BaseGenerator::mapAsync(queue, [=](auto genResult) {
+			using NewGen = ContinuousGenerator<NewYield,Next>;
+			return NewGen(BaseGenerator::mapAsync(queue, [=](auto genResult) -> NewGenResult {
 				if(genResult.error) {
 					return NewGenResult{
 						.error=genResult.error
@@ -478,7 +482,7 @@ namespace fgl {
 						}
 					}
 				}
-			});
+			}));
 		}
 	}
 
