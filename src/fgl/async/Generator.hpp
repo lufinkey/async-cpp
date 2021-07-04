@@ -738,13 +738,13 @@ namespace fgl {
 				}
 				auto nextFunc = sharedItems->extractFront();
 				if constexpr(std::is_same<Yield,void>::value) {
-					return nextFunc().template map<YieldResult>(nullptr, [=]() {
+					return nextFunc().map(nullptr, [=]() -> YieldResult {
 						return YieldResult{
 							.done=(sharedItems->size() == 0)
 						};
 					});
 				} else {
-					return nextFunc().template map<YieldResult>(nullptr, [=](auto yieldVal) {
+					return nextFunc().map(nullptr, [=](auto yieldVal) -> YieldResult {
 						return YieldResult{
 							.value=yieldVal,
 							.done=(sharedItems->size() == 0)

@@ -365,7 +365,7 @@ namespace fgl {
 				this->continuer->handle(thenQueue, resolveHandler, catchQueue, rejectHandler);
 			}
 			else {
-				auto resolveHandler = onresolve ? Function<void(Result)>([=](Result result) {
+				auto resolveHandler = onresolve ? Then<void>([=](Result result) {
 					try {
 						onresolve(result);
 					} catch(...) {
@@ -375,7 +375,7 @@ namespace fgl {
 					resolve();
 				}) : [=](Result result) { resolve(); };
 				auto thenQueue = onresolve ? queue : nullptr;
-				auto rejectHandler = onreject ? [=](std::exception_ptr error) {
+				auto rejectHandler = onreject ? Catch<std::exception_ptr,void>([=](std::exception_ptr error) {
 					try {
 						onreject(error);
 					} catch(...) {
@@ -383,7 +383,7 @@ namespace fgl {
 						return;
 					}
 					resolve();
-				} : reject;
+				}) : reject;
 				auto catchQueue = onreject ? queue : nullptr;
 				this->continuer->handle(thenQueue, resolveHandler, catchQueue, rejectHandler);
 			}
@@ -663,7 +663,6 @@ namespace fgl {
 	template<typename Result>
 	template<typename OnFinally>
 	Promise<Result> Promise<Result>::finally(String name, DispatchQueue* queue, OnFinally onfinally) {
-		FGL_ASSERT(onfinally, "onfinally cannot be null");
 		return Promise<Result>(name, [=](auto resolve, auto reject) {
 			if constexpr(std::is_same<Result,void>::value) {
 				this->continuer->handle(queue, [=]() {

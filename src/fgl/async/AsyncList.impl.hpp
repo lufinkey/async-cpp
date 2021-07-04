@@ -301,7 +301,7 @@ namespace fgl {
 				self->unwatchIndex(indexMarker);
 			}
 		})
-		.template map<Optional<T>>(self->mutationQueue.dispatchQueue(), [=]() -> Optional<T> {
+		.map(self->mutationQueue.dispatchQueue(), [=]() -> Optional<T> {
 			std::unique_lock<std::recursive_mutex> lock(self->mutex);
 			if(options.trackIndexChanges && indexMarker->state == AsyncListIndexMarkerState::REMOVED) {
 				return std::nullopt;
@@ -326,7 +326,7 @@ namespace fgl {
 				self->unwatchIndex(indexMarker);
 			}
 		})
-		.template map<LinkedList<T>>(self->mutationQueue.dispatchQueue(), [=]() {
+		.map(self->mutationQueue.dispatchQueue(), [=]() -> LinkedList<T> {
 			std::unique_lock<std::recursive_mutex> lock(self->mutex);
 			size_t index = indexMarker->index;
 			auto loadedItems = getLoadedItems({
@@ -426,7 +426,7 @@ namespace fgl {
 		return ItemGenerator([=]() {
 			std::unique_lock<std::recursive_mutex> lock(self->mutex);
 			size_t chunkSize = self->getChunkSize();
-			return getItems(indexMarker->index, chunkSize, options).template map<YieldResult>([=](auto items) {
+			return getItems(indexMarker->index, chunkSize, options).map([=](auto items) -> YieldResult {
 				std::unique_lock<std::recursive_mutex> lock(self->mutex);
 				indexMarker->index += items.size();
 				if(itemsSize.has_value() && indexMarker->index >= itemsSize.value()) {

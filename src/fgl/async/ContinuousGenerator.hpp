@@ -303,49 +303,87 @@ namespace fgl {
 	auto ContinuousGenerator<Yield,Next>::map(DispatchQueue* queue, Transform transform) {
 		if constexpr(std::is_same<Yield,void>::value) {
 			using NewYield = decltype(transform());
+			using NewGenResult = ContinuousGeneratorResult<NewYield>;
 			return BaseGenerator::map(queue, [=](ContinuousGeneratorResult<Yield> genResult) {
 				if(genResult.error) {
-					return ContinuousGeneratorResult<NewYield>{
+					return NewGenResult{
 						.error=genResult.error
 					};
 				} else {
 					if constexpr(std::is_same<NewYield,void>::value) {
-						transform();
-						return ContinuousGeneratorResult<NewYield>{};
+						try {
+							transform();
+						} catch(...) {
+							return NewGenResult{
+								.error=std::current_exception()
+							};
+						}
+						return NewGenResult{};
 					} else {
-						return ContinuousGeneratorResult<NewYield>{
-							.result=transform()
-						};
+						try {
+							return NewGenResult{
+								.result=transform()
+							};
+						} catch(...) {
+							return NewGenResult{
+								.error=std::current_exception()
+							};
+						}
 					}
 				}
 			});
 		}
 		else {
 			using NewYield = decltype(transform(std::declval<Yield>()));
+			using NewGenResult = ContinuousGeneratorResult<NewYield>;
 			return BaseGenerator::map(queue, [=](ContinuousGeneratorResult<Yield> genResult) {
 				if(genResult.error) {
-					return ContinuousGeneratorResult<NewYield>{
+					return NewGenResult{
 						.error=genResult.error
 					};
 				} else {
 					if constexpr(std::is_same<Optionalized<Yield>,Yield>::value) {
 						if constexpr(std::is_same<NewYield,void>::value) {
-							transform(std::move(genResult.result));
-							return ContinuousGeneratorResult<NewYield>{};
+							try {
+								transform(std::move(genResult.result));
+							} catch(...) {
+								return NewGenResult{
+									.error=std::current_exception()
+								};
+							}
+							return NewGenResult{};
 						} else {
-							return ContinuousGeneratorResult<NewYield>{
-								.result=transform(std::move(genResult.result))
-							};
+							try {
+								return NewGenResult{
+									.result=transform(std::move(genResult.result))
+								};
+							} catch(...) {
+								return NewGenResult{
+									.error=std::current_exception()
+								};
+							}
 						}
 					} else {
 						if(genResult.result.has_value()) {
 							if constexpr(std::is_same<NewYield,void>::value) {
-								transform(std::move(genResult.result.value()));
-								return ContinuousGeneratorResult<NewYield>{};
+								try {
+									transform(std::move(genResult.result.value()));
+								} catch(...) {
+									return NewGenResult{
+										.error=std::current_exception()
+									};
+								}
+								return NewGenResult{};
 							} else {
-								return ContinuousGeneratorResult<NewYield>{
-									.result=transform(std::move(genResult.result.value()))
-								};
+								try {
+									return NewGenResult{
+										.result=transform(std::move(genResult.result.value()))
+									};
+								} catch(...) {
+									return NewGenResult{
+										.error=std::current_exception()
+									};
+								}
 							}
 						} else {
 							if constexpr(std::is_same<NewYield,void>::value) {
