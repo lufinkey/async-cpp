@@ -287,7 +287,6 @@ namespace fgl {
 				DispatchQueue* queue;
 				Catch<std::exception_ptr,void> reject;
 			};
-			std::weak_ptr<Continuer> self;
 			std::promise<Result> promise;
 			std::shared_future<Result> future;
 			std::list<ThenBlock> resolvers;
@@ -1735,7 +1734,7 @@ namespace fgl {
 				lock.unlock();
 				if(onresolve) {
 					if(thenQueue != nullptr && !thenQueue->isLocal()) {
-						auto self = this->self.lock();
+						auto self = this->shared_from_this();
 						thenQueue->async([=]() {
 							auto future = self->future;
 							if constexpr(std::is_same<Result,void>::value) {
@@ -1764,7 +1763,7 @@ namespace fgl {
 				lock.unlock();
 				if(onreject) {
 					if(catchQueue != nullptr && !catchQueue->isLocal()) {
-						auto self = this->self.lock();
+						auto self = this->shared_from_this();
 						catchQueue->async([=]() {
 							auto future = self->future;
 							try {
