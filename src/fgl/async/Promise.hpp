@@ -527,6 +527,7 @@ namespace fgl {
 	template<typename OnResolve>
 	auto Promise<Result>::then(OnResolve onresolve) {
 		#ifdef DEBUG_PROMISE_NAMING
+		using NextResult = typename Promisized<decltype(DeclPromiseMapResult<Result>(onresolve))>::ResultType;
 		auto thenName = this->continuer->getName() + " -> then<" + typeid(NextResult).name() + ">(onresolve)";
 		#else
 		auto thenName = "";
