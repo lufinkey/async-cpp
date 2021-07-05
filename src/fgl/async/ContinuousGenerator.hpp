@@ -111,6 +111,8 @@ namespace fgl {
 
 
 
+#pragma mark ContinuousGenerator implementation
+
 	template<typename Yield, typename Next>
 	ContinuousGenerator<Yield,Next>::ContinuousGenerator()
 	: Generator<ContinuousGeneratorResult<Yield>,Next>() {

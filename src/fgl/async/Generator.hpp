@@ -98,9 +98,9 @@ namespace fgl {
 			FINISHED
 		};
 		
-		class Continuer {
+		class Continuer: public std::enable_shared_from_this<Continuer> {
 		public:
-			Continuer(std::shared_ptr<Continuer>& ptr, YieldReturner yieldReturner, Function<void()> destructor=nullptr);
+			Continuer(YieldReturner yieldReturner, Function<void()> destructor);
 			~Continuer();
 			
 			template<typename _Next=Next,
@@ -112,7 +112,6 @@ namespace fgl {
 			Promise<YieldResult> next();
 			
 		private:
-			std::weak_ptr<Continuer> self;
 			YieldReturner yieldReturner;
 			Function<void()> destructor;
 			Optional<Promise<void>> nextPromise;
@@ -141,13 +140,15 @@ namespace fgl {
 #pragma mark Generator implementation
 
 	template<typename Yield, typename Next>
-	Generator<Yield,Next>::Generator() {
-		new Continuer(this->continuer, nullptr, nullptr);
+	Generator<Yield,Next>::Generator()
+	: continuer(std::make_shared<Continuer>(nullptr, nullptr)) {
+		//
 	}
 
 	template<typename Yield, typename Next>
-	Generator<Yield,Next>::Generator(YieldReturner yieldReturner, Function<void()> destructor) {
-		new Continuer(this->continuer, yieldReturner, destructor);
+	Generator<Yield,Next>::Generator(YieldReturner yieldReturner, Function<void()> destructor)
+	: continuer(std::make_shared<Continuer>(yieldReturner, destructor)) {
+		//
 	}
 
 	template<typename Yield, typename Next>
@@ -417,10 +418,9 @@ namespace fgl {
 
 
 	template<typename Yield, typename Next>
-	Generator<Yield,Next>::Continuer::Continuer(std::shared_ptr<Continuer>& ptr, YieldReturner yieldReturner, Function<void()> destructor)
+	Generator<Yield,Next>::Continuer::Continuer(YieldReturner yieldReturner, Function<void()> destructor)
 	: yieldReturner(yieldReturner), destructor(destructor), state(yieldReturner ? State::WAITING : State::FINISHED) {
-		ptr = std::shared_ptr<Continuer>(this);
-		self = ptr;
+		//
 	}
 
 	template<typename Yield, typename Next>
@@ -493,7 +493,7 @@ namespace fgl {
 		if(state == State::FINISHED) {
 			return Promise<YieldResult>::resolve(YieldResult{.done=true});
 		}
-		auto self = this->self.lock();
+		auto self = this->shared_from_this();
 		auto yieldReturner = this->yieldReturner;
 		auto performNext = [=]() -> Promise<YieldResult> {
 			state = State::EXECUTING;

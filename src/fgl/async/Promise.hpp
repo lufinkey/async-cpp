@@ -255,7 +255,7 @@ namespace fgl {
 			REJECTED
 		};
 		
-		class Continuer: std::enable_shared_from_this<Continuer> {
+		class Continuer: public std::enable_shared_from_this<Continuer> {
 		public:
 			Continuer(String name);
 
