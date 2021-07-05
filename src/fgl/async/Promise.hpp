@@ -65,6 +65,16 @@ namespace fgl {
 		|| std::is_same<typename lambda_traits<Func>::return_type,Promise<Result>>::value),Func>::type;
 
 
+	template<typename T, typename Transform>
+	auto DeclPromiseMapResult(Transform transform) {
+		if constexpr(std::is_same<T,void>::value) {
+			return transform();
+		} else {
+			return transform(std::declval<T>());
+		}
+	}
+
+
 	template<typename T>
 	struct promisize_t {
 		using type = Promise<T>;
@@ -499,7 +509,8 @@ namespace fgl {
 	template<typename OnResolve>
 	auto Promise<Result>::then(DispatchQueue* queue, OnResolve onresolve) {
 		#ifdef DEBUG_PROMISE_NAMING
-		auto thenName = this->continuer->getName() + " -> then(queue,onresolve)";
+		using NextResult = typename Promisized<decltype(DeclPromiseMapResult<Result>(onresolve))>::ResultType;
+		auto thenName = this->continuer->getName() + " -> then<" + typeid(NextResult).name() + ">(queue,onresolve)";
 		#else
 		auto thenName = "";
 		#endif
@@ -516,7 +527,7 @@ namespace fgl {
 	template<typename OnResolve>
 	auto Promise<Result>::then(OnResolve onresolve) {
 		#ifdef DEBUG_PROMISE_NAMING
-		auto thenName = this->continuer->getName() + " -> then(onresolve)";
+		auto thenName = this->continuer->getName() + " -> then<" + typeid(NextResult).name() + ">(onresolve)";
 		#else
 		auto thenName = "";
 		#endif
@@ -795,6 +806,7 @@ namespace fgl {
 	template<typename Transform>
 	auto Promise<Result>::map(DispatchQueue* queue, Transform transform) {
 		#ifdef DEBUG_PROMISE_NAMING
+		using NextResult = decltype(DeclPromiseMapResult<Result>(transform));
 		auto mapName = String::join({
 			this->continuer->getName(),
 			" -> map<", typeid(NextResult).name(), ">(queue,transform)"
@@ -815,6 +827,7 @@ namespace fgl {
 	template<typename Transform>
 	auto Promise<Result>::map(Transform transform) {
 		#ifdef DEBUG_PROMISE_NAMING
+		using NextResult = decltype(DeclPromiseMapResult<Result>(transform));
 		auto mapName = String::join({
 			this->continuer->getName(),
 			" -> map<", typeid(NextResult).name(), ">(queue,transform)"
