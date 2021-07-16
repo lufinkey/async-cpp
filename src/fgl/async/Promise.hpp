@@ -541,10 +541,6 @@ namespace fgl {
 	Promise<Result> Promise<Result>::except(String name, DispatchQueue* queue, OnReject onreject) {
 		using ErrorType = typename std::remove_reference<typename std::remove_cv<typename lambda_traits<OnReject>::template arg<0>::type>::type>::type;
 		using ReturnType = typename lambda_traits<OnReject>::return_type;
-		static_assert(
-			std::is_same<Result,void>::value
-			|| std::is_convertible<typename Promisized<ReturnType>::ResultType, Result>::value,
-			"return value of OnReject must be convertible to Result");
 		return Promise<Result>(name, [=](auto resolve, auto reject) {
 			this->continuer->handle(nullptr, resolve, queue, [=](auto error) {
 				if constexpr(is_promise<ReturnType>::value) {
