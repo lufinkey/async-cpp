@@ -545,7 +545,7 @@ namespace fgl {
 			this->continuer->handle(nullptr, resolve, queue, [=](auto error) {
 				if constexpr(is_promise<ReturnType>::value) {
 					if constexpr(std::is_same<ErrorType,std::exception_ptr>::value) {
-						std::unique_ptr<ReturnType> resultPromise;
+						std::unique_ptr<Promise<Result>> resultPromise;
 						try {
 							resultPromise = std::make_unique<ReturnType>(onreject(error));
 						} catch(...) {
@@ -558,7 +558,7 @@ namespace fgl {
 						try {
 							std::rethrow_exception(error);
 						} catch(ErrorType& error) {
-							std::unique_ptr<ReturnType> resultPromise;
+							std::unique_ptr<Promise<Result>> resultPromise;
 							try {
 								resultPromise = std::make_unique<ReturnType>(onreject(error));
 							} catch(...) {
