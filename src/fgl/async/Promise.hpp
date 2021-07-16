@@ -492,7 +492,7 @@ namespace fgl {
 					else {
 						std::unique_ptr<ReturnType> nextResult;
 						try {
-							nextResult = std::make_unique<ReturnType>(onresolve());
+							nextResult = std::make_unique<ReturnType>(onresolve(result));
 						} catch(...) {
 							reject(std::current_exception());
 							return;
