@@ -32,6 +32,8 @@ namespace fgl {
 		using LinkedList = std::list<T>;
 		using String = std::string;
 		using Any = std::any;
+		template<typename ...T>
+		using Tuple = std::tuple<T...>;
 
 		template<typename T>
 		using Optional = std::optional<T>;

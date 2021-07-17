@@ -19,6 +19,7 @@
 #include <memory>
 #include <mutex>
 #include <thread>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 
@@ -307,6 +308,11 @@ namespace fgl {
 	inline Optionalized<Result> maybeTryAwait(Promise<Result> promise);
 	template<typename Result>
 	inline Result maybeTryAwait(Promise<Result> promise, Result defaultValue);
+
+	template<typename ...PromiseTypes>
+	Promise<Tuple<PromiseTypes...>> tuplePromiseOf(String name, PromiseTypes... promises);
+	template<typename ...PromiseTypes>
+	Promise<Tuple<PromiseTypes...>> tuplePromiseOf(PromiseTypes... promises);
 	
 	
 	
@@ -1891,5 +1897,30 @@ namespace fgl {
 		return maybeTry([&]() {
 			return promise.get();
 		}, defaultValue);
+	}
+	
+	template<typename ...T, typename ListType>
+	Tuple<T...> tupleFromAnyList(ListType list) {
+		size_t i = 0;
+		return std::make_tuple((list[i++].template as<T>())...);
+	}
+	
+	template<typename ...PromiseTypes>
+	Promise<Tuple<PromiseTypes...>> tuplePromiseOf(String name, PromiseTypes... promises) {
+		using TupleType = Tuple<PromiseTypes...>;
+		using IntType = std::integer_sequence<PromiseTypes...>;
+		return Promise<Any>(name, ArrayList<Promise<Any>>{ promises.toAny()... }).map([](auto list) {
+			return tupleFromAnyList<PromiseTypes...>(list);
+		});
+	}
+	
+	template<typename ...PromiseTypes>
+	Promise<Tuple<PromiseTypes...>> tuplePromiseOf(PromiseTypes... promises) {
+		#ifdef DEBUG_PROMISE_NAMING
+		auto promiseName = String::join({ "tuplePromiseOf( ", promises.getName()..., " )" });
+		#else
+		auto promiseName = "";
+		#endif
+		return tuplePromiseOf<PromiseTypes...>(promiseName, promises...);
 	}
 }
