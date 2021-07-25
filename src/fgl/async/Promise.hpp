@@ -22,9 +22,30 @@
 #include <tuple>
 #include <type_traits>
 #include <utility>
+#if __has_include(<coroutine>)
+	#include <coroutine>
+#else
+	#include <experimental/coroutine>
+#endif
 
 
 namespace fgl {
+	#if __has_include(<coroutine>)
+		template<typename T = void>
+		using coroutine_handle = std::coroutine_handle<T>;
+		template<typename T, typename... Args>
+		using coroutine_traits = std::coroutine_traits<T,Args...>;
+		using suspend_never = std::suspend_never;
+		using suspend_always = std::suspend_always;
+	#else
+		template<typename T = void>
+		using coroutine_handle = std::experimental::coroutine_handle<T>;
+		template<typename T, typename... Args>
+		using coroutine_traits = std::experimental::coroutine_traits<T,Args...>;
+		using suspend_never = std::experimental::suspend_never;
+		using suspend_always = std::experimental::suspend_always;
+	#endif
+
 	class DispatchQueue;
 
 	DispatchQueue* backgroundPromiseQueue();
@@ -77,16 +98,16 @@ namespace fgl {
 
 
 	template<typename T>
-	struct promisize_t {
+	struct _promisize {
 		using type = Promise<T>;
 	};
 	template<typename T>
-	struct promisize_t<Promise<T>> {
+	struct _promisize<Promise<T>> {
 		using type = Promise<T>;
 	};
 
 	template<typename T>
-	using Promisized = typename promisize_t<T>::type;
+	using Promisized = typename _promisize<T>::type;
 
 
 
@@ -108,6 +129,10 @@ namespace fgl {
 		explicit Promise(Executor executor);
 		template<typename Executor>
 		Promise(String name, Executor executor);
+		
+		bool await_ready() const;
+		void await_suspend(coroutine_handle<>);
+		Result await_resume();
 
 
 		Promise<void> then(String name, DispatchQueue* queue, Then<void> onresolve, Catch<std::exception_ptr,void> onreject);
@@ -276,6 +301,7 @@ namespace fgl {
 			void reject(std::exception_ptr error);
 			
 			void handle(DispatchQueue* thenQueue, Then<void> onresolve, DispatchQueue* catchQueue, Catch<std::exception_ptr,void> onreject);
+			void markHandled();
 			
 			Result get();
 			
@@ -295,6 +321,7 @@ namespace fgl {
 			std::mutex mutex;
 			String name;
 			State state;
+			bool handled;
 		};
 		
 		std::shared_ptr<Continuer> continuer;
@@ -335,7 +362,7 @@ namespace fgl {
 	Promise<Result>::Promise(String name, Executor executor)
 		: continuer(std::make_shared<Continuer>(name)) {
 		auto _continuer = this->continuer;
-		if constexpr(std::is_same<Result,void>::value) {
+		if constexpr(std::is_void_v<Result>) {
 			executor([=]() {
 				_continuer->resolve();
 			}, [=](PromiseErrorPtr error) {
@@ -354,9 +381,29 @@ namespace fgl {
 	
 	
 	template<typename Result>
+	bool Promise<Result>::await_ready() const {
+		return isComplete();
+	}
+	
+	template<typename Result>
+	void Promise<Result>::await_suspend(coroutine_handle<> handle) {
+		finally(DispatchQueue::local(), [=]() {
+			auto h = handle;
+			h.resume();
+		});
+	}
+	
+	template<typename Result>
+	Result Promise<Result>::await_resume() {
+		return get();
+	}
+	
+	
+	
+	template<typename Result>
 	Promise<void> Promise<Result>::then(String name, DispatchQueue* queue, Then<void> onresolve, Catch<std::exception_ptr,void> onreject) {
 		return Promise<void>(name, [=](auto resolve, auto reject) {
-			if constexpr(std::is_same<Result,void>::value) {
+			if constexpr(std::is_void_v<Result>) {
 				auto resolveHandler = onresolve ? Then<void>([=]() {
 					try {
 						onresolve();
@@ -435,7 +482,7 @@ namespace fgl {
 	template<typename Result>
 	template<typename OnResolve>
 	auto Promise<Result>::then(String name, DispatchQueue* queue, OnResolve onresolve) {
-		if constexpr(std::is_same<Result,void>::value) {
+		if constexpr(std::is_void_v<Result>) {
 			using ReturnType = decltype(onresolve());
 			using NextPromise = Promisized<ReturnType>;
 			return NextPromise([=](auto resolve, auto reject) {
@@ -548,7 +595,7 @@ namespace fgl {
 		using ErrorType = typename std::remove_reference<typename std::remove_cv<typename lambda_traits<OnReject>::template arg<0>::type>::type>::type;
 		using ReturnType = typename lambda_traits<OnReject>::return_type;
 		static_assert(
-			std::is_same<Result,void>::value
+			std::is_void_v<Result>
 			|| std::is_convertible<typename Promisized<ReturnType>::ResultType, Result>::value,
 			"return value of OnReject must be convertible to Result");
 		return Promise<Result>(name, [=](auto resolve, auto reject) {
@@ -581,7 +628,7 @@ namespace fgl {
 						}
 					}
 				}
-				else if constexpr(std::is_same<Result,void>::value) {
+				else if constexpr(std::is_void_v<Result>) {
 					if constexpr(std::is_same<ErrorType,std::exception_ptr>::value) {
 						try {
 							onreject(error);
@@ -681,7 +728,7 @@ namespace fgl {
 	template<typename OnFinally>
 	Promise<Result> Promise<Result>::finally(String name, DispatchQueue* queue, OnFinally onfinally) {
 		return Promise<Result>(name, [=](auto resolve, auto reject) {
-			if constexpr(std::is_same<Result,void>::value) {
+			if constexpr(std::is_void_v<Result>) {
 				this->continuer->handle(queue, [=]() {
 					try {
 						onfinally();
@@ -755,7 +802,7 @@ namespace fgl {
 	template<typename Result>
 	template<typename Transform>
 	auto Promise<Result>::map(String name, DispatchQueue* queue, Transform transform) {
-		if constexpr(std::is_same<Result,void>::value) {
+		if constexpr(std::is_void_v<Result>) {
 			using NextResult = decltype(transform());
 			return Promise<NextResult>(name, [=](auto resolve, auto reject) {
 				this->continuer->handle(queue, [=]() {
@@ -850,7 +897,7 @@ namespace fgl {
 	template<typename Rep, typename Period>
 	Promise<Result> Promise<Result>::delay(String name, DispatchQueue* queue, std::chrono::duration<Rep,Period> delay) {
 		return Promise<Result>(name, [=](auto resolve, auto reject) {
-			if constexpr(std::is_same<Result,void>::value) {
+			if constexpr(std::is_void_v<Result>) {
 				return this->continuer->handle(nullptr, [=]() {
 					if(queue != nullptr) {
 						queue->asyncAfter(std::chrono::steady_clock::now() + delay, [=]() {
@@ -945,7 +992,7 @@ namespace fgl {
 					}
 					resultPromise->continuer->handle(nullptr, resolve, nullptr, reject);
 				} else {
-					if constexpr(std::is_same<Result,void>::value) {
+					if constexpr(std::is_void_v<Result>) {
 						try {
 							onTimeout();
 						} catch(...) {
@@ -980,7 +1027,7 @@ namespace fgl {
 					return true;
 				};
 				queue->asyncAfter(endTime, workItem);
-				if constexpr(std::is_same<Result,void>::value) {
+				if constexpr(std::is_void_v<Result>) {
 					this->continuer->handle(nullptr, [=]() {
 						if(handlePerform()) {
 						   resolve();
@@ -1020,7 +1067,7 @@ namespace fgl {
 					sharedData->cv.notify_one();
 					return true;
 				};
-				if constexpr(std::is_same<Result,void>::value) {
+				if constexpr(std::is_void_v<Result>) {
 					this->continuer->handle(nullptr, [=]() {
 						if(handlePerform()) {
 						   resolve();
@@ -1083,7 +1130,7 @@ namespace fgl {
 	
 	template<typename Result>
 	Promise<Any> Promise<Result>::toAny(String name) {
-		if constexpr(std::is_same<Result,void>::value) {
+		if constexpr(std::is_void_v<Result>) {
 			return map<Any>(name, nullptr, [=]() {
 				return Any();
 			});
@@ -1106,7 +1153,7 @@ namespace fgl {
 	
 	template<typename Result>
 	Promise<void> Promise<Result>::toVoid(String name) {
-		if constexpr(std::is_same<Result,void>::value) {
+		if constexpr(std::is_void_v<Result>) {
 			return map(name, nullptr, [=]() {});
 		} else {
 			return map(name, nullptr, [=](auto result) -> void {});
@@ -1548,7 +1595,7 @@ namespace fgl {
 					}
 					resultPromise->continuer->handle(nullptr, resolve, nullptr, reject);
 				} else {
-					if constexpr(std::is_same<Result,void>::value) {
+					if constexpr(std::is_void_v<Result>) {
 						try {
 							afterDelay();
 						} catch(...) {
@@ -1618,7 +1665,7 @@ namespace fgl {
 	
 	template<typename Result>
 	Promise<Result>::Continuer::Continuer(String name)
-	: future(promise.get_future().share()), name(name), state(State::EXECUTING) {
+	: future(promise.get_future().share()), name(name), state(State::EXECUTING), handled(false) {
 		//
 	}
 
@@ -1652,6 +1699,10 @@ namespace fgl {
 		resolvers.clear();
 		rejecters.clear();
 		lock.unlock();
+		// mark handled if we have callbacks
+		if(callbacks.size() > 0) {
+			markHandled();
+		}
 		// call callbacks
 		for(auto& callback : callbacks) {
 			if(callback.queue == nullptr || callback.queue->isLocal()) {
@@ -1679,6 +1730,10 @@ namespace fgl {
 		resolvers.clear();
 		rejecters.clear();
 		lock.unlock();
+		// mark handled if we have callbacks
+		if(callbacks.size() > 0) {
+			markHandled();
+		}
 		// call callbacks
 		for(auto& callback : callbacks) {
 			if(callback.queue == nullptr || callback.queue->isLocal()) {
@@ -1739,11 +1794,12 @@ namespace fgl {
 			case State::RESOLVED: {
 				lock.unlock();
 				if(onresolve) {
+					markHandled();
 					if(thenQueue != nullptr && !thenQueue->isLocal()) {
 						auto self = this->shared_from_this();
 						thenQueue->async([=]() {
 							auto future = self->future;
-							if constexpr(std::is_same<Result,void>::value) {
+							if constexpr(std::is_void_v<Result>) {
 								future.get();
 								onresolve();
 							}
@@ -1753,7 +1809,7 @@ namespace fgl {
 						});
 					} else {
 						auto future = this->future;
-						if constexpr(std::is_same<Result,void>::value) {
+						if constexpr(std::is_void_v<Result>) {
 							future.get();
 							onresolve();
 						}
@@ -1768,6 +1824,7 @@ namespace fgl {
 			case State::REJECTED: {
 				lock.unlock();
 				if(onreject) {
+					markHandled();
 					if(catchQueue != nullptr && !catchQueue->isLocal()) {
 						auto self = this->shared_from_this();
 						catchQueue->async([=]() {
@@ -1794,12 +1851,13 @@ namespace fgl {
 	
 	template<typename Result>
 	Result Promise<Result>::Continuer::get() {
+		markHandled();
 		switch(state) {
 			case State::EXECUTING: {
 				std::mutex waitMutex;
 				std::unique_lock<std::mutex> waitLock(waitMutex);
 				std::condition_variable waitCondition;
-				if constexpr(std::is_same<Result,void>::value) {
+				if constexpr(std::is_void_v<Result>) {
 					std::exception_ptr error_ptr;
 					bool rejected = false;
 					bool resolved = false;
@@ -1850,6 +1908,11 @@ namespace fgl {
 		}
 	}
 	
+	template<typename Result>
+	void Promise<Result>::Continuer::markHandled() {
+		handled = true;
+	}
+	
 	
 	
 	
@@ -1857,7 +1920,7 @@ namespace fgl {
 	Promise<Result> async(Function<Result()> executor) {
 		return Promise<Result>([=](auto resolve, auto reject) {
 			std::thread([=]() {
-				if constexpr(std::is_same<Result,void>::value) {
+				if constexpr(std::is_void_v<Result>) {
 					try {
 						executor();
 					} catch(...) {
@@ -1923,4 +1986,132 @@ namespace fgl {
 		#endif
 		return tuplePromiseOf<PromiseTypes...>(promiseName, promises...);
 	}
+
+
+	
+	template<typename Result>
+	struct coroutine_promise_type {
+		typename Promise<Result>::Resolver resolve;
+		typename Promise<Result>::Rejecter reject;
+		Promise<Result> promise;
+		
+		coroutine_promise_type()
+		: promise([&](auto resolve, auto reject) {
+			this->resolve = resolve;
+			this->reject = reject;
+		}) {
+			//
+		}
+		
+		Promise<Result> get_return_object() {
+			return promise;
+		}
+
+		suspend_never initial_suspend() const noexcept {
+			return {};
+		}
+		
+		suspend_never final_suspend() const noexcept {
+			return {};
+		}
+		
+		auto yield_value(std::nullptr_t null) {
+			auto localQueue = DispatchQueue::local();
+			// yield for other tasks on the dispatch queue
+			struct awaiter {
+				DispatchQueue* queue;
+				bool await_ready() {
+					// if we don't have a local dispatch queue, return immediately
+					return (queue == nullptr);
+				}
+				void await_suspend(coroutine_handle<> handle) {
+					queue->async([=]() {
+						auto h = handle;
+						h.resume();
+					});
+				}
+				void await_resume() {}
+			};
+			return awaiter{ localQueue };
+		}
+
+		void return_value(const Result& value) {
+			resolve(value);
+		}
+		
+		void return_value(Result&& value) {
+			resolve(std::move(value));
+		}
+		
+		void unhandled_exception() noexcept {
+			reject(std::current_exception());
+		}
+	};
+	
+	template<>
+	struct coroutine_promise_type<void> {
+		typename Promise<void>::Resolver resolve;
+		typename Promise<void>::Rejecter reject;
+		Promise<void> promise;
+		
+		coroutine_promise_type()
+		: promise([&](auto resolve, auto reject) {
+			this->resolve = resolve;
+			this->reject = reject;
+		}) {
+			//
+		}
+		
+		Promise<void> get_return_object() {
+			return promise;
+		}
+
+		suspend_never initial_suspend() const noexcept {
+			return {};
+		}
+		
+		suspend_never final_suspend() const noexcept {
+			return {};
+		}
+		
+		auto yield_value(std::nullptr_t null) {
+			auto localQueue = DispatchQueue::local();
+			// yield for other tasks on the dispatch queue
+			struct awaiter {
+				DispatchQueue* queue;
+				bool await_ready() {
+					// if we don't have a local dispatch queue, return immediately
+					return (queue == nullptr);
+				}
+				void await_suspend(coroutine_handle<> handle) {
+					queue->async([=]() {
+						auto h = handle;
+						h.resume();
+					});
+				}
+				void await_resume() {}
+			};
+			return awaiter{ localQueue };
+		}
+
+		void return_void() {
+			resolve();
+		}
+		
+		void unhandled_exception() noexcept {
+			reject(std::current_exception());
+		}
+	};
 }
+
+#if __has_include(<coroutine>)
+template<typename T, typename... Args>
+struct std::coroutine_traits<fgl::Promise<T>, Args...> {
+	using promise_type = fgl::coroutine_promise_type<T>;
+};
+#else
+template<typename T, typename... Args>
+struct std::experimental::coroutine_traits<fgl::Promise<T>, Args...> {
+	using promise_type = fgl::coroutine_promise_type<T>;
+};
+#endif

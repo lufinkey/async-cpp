@@ -44,6 +44,16 @@ namespace fgl_async_cpp_tests {
 	}
 
 
+	Promise<int> coroutineTest() {
+		println("starting coroutine");
+		co_await waitFor(1000);
+		println("continuing coroutine after delay");
+		co_yield {};
+		println("returning final value");
+		co_return 13;
+	}
+
+
 	Promise<void> runTests() {
 		return async<void>([=]() {
 			println("Starting AsyncCpp tests");
@@ -93,7 +103,14 @@ namespace fgl_async_cpp_tests {
 
 			std::shared_ptr<AsyncList<String>> asyncList;
 			
+			auto coPromise = coroutineTest();
+			
 			await(waitFor(6000));
+			
+			await(coPromise.then([=](auto result) {
+				println("finished coroutine tests with result "+std::to_string(result));
+			}));
+			
 			println("Done running AsyncCpp tests");
 		});
 	}
