@@ -72,24 +72,24 @@ namespace fgl {
 
 	template<typename Result, typename Type>
 	using IsPromiseOr = typename std::enable_if<
-		(std::is_same<Type,Promise<Result>>::value || (!is_promise<Type>::value && std::is_same<Type,Result>::value)), Type>::type;
+		(std::is_same_v<Type,Promise<Result>> || (!is_promise<Type>::value && std::is_same_v<Type,Result>)), Type>::type;
 
 	template<typename Result, typename Type>
 	using IsPromiseOrConvertible = typename std::enable_if<
-		(std::is_same<Type,Promise<Result>>::value || (!is_promise<Type>::value && std::is_convertible<Type,Result>::value)), Type>::type;
+		(std::is_same_v<Type,Promise<Result>> || (!is_promise<Type>::value && std::is_convertible_v<Type,Result>)), Type>::type;
 
 	template<typename Func>
 	using IsPromiseFunction = typename std::enable_if<is_promise<typename lambda_traits<Func>::return_type>::value,Func>::type;
 
 	template<typename Result, typename Func>
 	using IsPromiseOrTFunction = typename std::enable_if<
-		(std::is_same<typename lambda_traits<Func>::return_type,Result>::value
-		|| std::is_same<typename lambda_traits<Func>::return_type,Promise<Result>>::value),Func>::type;
+		(std::is_same_v<typename lambda_traits<Func>::return_type,Result>
+		|| std::is_same_v<typename lambda_traits<Func>::return_type,Promise<Result>>),Func>::type;
 
 
 	template<typename T, typename Transform>
-	auto DeclPromiseMapResult(Transform transform) {
-		if constexpr(std::is_same<T,void>::value) {
+	inline auto DeclPromiseMapResult(Transform transform) {
+		if constexpr(std::is_void_v<T>) {
 			return transform();
 		} else {
 			return transform(std::declval<T>());
@@ -387,10 +387,25 @@ namespace fgl {
 	
 	template<typename Result>
 	void Promise<Result>::await_suspend(coroutine_handle<> handle) {
-		finally(DispatchQueue::local(), [=]() {
-			auto h = handle;
-			h.resume();
-		});
+		auto localQueue = DispatchQueue::local();
+		if constexpr(std::is_void_v<Result>) {
+			continuer->handle(localQueue, [=]() {
+				auto h = handle;
+				h.resume();
+			}, localQueue, [=](std::exception_ptr e) {
+				auto h = handle;
+				h.resume();
+			});
+		}
+		else {
+			continuer->handle(localQueue, [=](auto result) {
+				auto h = handle;
+				h.resume();
+			}, localQueue, [=](std::exception_ptr e) {
+				auto h = handle;
+				h.resume();
+			});
+		}
 	}
 	
 	template<typename Result>
