@@ -327,14 +327,11 @@ namespace fgl {
 		std::shared_ptr<Continuer> continuer;
 	};
 	
-	template<typename Result = void>
-	Promise<Result> async(Function<Result()> executor);
-	template<typename Result>
-	inline Result await(Promise<Result> promise);
-	template<typename Result>
-	inline Optionalized<Result> maybeTryAwait(Promise<Result> promise);
-	template<typename Result>
-	inline Result maybeTryAwait(Promise<Result> promise, Result defaultValue);
+	template<typename Executor>
+	auto promiseThread(Executor executor);
+
+	struct resumeOnQueue;
+	struct resumeOnNewThread;
 
 	template<typename ...PromiseTypes>
 	Promise<Tuple<PromiseTypes...>> tuplePromiseOf(String name, PromiseTypes... promises);
@@ -1931,11 +1928,13 @@ namespace fgl {
 	
 	
 	
-	template<typename Result>
-	Promise<Result> async(Function<Result()> executor) {
-		return Promise<Result>([=](auto resolve, auto reject) {
+	template<typename Executor>
+	auto promiseThread(Executor executor) {
+		using ReturnType = decltype(executor());
+		using ResultType = typename Promisized<ReturnType>::ResultType;
+		return Promise<ResultType>([=](auto resolve, auto reject) {
 			std::thread([=]() {
-				if constexpr(std::is_void_v<Result>) {
+				if constexpr(std::is_void_v<ReturnType>) {
 					try {
 						executor();
 					} catch(...) {
@@ -1944,10 +1943,20 @@ namespace fgl {
 					}
 					resolve();
 				}
-				else {
-					std::unique_ptr<Result> result;
+				else if constexpr(is_promise<ReturnType>::value) {
+					std::unique_ptr<ReturnType> resultPromise;
 					try {
-						result = std::make_unique<Result>(executor());
+						resultPromise = std::make_unique<ReturnType>(executor());
+					} catch(...) {
+						reject(std::current_exception());
+						return;
+					}
+					resultPromise.then(nullptr, resolve, reject);
+				}
+				else {
+					std::unique_ptr<ReturnType> result;
+					try {
+						result = std::make_unique<ReturnType>(executor());
 					} catch(...) {
 						reject(std::current_exception());
 						return;
@@ -1958,24 +1967,19 @@ namespace fgl {
 		});
 	}
 	
-	template<typename Result>
-	Result await(Promise<Result> promise) {
-		return promise.get();
-	}
+	struct resumeOnQueue {
+		DispatchQueue* queue;
+		resumeOnQueue(DispatchQueue* queue);
+		bool await_ready();
+		void await_suspend(coroutine_handle<> handle);
+		void await_resume();
+	};
 	
-	template<typename Result>
-	Optionalized<Result> maybeTryAwait(Promise<Result> promise) {
-		return maybeTry([&]() {
-			return promise.get();
-		});
-	}
-	
-	template<typename Result>
-	Result maybeTryAwait(Promise<Result> promise, Result defaultValue) {
-		return maybeTry([&]() {
-			return promise.get();
-		}, defaultValue);
-	}
+	struct resumeOnNewThread {
+		bool await_ready();
+		void await_suspend(coroutine_handle<> handle);
+		void await_resume();
+	};
 	
 	template<typename ...T, typename ListType>
 	Tuple<T...> tupleFromAnyList(ListType list) {

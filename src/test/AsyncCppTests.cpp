@@ -30,14 +30,14 @@ namespace fgl_async_cpp_tests {
 	}
 
 	Promise<void> waitFor(unsigned int milliseconds) {
-		return async<void>([=]() {
+		return promiseThread([=]() {
 			std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
 		});
 	}
 
 	template<typename Result>
 	Promise<Result> waitFor(unsigned int milliseconds, Result returnValue) {
-		return async<Result>([=]() -> Result {
+		return promiseThread([=]() -> Result {
 			std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
 			return returnValue;
 		});
@@ -55,7 +55,7 @@ namespace fgl_async_cpp_tests {
 
 
 	Promise<void> runTests() {
-		return async<void>([=]() {
+		return promiseThread([=]() {
 			println("Starting AsyncCpp tests");
 			fgl::DispatchQueue::main()->async([]() {
 				println("We queued something to the main thread");
@@ -80,7 +80,7 @@ namespace fgl_async_cpp_tests {
 			
 			println(fgl::stringify_type<decltype(promise)>());
 			
-			auto result = await(promise);
+			auto result = promise.get();
 			println((String)"got result: " + result);
 
 			auto gen = generate<int>([](auto yield) {
@@ -105,11 +105,11 @@ namespace fgl_async_cpp_tests {
 			
 			auto coPromise = coroutineTest();
 			
-			await(waitFor(6000));
+			waitFor(6000).get();
 			
-			await(coPromise.then([=](auto result) {
+			coPromise.then([=](auto result) {
 				println("finished coroutine tests with result "+std::to_string(result));
-			}));
+			}).get();
 			
 			println("Done running AsyncCpp tests");
 		});
