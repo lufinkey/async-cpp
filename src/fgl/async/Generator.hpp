@@ -56,6 +56,8 @@ namespace fgl {
 
 	template<typename Yield, typename Next>
 	class Generator {
+		template<typename _Yield=Yield, typename _Next=Next>
+		friend struct coroutine_generator_type;
 	public:
 		using YieldType = Yield;
 		using NextType = Next;
@@ -75,11 +77,11 @@ namespace fgl {
 		static Generator<Yield,Next> reject(ErrorType error);
 		
 		template<typename _Next=Next,
-			typename std::enable_if<(std::is_same<_Next,Next>::value && !std::is_same<_Next,void>::value), std::nullptr_t>::type = nullptr>
+			typename = std::enable_if_t<(std::is_same_v<_Next,Next> && !std::is_void_v<_Next>)>>
 		inline Promise<YieldResult> next(_Next nextValue);
 		
 		template<typename _Next=Next,
-			typename std::enable_if<(std::is_same<_Next,Next>::value && std::is_same<_Next,void>::value), std::nullptr_t>::type = nullptr>
+			typename = std::enable_if_t<(std::is_same_v<_Next,Next> && (std::is_void_v<_Next> || is_optional_v<_Next>))>>
 		inline Promise<YieldResult> next();
 		
 		template<typename Transform>
@@ -104,11 +106,11 @@ namespace fgl {
 			~Continuer();
 			
 			template<typename _Next=Next,
-				typename std::enable_if<(std::is_same<_Next,Next>::value && !std::is_same<_Next,void>::value), std::nullptr_t>::type = nullptr>
+				typename = std::enable_if_t<(std::is_same_v<_Next,Next> && !std::is_void_v<_Next>)>>
 			Promise<YieldResult> next(_Next nextValue);
 			
 			template<typename _Next=Next,
-				typename std::enable_if<(std::is_same<_Next,Next>::value && std::is_same<_Next,void>::value), std::nullptr_t>::type = nullptr>
+				typename = std::enable_if_t<(std::is_same_v<_Next,Next> && (std::is_void_v<_Next> || is_optional_v<_Next>))>>
 			Promise<YieldResult> next();
 			
 		private:
@@ -124,11 +126,9 @@ namespace fgl {
 
 
 	struct GenerateDestroyedNotifier;
-	template<typename Yield>
-	using GenerateYielder = typename lambda_block<Yield,void>::type;
 
-	template<typename Yield>
-	Generator<Yield,void> generate(Function<Yield(GenerateYielder<Yield> yield)> executor);
+	template<typename Yield, typename Executor>
+	Generator<Yield,void> generatorThread(Executor executor);
 
 	template<typename Yield, typename Next>
 	using GenerateItemExecutor = typename lambda_block<Next,Promise<Yield>>::type;
@@ -205,15 +205,13 @@ namespace fgl {
 	}
 
 	template<typename Yield, typename Next>
-	template<typename _Next,
-		typename std::enable_if<(std::is_same<_Next,Next>::value && !std::is_same<_Next,void>::value), std::nullptr_t>::type>
+	template<typename _Next, typename _>
 	Promise<typename Generator<Yield,Next>::YieldResult> Generator<Yield,Next>::next(_Next nextValue) {
 		return continuer->next(nextValue);
 	}
 
 	template<typename Yield, typename Next>
-	template<typename _Next,
-		typename std::enable_if<(std::is_same<_Next,Next>::value && std::is_same<_Next,void>::value), std::nullptr_t>::type>
+	template<typename _Next, typename _>
 	Promise<typename Generator<Yield,Next>::YieldResult> Generator<Yield,Next>::next() {
 		return continuer->next();
 	}
@@ -431,8 +429,7 @@ namespace fgl {
 	}
 
 	template<typename Yield, typename Next>
-	template<typename _Next,
-		typename std::enable_if<(std::is_same<_Next,Next>::value && !std::is_same<_Next,void>::value), std::nullptr_t>::type>
+	template<typename _Next, typename _>
 	Promise<typename Generator<Yield,Next>::YieldResult> Generator<Yield,Next>::Continuer::next(_Next nextValue) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		if(state == State::FINISHED) {
@@ -442,7 +439,15 @@ namespace fgl {
 		auto yieldReturner = this->yieldReturner;
 		auto performNext = [=]() -> Promise<YieldResult> {
 			state = State::EXECUTING;
-			return yieldReturner(nextValue).map(nullptr, [=](YieldResult result) -> YieldResult {
+			return yieldReturner(nextValue)
+			.except(nullptr, [=](std::exception_ptr error) -> YieldResult {
+				std::unique_lock<std::recursive_mutex> lock(self->mutex);
+				state = State::FINISHED;
+				yieldReturner = nullptr;
+				self->nextPromise = std::nullopt;
+				std::rethrow_exception(error);
+			})
+			.map(nullptr, [=](YieldResult result) -> YieldResult {
 				std::unique_lock<std::recursive_mutex> lock(self->mutex);
 				if(result.done) {
 					state = State::FINISHED;
@@ -452,12 +457,6 @@ namespace fgl {
 				}
 				self->nextPromise = std::nullopt;
 				return result;
-			}).except(nullptr, [=](std::exception_ptr error) -> YieldResult {
-				std::unique_lock<std::recursive_mutex> lock(self->mutex);
-				state = State::FINISHED;
-				yieldReturner = nullptr;
-				self->nextPromise = std::nullopt;
-				std::rethrow_exception(error);
 			});
 		};
 		if(nextPromise.has_value()) {
@@ -486,9 +485,11 @@ namespace fgl {
 	}
 
 	template<typename Yield, typename Next>
-	template<typename _Next,
-		typename std::enable_if<(std::is_same<_Next,Next>::value && std::is_same<_Next,void>::value), std::nullptr_t>::type>
+	template<typename _Next, typename _>
 	Promise<typename Generator<Yield,Next>::YieldResult> Generator<Yield,Next>::Continuer::next() {
+		if constexpr(is_optional_v<Next>) {
+			return next(std::nullopt);
+		}
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		if(state == State::FINISHED) {
 			return Promise<YieldResult>::resolve(YieldResult{.done=true});
@@ -547,8 +548,8 @@ namespace fgl {
 	};
 
 
-	template<typename Yield>
-	Generator<Yield,void> generate(Function<Yield(GenerateYielder<Yield> yield)> executor) {
+	template<typename Yield, typename Executor>
+	Generator<Yield,void> generatorThread(Executor executor) {
 		using YieldResult = typename Generator<Yield,void>::YieldResult;
 		struct ResultDefer {
 			typename Promise<YieldResult>::Resolver resolve;
@@ -635,8 +636,8 @@ namespace fgl {
 				}
 				// resolve the generator thread
 				defer->resolve(YieldResult{.done=true});
-				
-			} else /*if constexpr(!std::is_same<Yield,void>::value)*/ {
+			}
+			else /*if constexpr(!std::is_same<Yield,void>::value)*/ {
 				// yield() callback for the generator
 				auto yielder = [&](Yield yieldValue) {
 					// yield must be called from the same thread as the executor, so it can block the thread
@@ -784,4 +785,209 @@ namespace fgl {
 			});
 		}
 	}
+
+
+
+	// Return the initial value passed to gen.next()
+	struct _initialGenNext{
+		friend _initialGenNext initialGenNext();
+		_initialGenNext() = delete;
+		_initialGenNext(std::nullptr_t);
+	};
+	_initialGenNext initialGenNext();
+
+	// Sets the queue that the generator should resume on
+	struct _setGenResumeQueue{
+		template<typename Yield, typename Next>
+		friend struct _coroutine_generator_type_base;
+		_setGenResumeQueue() = delete;
+		_setGenResumeQueue(DispatchQueue* queue, bool enterQueue = true);
+	private:
+		DispatchQueue* queue;
+		bool enterQueue;
+	};
+	_setGenResumeQueue setGenResumeQueue(DispatchQueue* queue, bool enterQueue = true);
+
+
+	template<typename Yield, typename Next>
+	struct _coroutine_generator_type_base {
+		using YieldResult = GeneratorYieldResult<Yield>;
+		coroutine_handle<> handle;
+		typename Promise<YieldResult>::Resolver resolve;
+		typename Promise<YieldResult>::Rejecter reject;
+		member_if<(!std::is_void_v<Next>),
+			std::unique_ptr<NullifyVoid<Next>>> nextValue;
+		Generator<Yield,Next> generator;
+		DispatchQueue* queue = nullptr;
+		bool yielded = false;
+		bool suspended = false;
+		
+		_coroutine_generator_type_base(coroutine_handle<> handle)
+		: handle(handle), generator(yieldReturner()) {
+			//
+		}
+		
+		Generator<Yield,Next> get_return_object() {
+			return generator;
+		}
+
+		suspend_never initial_suspend() const noexcept {
+			return {};
+		}
+		
+		suspend_never final_suspend() const noexcept {
+			return {};
+		}
+		
+		inline auto yield_value(_setGenResumeQueue setter) {
+			queue = setter.queue;
+			struct awaiter {
+				DispatchQueue* queue;
+				bool enterQueue;
+				bool await_ready() { return (!enterQueue || queue == nullptr || queue->isLocal()); }
+				void await_suspend(coroutine_handle<> handle) {
+					queue->async([=]() {
+						auto h = handle;
+						h.resume();
+					});
+				}
+				void await_resume() {}
+			};
+			return awaiter{ setter.queue, setter.enterQueue };
+		}
+		
+		inline auto yield_value(_initialGenNext) {
+			FGL_ASSERT(!yielded, "co_yield initialGenNext() must be called once before any element yields");
+			yielded = true;
+			return yieldAwaiter();
+		}
+		
+		inline auto yield_value(const NullifyVoid<Yield>& value) {
+			FGL_ASSERT(yielded, "co_yield initialGenNext() must be called once before any element yields");
+			if constexpr(std::is_void_v<Yield>) {
+				resolve({ .done = false });
+			} else {
+				resolve({
+					.value = value,
+					.done = false
+				});
+			}
+			return yieldAwaiter();
+		}
+		
+		inline auto yield_value(NullifyVoid<Yield>&& value) {
+			FGL_ASSERT(yielded, "co_yield initialGenNext() must be called once before any element yields");
+			if constexpr(std::is_void_v<Yield>) {
+				resolve({ .done = false });
+			} else {
+				resolve({
+					.value = value,
+					.done = false
+				});
+			}
+			return yieldAwaiter();
+		}
+		
+		void unhandled_exception() noexcept {
+			reject(std::current_exception());
+		}
+		
+	protected:
+		inline auto yieldReturner() {
+			auto body = [=]() {
+				auto promise = Promise<YieldResult>([=](auto resolve, auto reject) {
+					this->resolve = resolve;
+					this->reject = reject;
+				});
+				if(this->suspended) {
+					this->suspended = false;
+					if(this->queue != nullptr && !this->queue->isLocal()) {
+						auto handle = this->handle;
+						this->queue->async([=]() {
+							auto h = handle;
+							h.resume();
+						});
+					} else {
+						this->handle.resume();
+					}
+				}
+				return promise;
+			};
+			if constexpr(std::is_void_v<Next>) {
+				return body;
+			} else {
+				return [=](auto nextVal) {
+					this->nextValue = std::make_unique<Next>(nextVal);
+					return body();
+				};
+			}
+		}
+		
+		inline auto yieldAwaiter() {
+			if constexpr(std::is_void_v<Next>) {
+				struct awaiter {
+					_coroutine_generator_type_base<Yield,Next>* self;
+					bool await_ready() { return self->generator.continuer->nextPromise.hasValue(); }
+					void await_suspend(coroutine_handle<> handle) {
+						self->suspended = true;
+					}
+					void await_resume() {}
+				};
+				return awaiter{ this };
+			} else {
+				struct awaiter {
+					_coroutine_generator_type_base<Yield,Next>* self;
+					std::unique_ptr<Next> value;
+					bool await_ready() { return self->generator.continuer->nextPromise.hasValue(); }
+					void await_suspend(coroutine_handle<> handle) {
+						self->suspended = true;
+					}
+					Next await_resume() {
+						return std::move(*value.get());
+					}
+				};
+				awaiter a{ this };
+				a.value.swap(this->nextValue);
+				return a;
+			}
+		}
+	};
+
+	template<typename Yield, typename Next>
+	struct coroutine_generator_type: public _coroutine_generator_type_base<Yield,Next> {
+		using _coroutine_generator_type_base<Yield,Next>::_coroutine_generator_type_base;
+		void return_value(const Yield& value) {
+			this->resolve({
+				.value = value,
+				.done = true
+			});
+		}
+		
+		void return_value(Yield&& value) {
+			this->resolve({
+				.value = value,
+				.done = true
+			});
+		}
+	};
+
+	template<typename Next>
+	struct coroutine_generator_type<void,Next>: public _coroutine_generator_type_base<void,Next> {
+		using _coroutine_generator_type_base<void,Next>::_coroutine_generator_type_base;
+		void return_void() {
+			this->resolve({ .done = true });
+		}
+	};
 }
+
+#if __has_include(<coroutine>)
+template<typename Yield, typename Next, typename... Args>
+struct std::coroutine_traits<fgl::Generator<Yield,Next>, Args...> {
+	using promise_type = fgl::coroutine_generator_type<Yield,Next>;
+};
+#else
+template<typename Yield, typename Next, typename... Args>
+struct std::experimental::coroutine_traits<fgl::Generator<Yield,Next>, Args...> {
+	using promise_type = fgl::coroutine_generator_type<Yield,Next>;
+};
+#endif

@@ -30,7 +30,7 @@ namespace fgl {
 		FGL_ASSERT(queue != nullptr, "queue must not be null");
 		this->queue = queue;
 	}
-	bool resumeOnQueue::await_ready() { return false; }
+	bool resumeOnQueue::await_ready() { return queue->isLocal(); }
 	void resumeOnQueue::await_suspend(coroutine_handle<> handle) {
 		queue->async([=]() {
 			auto h = handle;
@@ -38,6 +38,7 @@ namespace fgl {
 		});
 	}
 	void resumeOnQueue::await_resume() {}
+
 
 	bool resumeOnNewThread::await_ready() { return false; }
 	void resumeOnNewThread::await_suspend(coroutine_handle<> handle) {

@@ -24,6 +24,8 @@
 
 namespace fgl {
 	#ifdef ASYNC_CPP_STANDALONE
+		struct empty{};
+
 		template<typename T>
 		using Function = std::function<T>;
 		template<typename T>
@@ -36,26 +38,55 @@ namespace fgl {
 		using Tuple = std::tuple<T...>;
 
 		template<typename T>
+		struct is_optional: std::false_type {};
+		template<typename T>
+		struct is_optional<Optional<T>>: std::true_type {};
+		template<typename T>
+		struct is_optional<std::optional<T>>: std::true_type {};
+
+		template<typename T>
+		inline constexpr bool is_optional_v = is_optional<T>::value;
+
+		template<typename T>
 		using Optional = std::optional<T>;
 		template<typename T>
-		struct optionalize_t {
+		struct _optionalize {
 			using type = Optional<T>;
 		};
 		template<typename T>
-		struct optionalize_t<Optional<T>> {
-			using type = T;
+		struct _optionalize<Optional<T>> {
+			using type = Optional<T>;
 		};
 		template<typename T>
-		struct optionalize_t<void> {
+		struct _optionalize<void> {
 			using type = Optional<std::nullptr_t>;
 		};
 		template<typename T>
 		using Optionalized = typename optionalize_t<T>::type;
+
+
+		template<typename T>
+		struct optional_or_void {
+			using type = Optionalized<T>;
+		};
+		template<>
+		struct optional_or_void<void> {
+			using type = void
+		};
+		template<typename T>
+		using OptionalOrVoid = typename optional_or_void<T>::type;
+
+
+		template<bool Condition, typename T>
+		using member_if = typename std::conditional<Condition,T,empty[0]>::type;
+
+		template<typename T>
+		using NullifyVoid = typename std::conditional<std::is_void_v<T>,std::nullptr_t,T>::type;
 	#endif
 	
 	#ifndef FGL_ASSERT
 		#ifdef NDEBUG
-			#define FGL_ASSERT(condition, message)
+			#define FGL_ASSERT(condition, message) assert(condition)
 		#else
 			#define FGL_ASSERT(condition, message) { \
 				if(!(condition)) { \

@@ -83,7 +83,7 @@ namespace fgl_async_cpp_tests {
 			auto result = promise.get();
 			println((String)"got result: " + result);
 
-			auto gen = generate<int>([](auto yield) {
+			auto gen = generatorThread<int>([](auto yield) {
 				println("we're gonna yield 4");
 				yield(4);
 				println("we're gonna yield 5");

@@ -2009,12 +2009,12 @@ namespace fgl {
 
 	
 	template<typename Result>
-	struct coroutine_promise_type {
+	struct _coroutine_promise_type_base {
 		typename Promise<Result>::Resolver resolve;
 		typename Promise<Result>::Rejecter reject;
 		Promise<Result> promise;
 		
-		coroutine_promise_type()
+		_coroutine_promise_type_base()
 		: promise([&](auto resolve, auto reject) {
 			this->resolve = resolve;
 			this->reject = reject;
@@ -2053,72 +2053,27 @@ namespace fgl {
 			};
 			return awaiter{ localQueue };
 		}
-
-		void return_value(const Result& value) {
-			resolve(value);
-		}
-		
-		void return_value(Result&& value) {
-			resolve(std::move(value));
-		}
 		
 		void unhandled_exception() noexcept {
 			reject(std::current_exception());
 		}
 	};
 	
+	template<typename Result>
+	struct coroutine_promise_type: public _coroutine_promise_type_base<Result> {
+		void return_value(const Result& value) {
+			this->resolve(value);
+		}
+		
+		void return_value(Result&& value) {
+			this->resolve(std::move(value));
+		}
+	};
+	
 	template<>
-	struct coroutine_promise_type<void> {
-		typename Promise<void>::Resolver resolve;
-		typename Promise<void>::Rejecter reject;
-		Promise<void> promise;
-		
-		coroutine_promise_type()
-		: promise([&](auto resolve, auto reject) {
-			this->resolve = resolve;
-			this->reject = reject;
-		}) {
-			//
-		}
-		
-		Promise<void> get_return_object() {
-			return promise;
-		}
-
-		suspend_never initial_suspend() const noexcept {
-			return {};
-		}
-		
-		suspend_never final_suspend() const noexcept {
-			return {};
-		}
-		
-		auto yield_value(std::nullptr_t null) {
-			auto localQueue = DispatchQueue::local();
-			// yield for other tasks on the dispatch queue
-			struct awaiter {
-				DispatchQueue* queue;
-				bool await_ready() {
-					// if we don't have a local dispatch queue, return immediately
-					return (queue == nullptr);
-				}
-				void await_suspend(coroutine_handle<> handle) {
-					queue->async([=]() {
-						auto h = handle;
-						h.resume();
-					});
-				}
-				void await_resume() {}
-			};
-			return awaiter{ localQueue };
-		}
-
+	struct coroutine_promise_type<void>: public _coroutine_promise_type_base<void> {
 		void return_void() {
-			resolve();
-		}
-		
-		void unhandled_exception() noexcept {
-			reject(std::current_exception());
+			this->resolve();
 		}
 	};
 }
