@@ -140,6 +140,10 @@ namespace fgl {
 		inline Promise<Result> except(String name, OnReject onreject);
 		template<typename OnReject>
 		inline Promise<Result> except(OnReject onreject);
+		
+		
+		template<typename Value>
+		Promise<Result> exceptReturn(Value&&);
 
 
 		template<typename OnFinally>
@@ -718,6 +722,16 @@ namespace fgl {
 		auto exceptName = "";
 		#endif
 		return except<OnReject>(exceptName, onreject);
+	}
+	
+	template<typename Result>
+	template<typename Value>
+	Promise<Result> Promise<Result>::exceptReturn(Value&& value) {
+		return Promise<Result>([=](auto resolve, auto reject) {
+			this->continuer->handle(nullptr, resolve, nullptr, [=](std::exception_ptr error) {
+				resolve(value);
+			});
+		});
 	}
 	
 	
