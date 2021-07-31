@@ -438,7 +438,7 @@ namespace fgl {
 		if(state == State::FINISHED) {
 			return Promise<YieldResult>::resolve(YieldResult{.done=true});
 		}
-		auto self = this->self.lock();
+		auto self = this->shared_from_this();
 		auto yieldReturner = this->yieldReturner;
 		auto performNext = [=]() -> Promise<YieldResult> {
 			state = State::EXECUTING;
@@ -844,7 +844,7 @@ namespace fgl {
 				bool enterQueue;
 				bool await_ready() { return (!enterQueue || queue == nullptr || queue->isLocal()); }
 				void await_suspend(coroutine_handle<> handle) {
-					self.handle = handle;
+					self->handle = handle;
 					queue->async([=]() {
 						auto h = handle;
 						h.resume();
