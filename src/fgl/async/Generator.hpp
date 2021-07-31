@@ -128,7 +128,7 @@ namespace fgl {
 	};
 
 
-	struct GenerateDestroyedNotifier;
+	struct GeneratorThreadDestroyedNotifier;
 
 	template<typename Yield, typename Executor>
 	Generator<Yield,void> generatorThread(Executor executor);
@@ -545,7 +545,7 @@ namespace fgl {
 	}
 
 
-	struct GenerateDestroyedNotifier {
+	struct GeneratorThreadDestroyedNotifier {
 	private:
 		bool unused;
 	};
@@ -593,13 +593,13 @@ namespace fgl {
 					lock.unlock();
 					// if we do not have a defer callback, the generator ran without a generator.next() call waiting for it
 					if(!defer) {
-						throw std::logic_error("Generator continued running after GenerateDestroyedNotifier was thrown");
+						throw std::logic_error("Generator continued running after GeneratorThreadDestroyedNotifier was thrown");
 					}
 					// resolve the generator.next() call
 					defer->resolve(YieldResult{.done=false});
 					// if the generator was destroyed and we're not waiting for a callback, end the call
 					if(sharedData->destroyed && !sharedData->yieldDefer.has_value()) {
-						throw GenerateDestroyedNotifier();
+						throw GeneratorThreadDestroyedNotifier();
 					}
 					// wait for the next generator.next call, or the destruction of the generator
 					sharedData->cv.wait(waitLock, [&]() {
@@ -607,14 +607,14 @@ namespace fgl {
 					});
 					// if the generator was destroyed and we're not waiting for a callback, end the call
 					if(sharedData->destroyed && !sharedData->yieldDefer.has_value()) {
-						throw GenerateDestroyedNotifier();
+						throw GeneratorThreadDestroyedNotifier();
 					}
 				};
 				
 				try {
 					// run the generator
 					executor(yielder);
-				} catch(GenerateDestroyedNotifier&) {
+				} catch(GeneratorThreadDestroyedNotifier&) {
 					return;
 				} catch(...) {
 					std::unique_lock<std::mutex> lock(sharedData->mutex);
@@ -623,7 +623,7 @@ namespace fgl {
 					lock.unlock();
 					// if we do not have a defer callback, the generator ran without a generator.next() call waiting for it
 					if(!defer) {
-						throw std::logic_error("Generator continued running after GenerateDestroyedNotifier was thrown");
+						throw std::logic_error("Generator continued running after GeneratorThreadDestroyedNotifier was thrown");
 					}
 					// fail the generator
 					defer->reject(std::current_exception());
@@ -635,7 +635,7 @@ namespace fgl {
 				lock.unlock();
 				// if we do not have a defer callback, the generator ran without a generator.next() call waiting for it
 				if(!defer) {
-					throw std::logic_error("Generator continued running after GenerateDestroyedNotifier was thrown");
+					throw std::logic_error("Generator continued running after GeneratorThreadDestroyedNotifier was thrown");
 				}
 				// resolve the generator thread
 				defer->resolve(YieldResult{.done=true});
@@ -654,13 +654,13 @@ namespace fgl {
 					lock.unlock();
 					// if we do not have a defer callback, the generator ran without a generator.next() call waiting for it
 					if(!defer) {
-						throw std::logic_error("Generator continued running after GenerateDestroyedNotifier was thrown");
+						throw std::logic_error("Generator continued running after GeneratorThreadDestroyedNotifier was thrown");
 					}
 					// resolve the generator.next() call
 					defer->resolve(YieldResult{.value=yieldValue,.done=false});
 					// if the generator was destroyed and we're not waiting for a callback, end the call
 					if(sharedData->destroyed && !sharedData->yieldDefer.has_value()) {
-						throw GenerateDestroyedNotifier();
+						throw GeneratorThreadDestroyedNotifier();
 					}
 					// wait for the next generator.next call, or the destruction of the generator
 					sharedData->cv.wait(waitLock, [&]() {
@@ -668,7 +668,7 @@ namespace fgl {
 					});
 					// if the generator was destroyed and we're not waiting for a callback, end the call
 					if(sharedData->destroyed && !sharedData->yieldDefer.has_value()) {
-						throw GenerateDestroyedNotifier();
+						throw GeneratorThreadDestroyedNotifier();
 					}
 				};
 				
@@ -676,7 +676,7 @@ namespace fgl {
 				try {
 					// run the generator
 					returnVal = std::make_unique<Yield>(executor(yielder));
-				} catch(GenerateDestroyedNotifier&) {
+				} catch(GeneratorThreadDestroyedNotifier&) {
 					return;
 				} catch(...) {
 					std::unique_lock<std::mutex> lock(sharedData->mutex);
@@ -685,7 +685,7 @@ namespace fgl {
 					lock.unlock();
 					// if we do not have a defer callback, the generator ran without a generator.next() call waiting for it
 					if(!defer) {
-						throw std::logic_error("Generator continued running after GenerateDestroyedNotifier was thrown");
+						throw std::logic_error("Generator continued running after GeneratorThreadDestroyedNotifier was thrown");
 					}
 					// fail the generator
 					defer->reject(std::current_exception());
@@ -697,7 +697,7 @@ namespace fgl {
 				lock.unlock();
 				// if we do not have a defer callback, the generator ran without a generator.next() call waiting for it
 				if(!defer) {
-					throw std::logic_error("Generator continued running after GenerateDestroyedNotifier was thrown");
+					throw std::logic_error("Generator continued running after GeneratorThreadDestroyedNotifier was thrown");
 				}
 				// resolve the generator thread
 				defer->resolve(YieldResult{.value=std::move(*returnVal.get()),.done=true});
