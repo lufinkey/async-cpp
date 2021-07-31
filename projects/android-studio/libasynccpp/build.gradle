@@ -3,10 +3,8 @@ apply plugin: 'com.android.library'
 android {
 	compileSdkVersion 30
 	defaultConfig {
-		minSdkVersion 23
+		minSdkVersion 24
 		targetSdkVersion 30
-		versionCode 1
-		versionName "1.0"
 		testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 		consumerProguardFiles 'consumer-rules.pro'
 		externalNativeBuild {
@@ -25,7 +23,6 @@ android {
 	buildTypes {
 		debug {
 			minifyEnabled false
-			debuggable true
 			jniDebuggable true
 		}
 		release {

@@ -1,7 +1,7 @@
 
+cmake_minimum_required(VERSION 3.18.1)
 project(AsyncCpp)
-cmake_minimum_required(VERSION 3.4.1)
-set( CMAKE_CXX_STANDARD 17 )
+set( CMAKE_CXX_STANDARD 20 )
 
 set( ASYNCCPP_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../../../../.." )
 set( DATACPP_ROOT "${ASYNCCPP_ROOT}/../data-cpp" )
@@ -28,5 +28,5 @@ find_library(log-lib log)
 target_link_libraries(
 		AsyncCpp
 
-		"${DATACPP_LIB_DIR}/libDataCpp.so"
+		DataCpp
 		${log-lib})
