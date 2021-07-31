@@ -56,7 +56,7 @@ namespace fgl {
 
 
 
-	template<typename Yield, typename Next>
+	template<typename Yield, typename Next=void>
 	class Generator {
 		friend struct _coroutine_generator_type_base<Yield,Next>;
 	public:
