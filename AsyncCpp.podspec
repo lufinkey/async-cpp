@@ -45,7 +45,7 @@ Pod::Spec.new do |s|
 			"$(PODS_ROOT)/AsyncCpp/src",
 			"$(PODS_ROOT)/dtl"
 		],
-		'CLANG_CXX_LANGUAGE_STANDARD' => 'gnu++17',
+		'CLANG_CXX_LANGUAGE_STANDARD' => 'gnu++20',
 		'GCC_OPTIMIZATION_LEVEL[config=Release]' => 's'
 	}
 	s.user_target_xcconfig = {
