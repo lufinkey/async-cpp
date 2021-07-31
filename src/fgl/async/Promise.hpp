@@ -114,6 +114,8 @@ namespace fgl {
 		void await_suspend(coroutine_handle<>);
 		Result await_resume();
 
+		
+		inline void handle(DispatchQueue* onResolveQueue, Then<void> onResolve, DispatchQueue* onRejectQueue, Catch<std::exception_ptr,void> onReject);
 
 		Promise<void> then(String name, DispatchQueue* queue, Then<void> onresolve, Catch<std::exception_ptr,void> onreject);
 		inline Promise<void> then(DispatchQueue* queue, Then<void> onresolve, Catch<std::exception_ptr,void> onreject);
@@ -385,6 +387,13 @@ namespace fgl {
 	template<typename Result>
 	Result Promise<Result>::await_resume() {
 		return get();
+	}
+	
+	
+	
+	template<typename Result>
+	void Promise<Result>::handle(DispatchQueue* onResolveQueue, Then<void> onResolve, DispatchQueue* onRejectQueue, Catch<std::exception_ptr,void> onReject) {
+		this->continuer->handle(onResolveQueue, onResolve, onRejectQueue, onReject);
 	}
 	
 	
