@@ -17,6 +17,8 @@
 namespace fgl {
 	template<typename Yield, typename Next>
 	class Generator;
+	template<typename Yield, typename Next>
+	struct _coroutine_generator_type_base;
 	
 	template<typename GeneratorType>
 	struct is_generator {
@@ -56,8 +58,7 @@ namespace fgl {
 
 	template<typename Yield, typename Next>
 	class Generator {
-		template<typename _Yield=Yield, typename _Next=Next>
-		friend struct coroutine_generator_type;
+		friend struct _coroutine_generator_type_base<Yield,Next>;
 	public:
 		using YieldType = Yield;
 		using NextType = Next;
