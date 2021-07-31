@@ -815,7 +815,7 @@ namespace fgl {
 			std::unique_ptr<NullifyVoid<Next>>> nextValue;
 		Generator<Yield,Next> generator;
 		DispatchQueue* queue = nullptr;
-		bool yielded = false;
+		bool yieldedInitial = false;
 		bool suspended = false;
 		
 		_coroutine_generator_type_base()
@@ -856,13 +856,13 @@ namespace fgl {
 		}
 		
 		inline auto yield_value(initialGenNext) {
-			FGL_ASSERT(!yielded, "co_yield initialGenNext() must be called once before any element yields");
-			yielded = true;
+			FGL_ASSERT(!yieldedInitial, "co_yield initialGenNext() must be called once before any element yields");
+			yieldedInitial = true;
 			return yieldAwaiter();
 		}
 		
 		inline auto yield_value(const NullifyVoid<Yield>& value) {
-			FGL_ASSERT(yielded, "co_yield initialGenNext() must be called once before any element yields");
+			FGL_ASSERT(yieldedInitial, "co_yield initialGenNext() must be called once before any element yields");
 			if constexpr(std::is_void_v<Yield>) {
 				resolve({ .done = false });
 			} else {
@@ -875,7 +875,7 @@ namespace fgl {
 		}
 		
 		inline auto yield_value(NullifyVoid<Yield>&& value) {
-			FGL_ASSERT(yielded, "co_yield initialGenNext() must be called once before any element yields");
+			FGL_ASSERT(yieldedInitial, "co_yield initialGenNext() must be called once before any element yields");
 			if constexpr(std::is_void_v<Yield>) {
 				resolve({ .done = false });
 			} else {
