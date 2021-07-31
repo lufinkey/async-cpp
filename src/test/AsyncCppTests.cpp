@@ -53,6 +53,14 @@ namespace fgl_async_cpp_tests {
 		co_return 13;
 	}
 
+	Generator<void> coroutineGeneratorTest() {
+		println("starting coroutine generator");
+		co_yield initialGenNext();
+		println("running next step of coroutine generator");
+		co_yield {};
+		println("finishing coroutine generator");
+	}
+
 
 	Promise<void> runTests() {
 		return promiseThread([=]() {
@@ -111,8 +119,15 @@ namespace fgl_async_cpp_tests {
 				println("finished coroutine tests with result "+std::to_string(result));
 			}).get();
 			
+			println("creating coroutine generator");
+			auto coGenerator = coroutineGeneratorTest();
+			println("calling generator.next");
+			coGenerator.next().get();
+			println("calling generator.next");
+			auto coGenResult = coGenerator.next().get();
+			println((String)"coroutine done = "+coGenResult.done);
+			
 			println("Done running AsyncCpp tests");
 		});
 	}
-
 }

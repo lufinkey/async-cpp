@@ -103,6 +103,7 @@ namespace fgl {
 		};
 		
 		class Continuer: public std::enable_shared_from_this<Continuer> {
+			friend struct _coroutine_generator_type_base<Yield,Next>;
 		public:
 			Continuer(YieldReturner yieldReturner, Function<void()> destructor);
 			~Continuer();
@@ -817,8 +818,8 @@ namespace fgl {
 		bool yielded = false;
 		bool suspended = false;
 		
-		_coroutine_generator_type_base(coroutine_handle<> handle)
-		: handle(handle), generator(yieldReturner()) {
+		_coroutine_generator_type_base()
+		: generator(yieldReturner()) {
 			//
 		}
 		
@@ -835,12 +836,15 @@ namespace fgl {
 		}
 		
 		inline auto yield_value(setGenResumeQueue setter) {
+			using Self = decltype(this);
 			queue = setter.queue;
 			struct awaiter {
+				Self self;
 				DispatchQueue* queue;
 				bool enterQueue;
 				bool await_ready() { return (!enterQueue || queue == nullptr || queue->isLocal()); }
 				void await_suspend(coroutine_handle<> handle) {
+					self.handle = handle;
 					queue->async([=]() {
 						auto h = handle;
 						h.resume();
@@ -848,7 +852,7 @@ namespace fgl {
 				}
 				void await_resume() {}
 			};
-			return awaiter{ setter.queue, setter.enterQueue };
+			return awaiter{ this, setter.queue, setter.enterQueue };
 		}
 		
 		inline auto yield_value(initialGenNext) {
@@ -919,11 +923,13 @@ namespace fgl {
 		}
 		
 		inline auto yieldAwaiter() {
+			using Self = decltype(this);
 			if constexpr(std::is_void_v<Next>) {
 				struct awaiter {
-					_coroutine_generator_type_base<Yield,Next>* self;
+					Self self;
 					bool await_ready() { return self->generator.continuer->nextPromise.hasValue(); }
 					void await_suspend(coroutine_handle<> handle) {
+						self->handle = handle;
 						self->suspended = true;
 					}
 					void await_resume() {}
@@ -931,26 +937,25 @@ namespace fgl {
 				return awaiter{ this };
 			} else {
 				struct awaiter {
-					_coroutine_generator_type_base<Yield,Next>* self;
-					std::unique_ptr<Next> value;
+					Self self;
 					bool await_ready() { return self->generator.continuer->nextPromise.hasValue(); }
 					void await_suspend(coroutine_handle<> handle) {
+						self->handle = handle;
 						self->suspended = true;
 					}
 					Next await_resume() {
+						std::unique_ptr<Next> value;
+						value.swap(self->nextValue);
 						return std::move(*value.get());
 					}
 				};
-				awaiter a{ this };
-				a.value.swap(this->nextValue);
-				return a;
+				return awaiter{ this };
 			}
 		}
 	};
 
 	template<typename Yield, typename Next>
 	struct coroutine_generator_type: public _coroutine_generator_type_base<Yield,Next> {
-		using _coroutine_generator_type_base<Yield,Next>::_coroutine_generator_type_base;
 		void return_value(const Yield& value) {
 			this->resolve({
 				.value = value,
@@ -968,7 +973,6 @@ namespace fgl {
 
 	template<typename Next>
 	struct coroutine_generator_type<void,Next>: public _coroutine_generator_type_base<void,Next> {
-		using _coroutine_generator_type_base<void,Next>::_coroutine_generator_type_base;
 		void return_void() {
 			this->resolve({ .done = true });
 		}
