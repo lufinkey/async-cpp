@@ -12,6 +12,7 @@
 #include <fgl/async/DispatchQueue.hpp>
 #include <fgl/async/LambdaTraits.hpp>
 #include <fgl/async/PromiseErrorPtr.hpp>
+#include <fgl/async/Coroutine.hpp>
 #include <chrono>
 #include <condition_variable>
 #include <future>
@@ -22,30 +23,9 @@
 #include <tuple>
 #include <type_traits>
 #include <utility>
-#if __has_include(<coroutine>)
-	#include <coroutine>
-#else
-	#include <experimental/coroutine>
-#endif
 
 
 namespace fgl {
-	#if __has_include(<coroutine>)
-		template<typename T = void>
-		using coroutine_handle = std::coroutine_handle<T>;
-		template<typename T, typename... Args>
-		using coroutine_traits = std::coroutine_traits<T,Args...>;
-		using suspend_never = std::suspend_never;
-		using suspend_always = std::suspend_always;
-	#else
-		template<typename T = void>
-		using coroutine_handle = std::experimental::coroutine_handle<T>;
-		template<typename T, typename... Args>
-		using coroutine_traits = std::experimental::coroutine_traits<T,Args...>;
-		using suspend_never = std::experimental::suspend_never;
-		using suspend_always = std::experimental::suspend_always;
-	#endif
-
 	class DispatchQueue;
 
 	DispatchQueue* backgroundPromiseQueue();
@@ -329,9 +309,6 @@ namespace fgl {
 	
 	template<typename Executor>
 	auto promiseThread(Executor executor);
-
-	struct resumeOnQueue;
-	struct resumeOnNewThread;
 
 	template<typename ...PromiseTypes>
 	Promise<Tuple<PromiseTypes...>> tuplePromiseOf(String name, PromiseTypes... promises);
@@ -1966,20 +1943,6 @@ namespace fgl {
 			}).detach();
 		});
 	}
-	
-	struct resumeOnQueue {
-		DispatchQueue* queue;
-		resumeOnQueue(DispatchQueue* queue);
-		bool await_ready();
-		void await_suspend(coroutine_handle<> handle);
-		void await_resume();
-	};
-	
-	struct resumeOnNewThread {
-		bool await_ready();
-		void await_suspend(coroutine_handle<> handle);
-		void await_resume();
-	};
 	
 	template<typename ...T, typename ListType>
 	Tuple<T...> tupleFromAnyList(ListType list) {

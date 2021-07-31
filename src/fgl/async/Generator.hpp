@@ -11,6 +11,7 @@
 #include <fgl/async/Common.hpp>
 #include <fgl/async/LambdaTraits.hpp>
 #include <fgl/async/Promise.hpp>
+#include <fgl/async/Coroutine.hpp>
 #include <condition_variable>
 #include <thread>
 
@@ -790,24 +791,17 @@ namespace fgl {
 
 
 	// Return the initial value passed to gen.next()
-	struct _initialGenNext{
-		friend _initialGenNext initialGenNext();
-		_initialGenNext() = delete;
-		_initialGenNext(std::nullptr_t);
+	struct initialGenNext{
+		explicit initialGenNext();
 	};
-	_initialGenNext initialGenNext();
 
 	// Sets the queue that the generator should resume on
-	struct _setGenResumeQueue{
-		template<typename Yield, typename Next>
-		friend struct _coroutine_generator_type_base;
-		_setGenResumeQueue() = delete;
-		_setGenResumeQueue(DispatchQueue* queue, bool enterQueue = true);
-	private:
+	struct setGenResumeQueue{
+		setGenResumeQueue(DispatchQueue* queue, bool enterQueue = true);
+		
 		DispatchQueue* queue;
-		bool enterQueue;
+		bool enterQueue = true;
 	};
-	_setGenResumeQueue setGenResumeQueue(DispatchQueue* queue, bool enterQueue = true);
 
 
 	template<typename Yield, typename Next>
@@ -840,7 +834,7 @@ namespace fgl {
 			return {};
 		}
 		
-		inline auto yield_value(_setGenResumeQueue setter) {
+		inline auto yield_value(setGenResumeQueue setter) {
 			queue = setter.queue;
 			struct awaiter {
 				DispatchQueue* queue;
@@ -857,7 +851,7 @@ namespace fgl {
 			return awaiter{ setter.queue, setter.enterQueue };
 		}
 		
-		inline auto yield_value(_initialGenNext) {
+		inline auto yield_value(initialGenNext) {
 			FGL_ASSERT(!yielded, "co_yield initialGenNext() must be called once before any element yields");
 			yielded = true;
 			return yieldAwaiter();

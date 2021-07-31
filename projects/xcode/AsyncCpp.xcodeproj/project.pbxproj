@@ -29,6 +29,9 @@
 		A53E4EAB23050152000BB7D8 /* libAsyncCpp-macOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A53E4E7B2304D166000BB7D8 /* libAsyncCpp-macOS.a */; };
 		A563A57F24A660980036A842 /* AsyncQueue.mm in Sources */ = {isa = PBXBuildFile; fileRef = A563A57E24A660980036A842 /* AsyncQueue.mm */; };
 		A563A58024A660980036A842 /* AsyncQueue.mm in Sources */ = {isa = PBXBuildFile; fileRef = A563A57E24A660980036A842 /* AsyncQueue.mm */; };
+		A58C17DF26B5B9B200F2FD6D /* Coroutine.hpp in Headers */ = {isa = PBXBuildFile; fileRef = A58C17DE26B5B9B200F2FD6D /* Coroutine.hpp */; };
+		A58C17E226B5B9D300F2FD6D /* Coroutine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A58C17E126B5B9D300F2FD6D /* Coroutine.cpp */; };
+		A58C17E326B5B9D300F2FD6D /* Coroutine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A58C17E126B5B9D300F2FD6D /* Coroutine.cpp */; };
 		A598D10624672B8E00C2B1BF /* ContinuousGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A598D10424672B8E00C2B1BF /* ContinuousGenerator.cpp */; };
 		A598D10724672B8E00C2B1BF /* ContinuousGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A598D10424672B8E00C2B1BF /* ContinuousGenerator.cpp */; };
 		A598D10824672B8E00C2B1BF /* ContinuousGenerator.hpp in Headers */ = {isa = PBXBuildFile; fileRef = A598D10524672B8E00C2B1BF /* ContinuousGenerator.hpp */; };
@@ -128,6 +131,8 @@
 		A563A63F24B8DECB0036A842 /* AsyncList.impl.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = AsyncList.impl.hpp; sourceTree = "<group>"; };
 		A563A64124B8DEDF0036A842 /* AsyncListMutator.impl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AsyncListMutator.impl.h; sourceTree = "<group>"; };
 		A564DF942309082B0018787F /* async.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = async.hpp; sourceTree = "<group>"; };
+		A58C17DE26B5B9B200F2FD6D /* Coroutine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Coroutine.hpp; sourceTree = "<group>"; };
+		A58C17E126B5B9D300F2FD6D /* Coroutine.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Coroutine.cpp; sourceTree = "<group>"; };
 		A598D10424672B8E00C2B1BF /* ContinuousGenerator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ContinuousGenerator.cpp; sourceTree = "<group>"; };
 		A598D10524672B8E00C2B1BF /* ContinuousGenerator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ContinuousGenerator.hpp; sourceTree = "<group>"; };
 		A5B7A7792335676200301FC0 /* DataCpp.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = DataCpp.xcodeproj; path = "../../../data-cpp/projects/xcode/DataCpp.xcodeproj"; sourceTree = "<group>"; };
@@ -181,6 +186,8 @@
 			isa = PBXGroup;
 			children = (
 				A53E4E532304892D000BB7D8 /* Common.hpp */,
+				A58C17DE26B5B9B200F2FD6D /* Coroutine.hpp */,
+				A58C17E126B5B9D300F2FD6D /* Coroutine.cpp */,
 				A53E4E4F2304892D000BB7D8 /* DispatchQueue.hpp */,
 				A53E4E512304892D000BB7D8 /* DispatchQueue.cpp */,
 				A53E4E4E2304892D000BB7D8 /* DispatchTimeoutResult.hpp */,
@@ -284,6 +291,7 @@
 			files = (
 				A53E4E862304D1C8000BB7D8 /* Promise.hpp in Headers */,
 				A53E4E852304D1C8000BB7D8 /* PromiseErrorPtr.hpp in Headers */,
+				A58C17DF26B5B9B200F2FD6D /* Coroutine.hpp in Headers */,
 				A5B9738123824A8C00FB3F1C /* Generator.hpp in Headers */,
 				A598D10824672B8E00C2B1BF /* ContinuousGenerator.hpp in Headers */,
 				A5F086A72545FB1900C41A36 /* ObjCCallStack.h in Headers */,
@@ -457,6 +465,7 @@
 				A53E4E842304D1C8000BB7D8 /* DispatchWorkItem.cpp in Sources */,
 				A50F74A92389D93C0061D9FD /* AsyncList.cpp in Sources */,
 				A50F74A42389D67B0061D9FD /* AsyncQueue.cpp in Sources */,
+				A58C17E226B5B9D300F2FD6D /* Coroutine.cpp in Sources */,
 				A598D10624672B8E00C2B1BF /* ContinuousGenerator.cpp in Sources */,
 				A5B7A7D1233EE80200301FC0 /* Timer.cpp in Sources */,
 			);
@@ -474,6 +483,7 @@
 				A53E4E972304D261000BB7D8 /* Promise.cpp in Sources */,
 				A50F74AA2389D93C0061D9FD /* AsyncList.cpp in Sources */,
 				A50F74A52389D67B0061D9FD /* AsyncQueue.cpp in Sources */,
+				A58C17E326B5B9D300F2FD6D /* Coroutine.cpp in Sources */,
 				A598D10724672B8E00C2B1BF /* ContinuousGenerator.cpp in Sources */,
 				A5B7A7D4233EE80E00301FC0 /* Timer.cpp in Sources */,
 			);

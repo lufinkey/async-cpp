@@ -6,6 +6,7 @@
 //  Copyright © 2019 Luis Finke. All rights reserved.
 //
 
+#include <fgl/async/Coroutine.hpp>
 #include <fgl/async/DispatchQueue.hpp>
 #include <fgl/async/DispatchTimeoutResult.hpp>
 #include <fgl/async/DispatchWorkItem.hpp>
