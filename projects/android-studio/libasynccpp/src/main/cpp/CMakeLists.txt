@@ -20,7 +20,11 @@ target_include_directories(
 		PUBLIC
 		"${ASYNCCPP_ROOT}/src"
 		"${ASYNCCPP_ROOT}/../dtl"
-		"${ASYNCCPP_ROOT}/external/dtl"
+		"${ASYNCCPP_ROOT}/external/dtl")
+
+target_include_directories(
+		AsyncCpp
+		PRIVATE
 		"${ASYNCCPP_ROOT}/../data-cpp/src")
 
 find_library(log-lib log)
