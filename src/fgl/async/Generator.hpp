@@ -898,8 +898,10 @@ namespace fgl {
 					this->resolve = resolve;
 					this->reject = reject;
 				});
+				std::unique_lock<std::recursive_mutex> lock(generator.continuer->mutex);
 				if(this->suspended) {
 					this->suspended = false;
+					lock.unlock();
 					if(this->queue != nullptr && !this->queue->isLocal()) {
 						auto handle = this->handle;
 						this->queue->async([=]() {
@@ -927,10 +929,22 @@ namespace fgl {
 			if constexpr(std::is_void_v<Next>) {
 				struct awaiter {
 					Self self;
-					bool await_ready() { return self->generator.continuer->nextPromise.hasValue(); }
+					bool await_ready() {
+						return self->generator.continuer->nextPromise.hasValue()
+							&& (self->queue == nullptr || self->queue->isLocal());
+					}
 					void await_suspend(coroutine_handle<> handle) {
+						std::unique_lock<std::recursive_mutex> lock(self->generator.continuer->mutex);
 						self->handle = handle;
-						self->suspended = true;
+						if(self->generator.continuer->nextPromise.hasValue()) {
+							lock.unlock();
+							self->queue->async([=]() {
+								auto h = handle;
+								h.resume();
+							});
+						} else {
+							self->suspended = true;
+						}
 					}
 					void await_resume() {}
 				};
@@ -938,10 +952,22 @@ namespace fgl {
 			} else {
 				struct awaiter {
 					Self self;
-					bool await_ready() { return self->generator.continuer->nextPromise.hasValue(); }
+					bool await_ready() {
+						return self->generator.continuer->nextPromise.hasValue()
+							&& (self->queue == nullptr || self->queue->isLocal());
+					}
 					void await_suspend(coroutine_handle<> handle) {
+						std::unique_lock<std::recursive_mutex> lock(self->generator.continuer->mutex);
 						self->handle = handle;
-						self->suspended = true;
+						if(self->generator.continuer->nextPromise.hasValue()) {
+							lock.unlock();
+							self->queue->async([=]() {
+								auto h = handle;
+								h.resume();
+							});
+						} else {
+							self->suspended = true;
+						}
 					}
 					Next await_resume() {
 						std::unique_ptr<Next> value;
