@@ -823,10 +823,10 @@ namespace fgl {
 
 	// Sets the queue that the generator should resume on
 	struct setGenResumeQueue{
-		setGenResumeQueue(DispatchQueue* queue, bool enterQueue = true);
+		setGenResumeQueue(DispatchQueue* queue, bool enterQueue = false);
 		
 		DispatchQueue* queue;
-		bool enterQueue = true;
+		bool enterQueue = false;
 	};
 
 
