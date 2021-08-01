@@ -448,6 +448,10 @@ namespace fgl {
 				state = State::FINISHED;
 				yieldReturner = nullptr;
 				self->nextPromise = std::nullopt;
+				if(destructor) {
+					destructor();
+					destructor = nullptr;
+				}
 				std::rethrow_exception(error);
 			})
 			.map(nullptr, [=](YieldResult result) -> YieldResult {
@@ -459,6 +463,10 @@ namespace fgl {
 					state = State::WAITING;
 				}
 				self->nextPromise = std::nullopt;
+				if(result.done && destructor) {
+					destructor();
+					destructor = nullptr;
+				}
 				return result;
 			});
 		};
@@ -501,7 +509,19 @@ namespace fgl {
 		auto yieldReturner = this->yieldReturner;
 		auto performNext = [=]() -> Promise<YieldResult> {
 			state = State::EXECUTING;
-			return yieldReturner().map(nullptr, [=](YieldResult result) -> YieldResult {
+			return yieldReturner()
+			.except(nullptr, [=](std::exception_ptr error) -> YieldResult {
+				std::unique_lock<std::recursive_mutex> lock(self->mutex);
+				state = State::FINISHED;
+				self->yieldReturner = nullptr;
+				self->nextPromise = std::nullopt;
+				if(destructor) {
+					destructor();
+					destructor = nullptr;
+				}
+				std::rethrow_exception(error);
+			})
+			.map(nullptr, [=](YieldResult result) -> YieldResult {
 				std::unique_lock<std::recursive_mutex> lock(self->mutex);
 				if(result.done) {
 					state = State::FINISHED;
@@ -510,13 +530,11 @@ namespace fgl {
 					state = State::WAITING;
 				}
 				self->nextPromise = std::nullopt;
+				if(result.done && destructor) {
+					destructor();
+					destructor = nullptr;
+				}
 				return result;
-			}).except(nullptr, [=](std::exception_ptr error) -> YieldResult {
-				std::unique_lock<std::recursive_mutex> lock(self->mutex);
-				state = State::FINISHED;
-				self->yieldReturner = nullptr;
-				self->nextPromise = std::nullopt;
-				std::rethrow_exception(error);
 			});
 		};
 		if(nextPromise.has_value()) {
@@ -807,24 +825,68 @@ namespace fgl {
 
 	template<typename Yield, typename Next>
 	struct _coroutine_generator_type_base {
+		using GeneratorType = Generator<Yield,Next>;
+		using ContinuerType = typename GeneratorType::Continuer;
 		using YieldResult = GeneratorYieldResult<Yield>;
-		coroutine_handle<> handle;
-		typename Promise<YieldResult>::Resolver resolve;
-		typename Promise<YieldResult>::Rejecter reject;
-		member_if<(!std::is_void_v<Next>),
-			std::unique_ptr<NullifyVoid<Next>>> nextValue;
-		Generator<Yield,Next> generator;
+		using Resolver = typename Promise<YieldResult>::Resolver;
+		using Rejecter = typename Promise<YieldResult>::Rejecter;
+		template<typename T>
+		using member_if_nonvoid_next = member_if<(!std::is_void_v<Next>), T>;
+		struct State {
+			std::bitset<4> bits;
+			inline bool yieldedInitial() {
+				return bits[0];
+			}
+			inline void setYieldedInitial(bool value) {
+				bits[0] = value;
+			}
+			
+			inline bool isSuspended() {
+				return bits[1];
+			}
+			inline void setSuspended(bool value) {
+				bits[1] = value;
+			}
+			
+			inline bool isGenDestroyed() {
+				return bits[2];
+			}
+			inline void setGenDestroyed(bool value) {
+				bits[2] = value;
+			}
+		};
+		
+		Resolver resolve;
+		Rejecter reject;
 		DispatchQueue* queue = nullptr;
-		bool yieldedInitial = false;
-		bool suspended = false;
+		coroutine_handle<> handle;
+		member_if_nonvoid_next<
+			std::unique_ptr<NullifyVoid<Next>>> nextValue;
+		std::shared_ptr<State> state;
+		std::variant<GeneratorType,std::weak_ptr<ContinuerType>> generatorStore;
 		
 		_coroutine_generator_type_base()
-		: generator(yieldReturner()) {
+		: state(std::make_shared<State>()),
+		generatorStore(GeneratorType(yieldReturner(), genDestructor())) {
 			//
 		}
 		
-		Generator<Yield,Next> get_return_object() {
-			return generator;
+		std::shared_ptr<ContinuerType> continuer() {
+			if(auto ptr = std::get_if<GeneratorType>(&generatorStore)) {
+				return ptr->continuer;
+			} else if(auto ptr = std::get_if<std::weak_ptr<ContinuerType>>(&generatorStore)) {
+				return ptr->lock();
+			} else {
+				assert(false);
+				return nullptr;
+			}
+		}
+		
+		GeneratorType get_return_object() {
+			// update generatorStore to store weak pointer of continuer before returning generator
+			auto gen = std::get<GeneratorType>(generatorStore);
+			generatorStore = std::weak_ptr<ContinuerType>(gen.continuer);
+			return gen;
 		}
 
 		suspend_never initial_suspend() const noexcept {
@@ -840,29 +902,28 @@ namespace fgl {
 			queue = setter.queue;
 			struct awaiter {
 				Self self;
-				DispatchQueue* queue;
-				bool enterQueue;
-				bool await_ready() { return (!enterQueue || queue == nullptr || queue->isLocal()); }
+				setGenResumeQueue setter;
+				bool await_ready() { return (!setter.enterQueue || setter.queue == nullptr || setter.queue->isLocal()); }
 				void await_suspend(coroutine_handle<> handle) {
 					self->handle = handle;
-					queue->async([=]() {
+					setter.queue->async([=]() {
 						auto h = handle;
 						h.resume();
 					});
 				}
 				void await_resume() {}
 			};
-			return awaiter{ this, setter.queue, setter.enterQueue };
+			return awaiter{ this, setter };
 		}
 		
 		inline auto yield_value(initialGenNext) {
-			FGL_ASSERT(!yieldedInitial, "co_yield initialGenNext() must be called once before any element yields");
-			yieldedInitial = true;
+			FGL_ASSERT(!state->yieldedInitial(), "co_yield initialGenNext() must be called once before any element yields");
+			state->setYieldedInitial(true);
 			return yieldAwaiter();
 		}
 		
 		inline auto yield_value(const NullifyVoid<Yield>& value) {
-			FGL_ASSERT(yieldedInitial, "co_yield initialGenNext() must be called once before any element yields");
+			FGL_ASSERT(state->yieldedInitial(), "co_yield initialGenNext() must be called once before any element yields");
 			if constexpr(std::is_void_v<Yield>) {
 				resolve({ .done = false });
 			} else {
@@ -875,7 +936,7 @@ namespace fgl {
 		}
 		
 		inline auto yield_value(NullifyVoid<Yield>&& value) {
-			FGL_ASSERT(yieldedInitial, "co_yield initialGenNext() must be called once before any element yields");
+			FGL_ASSERT(state->yieldedInitial(), "co_yield initialGenNext() must be called once before any element yields");
 			if constexpr(std::is_void_v<Yield>) {
 				resolve({ .done = false });
 			} else {
@@ -892,16 +953,31 @@ namespace fgl {
 		}
 		
 	protected:
+		inline auto genDestructor() {
+			std::weak_ptr<State> weakState = this->state;
+			return [=]() {
+				auto state = weakState.lock();
+				if(!state) {
+					// if state doesn't exist, the handle is already destroyed
+					return;
+				}
+				state->setGenDestroyed(true);
+				if(state->isSuspended()) {
+					// since we're suspended, we can safely destroy the coroutine
+					auto h = this->handle;
+					h.destroy();
+				}
+			};
+		}
+		
 		inline auto yieldReturner() {
 			auto body = [=]() {
 				auto promise = Promise<YieldResult>([=](auto resolve, auto reject) {
 					this->resolve = resolve;
 					this->reject = reject;
 				});
-				std::unique_lock<std::recursive_mutex> lock(generator.continuer->mutex);
-				if(this->suspended) {
-					this->suspended = false;
-					lock.unlock();
+				if(this->state->isSuspended()) {
+					this->state->setSuspended(false);
 					if(this->queue != nullptr && !this->queue->isLocal()) {
 						auto handle = this->handle;
 						this->queue->async([=]() {
@@ -926,56 +1002,91 @@ namespace fgl {
 		
 		inline auto yieldAwaiter() {
 			using Self = decltype(this);
-			if constexpr(std::is_void_v<Next>) {
-				struct awaiter {
-					Self self;
-					bool await_ready() {
-						return self->generator.continuer->nextPromise.hasValue()
-							&& (self->queue == nullptr || self->queue->isLocal());
+			
+			struct base_awaiter {
+				Self self;
+				// ensure generator doesn't go out of memory while preparing to await
+				std::shared_ptr<ContinuerType> continuerRef;
+				// ensure generator state is not modified while preparing to await
+				std::unique_lock<std::recursive_mutex> lock;
+				
+				base_awaiter(Self self): self(self), continuerRef(self->continuer()) {
+					// only lock if we have a valid reference to the continuer
+					if(continuerRef) {
+						lock = std::unique_lock<std::recursive_mutex>(continuerRef->mutex);
 					}
-					void await_suspend(coroutine_handle<> handle) {
-						std::unique_lock<std::recursive_mutex> lock(self->generator.continuer->mutex);
-						self->handle = handle;
-						if(self->generator.continuer->nextPromise.hasValue()) {
+				}
+				
+				bool await_ready() {
+					// get valid continuer
+					auto continuer = continuerRef;
+					if(!continuer) {
+						// in case (for some reason, like a bad implementation for instance) await_ready is called more than once, fallback to self->continuer()
+						continuer = self->continuer();
+					}
+					if(!continuer || self->state->isGenDestroyed()) {
+						// if continuer is destroyed, always suspend
+						return false;
+					}
+					bool hasNext = continuer->nextPromise.hasValue();
+					if(hasNext && (self->queue == nullptr || self->queue->isLocal())) {
+						// no need to retain lock or reference anymore, since we're ready to continue execution
+						if(lock.owns_lock()) {
 							lock.unlock();
-							self->queue->async([=]() {
-								auto h = handle;
-								h.resume();
-							});
-						} else {
-							self->suspended = true;
 						}
+						continuerRef = nullptr;
+						return true;
 					}
+					return false;
+				}
+				
+				void await_suspend(coroutine_handle<> handle) {
+					auto continuer = continuerRef;
+					if(!continuer || self->state->isGenDestroyed()) {
+						// continuer is destroyed, so destroy coroutine
+						self->handle = nullptr;
+						self->generatorStore = std::weak_ptr<ContinuerType>();
+						if(lock.owns_lock()) {
+							lock.unlock();
+						}
+						handle.destroy();
+						return;
+					}
+					self->handle = handle;
+					if(continuer->nextPromise.hasValue()) {
+						// no need to retain lock or reference anymore, since we're ready to continue execution on the queue
+						lock.unlock();
+						continuerRef = nullptr;
+						self->queue->async([=]() {
+							auto h = handle;
+							h.resume();
+						});
+					} else {
+						self->state->setSuspended(true);
+						// no need to retain lock or reference anymore, since we're marked as suspended
+						lock.unlock();
+						continuerRef = nullptr;
+					}
+				}
+			};
+			
+			if constexpr(std::is_void_v<Next>) {
+				struct awaiter: public base_awaiter {
+					using base_awaiter::base_awaiter;
 					void await_resume() {}
 				};
-				return awaiter{ this };
+				return awaiter(this);
 			} else {
-				struct awaiter {
-					Self self;
-					bool await_ready() {
-						return self->generator.continuer->nextPromise.hasValue()
-							&& (self->queue == nullptr || self->queue->isLocal());
-					}
-					void await_suspend(coroutine_handle<> handle) {
-						std::unique_lock<std::recursive_mutex> lock(self->generator.continuer->mutex);
-						self->handle = handle;
-						if(self->generator.continuer->nextPromise.hasValue()) {
-							lock.unlock();
-							self->queue->async([=]() {
-								auto h = handle;
-								h.resume();
-							});
-						} else {
-							self->suspended = true;
-						}
-					}
+				struct awaiter: public base_awaiter {
+					using base_awaiter::base_awaiter;
+					using base_awaiter::self;
 					Next await_resume() {
 						std::unique_ptr<Next> value;
 						value.swap(self->nextValue);
 						return std::move(*value.get());
 					}
 				};
-				return awaiter{ this };
+				return awaiter(this);
 			}
 		}
 	};
