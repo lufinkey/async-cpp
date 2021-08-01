@@ -42,12 +42,12 @@ namespace fgl {
 
 
 	struct resumeOnQueue {
-		resumeOnQueue(DispatchQueue* queue);
+		resumeOnQueue(DispatchQueue* queue, bool alwaysDispatch = false);
 		bool await_ready();
 		void await_suspend(coroutine_handle<> handle);
 		void await_resume();
-	private:
 		DispatchQueue* queue;
+		bool alwaysDispatch = false;
 	};
 
 	struct resumeOnNewThread {

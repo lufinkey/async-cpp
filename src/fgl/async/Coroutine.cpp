@@ -9,11 +9,10 @@
 #include <fgl/async/Coroutine.hpp>
 
 namespace fgl {
-	resumeOnQueue::resumeOnQueue(DispatchQueue* queue) {
+	resumeOnQueue::resumeOnQueue(DispatchQueue* queue, bool alwaysDispatch): queue(queue), alwaysDispatch(alwaysDispatch) {
 		FGL_ASSERT(queue != nullptr, "queue must not be null");
-		this->queue = queue;
 	}
-	bool resumeOnQueue::await_ready() { return queue->isLocal(); }
+	bool resumeOnQueue::await_ready() { return !alwaysDispatch && queue->isLocal(); }
 	void resumeOnQueue::await_suspend(coroutine_handle<> handle) {
 		queue->async([=]() {
 			auto h = handle;
