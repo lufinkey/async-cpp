@@ -95,6 +95,8 @@ namespace fgl {
 		template<typename Transform>
 		inline auto mapAsync(Transform transform);
 		
+		bool isDone() const;
+		
 	private:
 		enum class State {
 			WAITING,
@@ -414,6 +416,11 @@ namespace fgl {
 	template<typename Transform>
 	auto Generator<Yield,Next>::mapAsync(Transform transform) {
 		return mapAsync(nullptr, transform);
+	}
+
+	template<typename Yield, typename Next>
+	bool Generator<Yield,Next>::isDone() const {
+		return continuer->state == State::FINISHED;
 	}
 
 

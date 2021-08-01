@@ -62,6 +62,26 @@ namespace fgl_async_cpp_tests {
 	}
 
 
+	Promise<void> runAsyncQueueTests() {
+		String testStr = "This is my test string";
+		auto asyncQueue = std::make_shared<AsyncQueue>();
+		return asyncQueue->runSingle({
+			.name = "Test task",
+			.tag = "Test string task"
+		}, [testStrArg=testStr, asyncQueue](auto task) -> Generator<void> {
+			auto testStr = testStrArg;
+			println("Test string = "+testStr);
+			co_yield initialGenNext();
+			println("Test string after initialGenNext: "+testStr);
+			co_await resumeAfter(std::chrono::seconds(2));
+			println("Test string after co_await for 2 seconds: "+testStr);
+			co_yield {};
+			println("Test string after co_yield: "+testStr);
+			println("did we capture asyncQueue?: "+stringify(asyncQueue));
+		}).promise;
+	}
+
+
 	Promise<void> runTests() {
 		return promiseThread([=]() {
 			println("Starting AsyncCpp tests");
@@ -128,6 +148,8 @@ namespace fgl_async_cpp_tests {
 			println((String)"coroutine done = "+coGenResult.done);
 			
 			println("Done running AsyncCpp tests");
+		}).then([]() {
+			return runAsyncQueueTests();
 		});
 	}
 }
