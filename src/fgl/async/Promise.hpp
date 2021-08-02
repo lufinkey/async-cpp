@@ -879,13 +879,13 @@ namespace fgl {
 		#else
 		auto mapName = "";
 		#endif
-		return map<Transform>(mapName, queue, transform);
+		return map(mapName, queue, transform);
 	}
 	
 	template<typename Result>
 	template<typename Transform>
 	auto Promise<Result>::map(String name, Transform transform) {
-		return map<Transform>(name, defaultPromiseQueue(), transform);
+		return map(name, defaultPromiseQueue(), transform);
 	}
 
 	template<typename Result>
@@ -900,7 +900,7 @@ namespace fgl {
 		#else
 		auto mapName = "";
 		#endif
-		return map<Transform>(mapName, transform);
+		return map(mapName, transform);
 	}
 
 
@@ -1143,11 +1143,11 @@ namespace fgl {
 	template<typename Result>
 	Promise<Any> Promise<Result>::toAny(String name) {
 		if constexpr(std::is_void_v<Result>) {
-			return map<Any>(name, nullptr, [=]() {
+			return map(name, nullptr, [=]() {
 				return Any();
 			});
 		} else {
-			return map<Any>(name, nullptr, [=](auto result) {
+			return map(name, nullptr, [=](auto result) {
 				return Any(result);
 			});
 		}
@@ -1967,18 +1967,17 @@ namespace fgl {
 		});
 	}
 	
-	template<typename ...T, typename ListType>
-	Tuple<T...> tupleFromAnyList(ListType list) {
-		size_t i = 0;
-		return std::make_tuple((list[i++].template as<T>())...);
+	template<typename ...T, size_t ...Index, typename ListType>
+	Tuple<T...> tupleFromAnyList(ListType list, std::index_sequence<Index...>) {
+		return std::make_tuple(list[Index].template as<T>()...);
 	}
 	
 	template<typename ...PromiseTypes>
 	Promise<Tuple<typename PromiseTypes::ResultType...>> tuplePromiseOf(String name, PromiseTypes... promises) {
 		using TupleType = Tuple<PromiseTypes...>;
-		using IntType = std::integer_sequence<PromiseTypes...>;
 		return Promise<Any>::all(name, { promises.toAny()... }).map([](auto list) {
-			return tupleFromAnyList<typename PromiseTypes::ResultType...>(list);
+			return tupleFromAnyList<typename PromiseTypes::ResultType...>(list,
+				std::make_index_sequence<sizeof...(PromiseTypes)>());
 		});
 	}
 	
