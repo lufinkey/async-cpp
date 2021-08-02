@@ -317,9 +317,9 @@ namespace fgl {
 	auto promiseThread(Executor executor);
 
 	template<typename ...PromiseTypes>
-	Promise<Tuple<PromiseTypes...>> tuplePromiseOf(String name, PromiseTypes... promises);
+	Promise<Tuple<typename PromiseTypes::ResultType...>> tuplePromiseOf(String name, PromiseTypes... promises);
 	template<typename ...PromiseTypes>
-	Promise<Tuple<PromiseTypes...>> tuplePromiseOf(PromiseTypes... promises);
+	Promise<Tuple<typename PromiseTypes::ResultType...>> tuplePromiseOf(PromiseTypes... promises);
 	
 	
 	
@@ -1974,16 +1974,16 @@ namespace fgl {
 	}
 	
 	template<typename ...PromiseTypes>
-	Promise<Tuple<PromiseTypes...>> tuplePromiseOf(String name, PromiseTypes... promises) {
+	Promise<Tuple<typename PromiseTypes::ResultType...>> tuplePromiseOf(String name, PromiseTypes... promises) {
 		using TupleType = Tuple<PromiseTypes...>;
 		using IntType = std::integer_sequence<PromiseTypes...>;
-		return Promise<Any>(name, ArrayList<Promise<Any>>{ promises.toAny()... }).map([](auto list) {
-			return tupleFromAnyList<PromiseTypes...>(list);
+		return Promise<Any>::all(name, { promises.toAny()... }).map([](auto list) {
+			return tupleFromAnyList<typename PromiseTypes::ResultType...>(list);
 		});
 	}
 	
 	template<typename ...PromiseTypes>
-	Promise<Tuple<PromiseTypes...>> tuplePromiseOf(PromiseTypes... promises) {
+	Promise<Tuple<typename PromiseTypes::ResultType...>> tuplePromiseOf(PromiseTypes... promises) {
 		#ifdef DEBUG_PROMISE_NAMING
 		auto promiseName = String::join({ "tuplePromiseOf( ", promises.getName()..., " )" });
 		#else
