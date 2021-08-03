@@ -48,6 +48,9 @@ namespace fgl {
 	};
 
 	template<typename PromiseType>
+	constexpr bool is_promise_v = is_promise<PromiseType>::value;
+
+	template<typename PromiseType>
 	using IsPromise = typename is_promise<PromiseType>::promise_type;
 
 	template<typename Result, typename Type>
@@ -106,9 +109,9 @@ namespace fgl {
 		using Catch = Function<Return(ErrorType)>;
 
 		template<typename Executor>
-		explicit Promise(Executor executor);
+		explicit Promise(Executor executor, Function<void()> destructor = nullptr);
 		template<typename Executor>
-		Promise(String name, Executor executor);
+		Promise(String name, Executor executor, Function<void()> destructor = nullptr);
 		
 		bool await_ready() const;
 		void await_suspend(coroutine_handle<>);
@@ -259,7 +262,8 @@ namespace fgl {
 		template<typename Rep, typename Period, typename AfterDelay>
 		inline static Promise<Result> delayed(std::chrono::duration<Rep,Period> delay, AfterDelay afterDelay);
 
-
+		void co_capture_var(auto* var);
+		
 	private:
 		enum class State {
 			EXECUTING,
@@ -268,8 +272,10 @@ namespace fgl {
 		};
 		
 		class Continuer: public std::enable_shared_from_this<Continuer> {
+			friend class Promise<Result>;
 		public:
-			Continuer(String name);
+			Continuer(String name, Function<void()> destructor);
+			~Continuer();
 
 			inline const String& getName() const;
 			inline const std::shared_future<Result>& getFuture() const;
@@ -304,6 +310,7 @@ namespace fgl {
 			std::shared_future<Result> future;
 			std::list<ThenBlock> resolvers;
 			std::list<CatchBlock> rejecters;
+			Function<void()> destructor;
 			std::mutex mutex;
 			String name;
 			State state;
@@ -328,19 +335,19 @@ namespace fgl {
 
 	template<typename Result>
 	template<typename Executor>
-	Promise<Result>::Promise(Executor executor)
+	Promise<Result>::Promise(Executor executor, Function<void()> destructor)
 	#ifdef DEBUG_PROMISE_NAMING
-	: Promise(String("untitled:") + typeid(Result).name(), executor) {
+	: Promise(String("untitled:") + typeid(Result).name(), executor, destructor) {
 	#else
-	: Promise(String(), executor) {
+	: Promise(String(), executor, destructor) {
 	#endif
 		//
 	}
 	
 	template<typename Result>
 	template<typename Executor>
-	Promise<Result>::Promise(String name, Executor executor)
-		: continuer(std::make_shared<Continuer>(name)) {
+	Promise<Result>::Promise(String name, Executor executor, Function<void()> destructor)
+		: continuer(std::make_shared<Continuer>(name, destructor)) {
 		auto _continuer = this->continuer;
 		if constexpr(std::is_void_v<Result>) {
 			executor([=]() {
@@ -1671,14 +1678,42 @@ namespace fgl {
 		#endif
 		return delayed(delayedName, delay, afterDelay);
 	}
-
-
+	
 	
 	
 	template<typename Result>
-	Promise<Result>::Continuer::Continuer(String name)
-	: future(promise.get_future().share()), name(name), state(State::EXECUTING), handled(false) {
+	void Promise<Result>::co_capture_var(auto* var) {
+		std::unique_lock<std::mutex> lock(continuer->mutex);
+		if(isComplete()) {
+			delete var;
+			return;
+		}
+		auto innerDestructor = continuer->destructor;
+		if(innerDestructor) {
+			continuer->destructor = [var,innerDestructor]() {
+				innerDestructor();
+				delete var;
+			};
+		} else {
+			continuer->destructor = [var]() {
+				delete var;
+			};
+		}
+	}
+	
+	
+	
+	template<typename Result>
+	Promise<Result>::Continuer::Continuer(String name, Function<void()> destructor)
+	: future(promise.get_future().share()), name(name), destructor(destructor), state(State::EXECUTING), handled(false) {
 		//
+	}
+	
+	template<typename Result>
+	Promise<Result>::Continuer::~Continuer() {
+		if(destructor) {
+			destructor();
+		}
 	}
 
 	template<typename Result>
@@ -1741,7 +1776,14 @@ namespace fgl {
 		callbacks.swap(resolvers);
 		resolvers.clear();
 		rejecters.clear();
+		// copy destructor
+		auto destructor = this->destructor;
+		this->destructor = nullptr;
 		lock.unlock();
+		// call destructor
+		if(destructor) {
+			destructor();
+		}
 		// mark handled if we have callbacks
 		if(callbacks.size() > 0) {
 			markHandled();
@@ -1770,7 +1812,14 @@ namespace fgl {
 		callbacks.swap(rejecters);
 		resolvers.clear();
 		rejecters.clear();
+		// copy destructor
+		auto destructor = this->destructor;
+		this->destructor = nullptr;
 		lock.unlock();
+		// call destructor
+		if(destructor) {
+			destructor();
+		}
 		// call callbacks
 		for(auto& callback : callbacks) {
 			if(callback.queue == nullptr || callback.queue->isLocal()) {

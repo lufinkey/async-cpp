@@ -36,6 +36,9 @@ namespace fgl {
 	};
 
 	template<typename GeneratorType>
+	constexpr bool is_generator_v = is_generator<GeneratorType>::value;
+
+	template<typename GeneratorType>
 	using IsGenerator = typename is_generator<GeneratorType>::generator_type;
 
 
@@ -68,7 +71,7 @@ namespace fgl {
 		using YieldReturner = typename lambda_block<Next,Promise<YieldResult>>::type;
 		
 		Generator();
-		explicit Generator(YieldReturner yieldReturner, Function<void()> destructor=nullptr);
+		explicit Generator(YieldReturner yieldReturner, Function<void()> destructor = nullptr);
 		
 		template<typename _Yield=Yield,
 			typename std::enable_if<(std::is_same<_Yield,Yield>::value &&
@@ -97,6 +100,8 @@ namespace fgl {
 		
 		bool isDone() const;
 		
+		void co_capture_var(auto* var);
+		
 	private:
 		enum class State {
 			WAITING,
@@ -106,6 +111,7 @@ namespace fgl {
 		
 		class Continuer: public std::enable_shared_from_this<Continuer> {
 			friend struct _coroutine_generator_type_base<Yield,Next>;
+			friend Generator<Yield,Next>;
 		public:
 			Continuer(YieldReturner yieldReturner, Function<void()> destructor);
 			~Continuer();
@@ -811,6 +817,28 @@ namespace fgl {
 					});
 				}
 			});
+		}
+	}
+
+
+
+	template<typename Yield, typename Next>
+	void Generator<Yield,Next>::co_capture_var(auto* var) {
+		std::unique_lock<std::recursive_mutex> lock(continuer->mutex);
+		if(isDone()) {
+			delete var;
+			return;
+		}
+		auto innerDestructor = continuer->destructor;
+		if(innerDestructor) {
+			continuer->destructor = [var,innerDestructor]() {
+				innerDestructor();
+				delete var;
+			};
+		} else {
+			continuer->destructor = [var]() {
+				delete var;
+			};
 		}
 	}
 

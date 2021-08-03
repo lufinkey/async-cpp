@@ -62,14 +62,15 @@ namespace fgl_async_cpp_tests {
 	}
 
 
+	auto asyncQueue = std::make_shared<AsyncQueue>();
+
+
 	Promise<void> runAsyncQueueTests() {
 		String testStr = "This is my test string";
-		auto asyncQueue = std::make_shared<AsyncQueue>();
 		return asyncQueue->runSingle({
 			.name = "Test task",
 			.tag = "Test string task"
-		}, [testStrArg=testStr, asyncQueue](auto task) -> Generator<void> {
-			auto testStr = testStrArg;
+		}, coLambda([=](auto task) -> Generator<void> {
 			println("Test string = "+testStr);
 			co_yield initialGenNext();
 			println("Test string after initialGenNext: "+testStr);
@@ -78,8 +79,24 @@ namespace fgl_async_cpp_tests {
 			co_yield {};
 			println("Test string after co_yield: "+testStr);
 			println("did we capture asyncQueue?: "+stringify(asyncQueue));
-		}).promise;
+		})).promise;
 	}
+
+
+
+	struct TestClass {
+		String content;
+		
+		Promise<void> coroutineMember() {
+			return asyncQueue->runSingle({
+				.name = "Test task",
+				.tag = "Test string task"
+			}, [this](auto task) -> Promise<void> {
+				co_await resumeAfter(std::chrono::seconds(1));
+				println("this->content = "+this->content);
+			}).promise;
+		}
+	};
 
 
 	Promise<void> runTests() {
@@ -146,6 +163,10 @@ namespace fgl_async_cpp_tests {
 			println("calling generator.next");
 			auto coGenResult = coGenerator.next().get();
 			println((String)"coroutine done = "+coGenResult.done);
+			
+			TestClass testClass;
+			testClass.content = "test this content of this string";
+			testClass.coroutineMember().get();
 			
 			println("Done running AsyncCpp tests");
 		}).then([]() {

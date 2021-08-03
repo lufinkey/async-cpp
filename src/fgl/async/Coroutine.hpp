@@ -58,6 +58,9 @@ namespace fgl {
 	};
 
 
+	auto coLambda(auto&& executor);
+
+
 
 #pragma mark Coroutine method implementations
 
@@ -89,5 +92,15 @@ namespace fgl {
 	template<typename Rep, typename Period>
 	auto resumeAfter(std::chrono::duration<Rep,Period> duration) {
 		return resumeAfter(DispatchQueue::local(), duration);
+	}
+
+	auto coLambda(auto&& executor) {
+		return [executor=std::move(executor)]<typename ...Args>(Args&&... args) {
+			using ReturnType = decltype(executor(args...));
+			auto exec = new Function<ReturnType(Args...)>(executor);
+			auto result = (*exec)(args...);
+			result.co_capture_var(exec);
+			return result;
+		};
 	}
 }
