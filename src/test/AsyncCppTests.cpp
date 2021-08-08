@@ -65,6 +65,16 @@ namespace fgl_async_cpp_tests {
 	auto asyncQueue = std::make_shared<AsyncQueue>();
 
 
+	Generator<void> innerGenerator() {
+		println("starting inner generator");
+		co_yield initialGenNext();
+		println("first inner generator next");
+		co_await resumeAfter(std::chrono::milliseconds(500));
+		co_yield {};
+		println("second inner generator next");
+	}
+
+
 	Promise<void> runAsyncQueueTests() {
 		String testStr = "This is my test string";
 		return asyncQueue->runSingle({
@@ -78,6 +88,7 @@ namespace fgl_async_cpp_tests {
 			println("Test string after co_await for 2 seconds: "+testStr);
 			co_yield {};
 			println("Test string after co_yield: "+testStr);
+			co_yield generateYields(innerGenerator());
 			println("did we capture asyncQueue?: "+stringify(asyncQueue));
 		})).promise;
 	}

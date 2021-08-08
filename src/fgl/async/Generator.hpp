@@ -857,6 +857,36 @@ namespace fgl {
 		bool enterQueue = false;
 	};
 
+	// Type to handle generate the contents of another generator
+	template<typename GeneratorType>
+	struct _nestedGenContainer {
+		using NextType = typename GeneratorType::NextType;
+		
+		template<typename _GenType=GeneratorType, typename = std::enable_if_t<std::is_void_v<typename _GenType::NextType>>>
+		_nestedGenContainer(_GenType gen)
+			: generator(gen) {}
+		
+		template<typename _GenType=GeneratorType, typename = std::enable_if_t<!std::is_void_v<typename _GenType::NextType>>>
+		_nestedGenContainer(_GenType gen, NullifyVoid<NextType> nextVal)
+			: generator(gen),
+			nextValue(std::make_unique<NullifyVoid<NextType>>(nextVal)) {}
+		
+		GeneratorType generator;
+		member_if<(!std::is_void_v<NextType>),
+			std::unique_ptr<NullifyVoid<NextType>>> nextValue;
+	};
+
+	template<typename GeneratorType, typename = std::enable_if_t<std::is_void_v<typename GeneratorType::NextType>>>
+	auto generateYields(GeneratorType gen) {
+		return _nestedGenContainer<GeneratorType>(gen);
+	}
+
+	template<typename GeneratorType, typename = std::enable_if_t<!std::is_void_v<typename GeneratorType::NextType>>>
+	auto generateYields(GeneratorType gen, typename GeneratorType::NextType nextVal) {
+		using NextType = typename GeneratorType::NextType;
+		return _nestedGenContainer<GeneratorType>(gen, nextVal);
+	}
+
 
 	template<typename Yield, typename Next>
 	struct _coroutine_generator_type_base {
@@ -899,11 +929,18 @@ namespace fgl {
 			std::unique_ptr<NullifyVoid<Next>>> nextValue;
 		std::shared_ptr<State> state;
 		std::variant<GeneratorType,std::weak_ptr<ContinuerType>> generatorStore;
+		GeneratorType* innerGenerator = nullptr;
 		
 		_coroutine_generator_type_base()
 		: state(std::make_shared<State>()),
 		generatorStore(GeneratorType(yieldReturner(), genDestructor())) {
 			//
+		}
+		
+		~_coroutine_generator_type_base() {
+			if(innerGenerator != nullptr) {
+				delete innerGenerator;
+			}
 		}
 		
 		std::shared_ptr<ContinuerType> continuer() {
@@ -932,7 +969,7 @@ namespace fgl {
 			return {};
 		}
 		
-		inline auto yield_value(setGenResumeQueue setter) {
+		auto yield_value(setGenResumeQueue setter) {
 			using Self = decltype(this);
 			queue = setter.queue;
 			struct awaiter {
@@ -951,13 +988,13 @@ namespace fgl {
 			return awaiter{ this, setter };
 		}
 		
-		inline auto yield_value(initialGenNext) {
+		auto yield_value(initialGenNext) {
 			FGL_ASSERT(!state->yieldedInitial(), "co_yield initialGenNext() must be called once before any element yields");
 			state->setYieldedInitial(true);
 			return yieldAwaiter();
 		}
 		
-		inline auto yield_value(const NullifyVoid<Yield>& value) {
+		auto yield_value(const NullifyVoid<Yield>& value) {
 			FGL_ASSERT(state->yieldedInitial(), "co_yield initialGenNext() must be called once before any element yields");
 			if constexpr(std::is_void_v<Yield>) {
 				resolve({ .done = false });
@@ -970,7 +1007,7 @@ namespace fgl {
 			return yieldAwaiter();
 		}
 		
-		inline auto yield_value(NullifyVoid<Yield>&& value) {
+		auto yield_value(NullifyVoid<Yield>&& value) {
 			FGL_ASSERT(state->yieldedInitial(), "co_yield initialGenNext() must be called once before any element yields");
 			if constexpr(std::is_void_v<Yield>) {
 				resolve({ .done = false });
@@ -979,6 +1016,27 @@ namespace fgl {
 					.value = value,
 					.done = false
 				});
+			}
+			return yieldAwaiter();
+		}
+		
+		auto yield_value(_nestedGenContainer<GeneratorType> gen) {
+			using Self = decltype(this);
+			FGL_ASSERT(state->yieldedInitial(), "co_yield initialGenNext() must be called once before any element yields");
+			if(!state->isGenDestroyed()) {
+				this->innerGenerator = new GeneratorType(std::move(gen.generator));
+				// resolve yield using next generator value
+				std::unique_ptr<Promise<YieldResult>> yieldResult;
+				if constexpr(std::is_void_v<Next>) {
+					yieldResult = std::make_unique<Promise<YieldResult>>(this->innerGenerator->next());
+					
+				} else {
+					yieldResult = std::make_unique<Promise<YieldResult>>(this->innerGenerator->next(std::move(*gen.nextValue)));
+				}
+				yieldResult->map(nullptr, [](auto yieldResult) {
+					yieldResult.done = false;
+					return yieldResult;
+				}).handle(nullptr, this->resolve, nullptr, this->reject);
 			}
 			return yieldAwaiter();
 		}
@@ -1007,6 +1065,40 @@ namespace fgl {
 		
 		inline auto yieldReturner() {
 			auto body = [=]() {
+				// if we have an inner generator, generate from that first
+				if(innerGenerator != nullptr) {
+					if(innerGenerator->isDone()) {
+						delete innerGenerator;
+						innerGenerator = nullptr;
+					} else {
+						if constexpr(std::is_void_v<Next>) {
+							std::weak_ptr<State> weakState = this->state;
+							return innerGenerator->next().map(nullptr, [=](auto yieldResult) {
+								auto state = weakState.lock();
+								if(yieldResult.done && state != nullptr && !state->isGenDestroyed() && this->innerGenerator != nullptr) {
+									delete this->innerGenerator;
+									this->innerGenerator = nullptr;
+								}
+								yieldResult.done = false;
+								return yieldResult;
+							});
+						} else {
+							auto nextVal = std::move(*(this->nextValue));
+							this->nextValue.reset();
+							std::weak_ptr<State> weakState = this->state;
+							return innerGenerator->next(std::move(nextVal)).map(nullptr, [=](auto yieldResult) {
+								auto state = weakState.lock();
+								if(yieldResult.done && !state->isGenDestroyed() && this->innerGenerator != nullptr) {
+									delete this->innerGenerator;
+									this->innerGenerator = nullptr;
+								}
+								yieldResult.done = false;
+								return yieldResult;
+							});
+						}
+					}
+				}
+				// create promise
 				auto promise = Promise<YieldResult>([=](auto resolve, auto reject) {
 					this->resolve = resolve;
 					this->reject = reject;
@@ -1035,7 +1127,7 @@ namespace fgl {
 			}
 		}
 		
-		inline auto yieldAwaiter() {
+		auto yieldAwaiter() {
 			using Self = decltype(this);
 			
 			struct base_awaiter {
@@ -1063,8 +1155,10 @@ namespace fgl {
 						// if continuer is destroyed, always suspend
 						return false;
 					}
+					// check if generator has already called .next
 					bool hasNext = continuer->nextPromise.hasValue();
-					if(hasNext && (self->queue == nullptr || self->queue->isLocal())) {
+					bool noInnerGenerator = (self->innerGenerator == nullptr || self->innerGenerator->isDone());
+					if(hasNext && noInnerGenerator && (self->queue == nullptr || self->queue->isLocal())) {
 						// no need to retain lock or reference anymore, since we're ready to continue execution
 						if(lock.owns_lock()) {
 							lock.unlock();
@@ -1088,7 +1182,9 @@ namespace fgl {
 						return;
 					}
 					self->handle = handle;
-					if(continuer->nextPromise.hasValue()) {
+					bool hasNext = continuer->nextPromise.hasValue();
+					bool noInnerGenerator = (self->innerGenerator == nullptr || self->innerGenerator->isDone());
+					if(hasNext && noInnerGenerator) {
 						// no need to retain lock or reference anymore, since we're ready to continue execution on the queue
 						lock.unlock();
 						continuerRef = nullptr;
