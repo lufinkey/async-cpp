@@ -1225,6 +1225,7 @@ namespace fgl {
 	template<typename Yield, typename Next>
 	struct coroutine_generator_type: public _coroutine_generator_type_base<Yield,Next> {
 		void return_value(const Yield& value) {
+			FGL_ASSERT(this->state->yieldedInitial(), "co_yield initialGenNext() must be called once before any element yields");
 			this->resolve({
 				.value = value,
 				.done = true
@@ -1232,6 +1233,7 @@ namespace fgl {
 		}
 		
 		void return_value(Yield&& value) {
+			FGL_ASSERT(this->state->yieldedInitial(), "co_yield initialGenNext() must be called once before any element yields");
 			this->resolve({
 				.value = value,
 				.done = true
@@ -1242,6 +1244,7 @@ namespace fgl {
 	template<typename Next>
 	struct coroutine_generator_type<void,Next>: public _coroutine_generator_type_base<void,Next> {
 		void return_void() {
+			FGL_ASSERT(this->state->yieldedInitial(), "co_yield initialGenNext() must be called once before any element yields");
 			this->resolve({ .done = true });
 		}
 	};
