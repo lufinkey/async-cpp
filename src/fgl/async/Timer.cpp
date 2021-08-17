@@ -16,14 +16,14 @@ namespace fgl {
 	}
 	
 	void Timer::invoke() {
-		auto strongSelf = self.lock();
+		auto self = shared_from_this();
 		if(!rescheduleWaiter) {
 			std::unique_lock<std::recursive_mutex> lock(mutex);
 			valid = false;
 			waiter->cancel();
 			lock.unlock();
 		}
-		work(strongSelf);
+		work(self);
 	}
 	
 	void Timer::cancel() {
@@ -37,9 +37,8 @@ namespace fgl {
 	}
 	
 	void Timer::run() {
-		auto strongSelf = self.lock();
+		auto self = shared_from_this();
 		std::thread([=]() {
-			auto self = strongSelf;
 			std::unique_lock<std::recursive_mutex> lock(mutex);
 			bool shouldInvalidate = false;
 			while(valid && !shouldInvalidate) {
