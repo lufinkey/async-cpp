@@ -239,7 +239,7 @@ namespace fgl {
 	AsyncQueue::TaskNode AsyncQueue::runSingle(RunOptions options, Work work) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		for(auto& taskNode : taskQueue) {
-			if(taskNode.task->getTag() == options.tag && !(taskNode.task->isCancelled() && !taskNode.task->isPerforming())) {
+			if(taskNode.task->getTag() == options.tag && !taskNode.task->isCancelled() && taskNode.task->isPerforming()) {
 				return taskNode;
 			}
 		}
