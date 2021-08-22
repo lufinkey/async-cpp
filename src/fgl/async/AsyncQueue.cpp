@@ -181,6 +181,16 @@ namespace fgl {
 		return std::nullopt;
 	}
 
+	bool AsyncQueue::hasTaskWithTag(const String& tag) const {
+		std::unique_lock<std::recursive_mutex> lock(mutex);
+		for(auto& taskNode : taskQueue) {
+			if(taskNode.task->getTag() == tag && !(taskNode.task->isCancelled() && !taskNode.task->isPerforming())) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	void AsyncQueue::cancelAllTasks() {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto tasks = taskQueue;

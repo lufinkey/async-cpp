@@ -126,6 +126,7 @@ namespace fgl {
 		Optional<TaskNode> getTaskWithTag(const String& tag);
 		LinkedList<TaskNode> getTasksWithTag(const String& tag);
 		Optional<size_t> indexOfTaskWithTag(const String& tag) const;
+		bool hasTaskWithTag(const String& tag) const;
 		
 		struct RunOptions {
 			String name;
