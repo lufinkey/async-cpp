@@ -92,6 +92,16 @@ namespace fgl {
 	template<typename T>
 	using Promisized = typename _promisize<T>::type;
 
+	template<typename Value>
+	struct PromiseResolution {
+		Value value;
+	};
+
+	template<typename Error>
+	struct PromiseRejection {
+		Error error;
+	};
+
 
 
 	template<typename Result>
@@ -112,6 +122,13 @@ namespace fgl {
 		explicit Promise(Executor executor, Function<void()> destructor = nullptr);
 		template<typename Executor>
 		Promise(String name, Executor executor, Function<void()> destructor = nullptr);
+		
+		template<typename T,
+			typename std::enable_if_t<std::is_convertible_v<T,Result>, std::nullptr_t> = nullptr>
+		Promise(PromiseResolution<T> resolution);
+		template<typename E>
+		Promise(PromiseRejection<E> rejection);
+		
 		
 		bool await_ready() const;
 		void await_suspend(coroutine_handle<>);
@@ -327,7 +344,14 @@ namespace fgl {
 	Promise<Tuple<typename PromiseTypes::ResultType...>> tuplePromiseOf(String name, PromiseTypes... promises);
 	template<typename ...PromiseTypes>
 	Promise<Tuple<typename PromiseTypes::ResultType...>> tuplePromiseOf(PromiseTypes... promises);
-	
+
+	template<typename T>
+	Promise<std::remove_cvref_t<T>> promiseWith(T&&);
+
+	template<typename T>
+	PromiseResolution<std::remove_cvref_t<T>> resolveWith(T&&);
+	template<typename E>
+	PromiseRejection<std::remove_cvref_t<E>> rejectWith(E&&);
 	
 	
 	
@@ -363,6 +387,26 @@ namespace fgl {
 				_continuer->reject(error.ptr());
 			});
 		}
+	}
+	
+	
+	
+	template<typename Result>
+	template<typename T, typename std::enable_if_t<std::is_convertible_v<T,Result>, std::nullptr_t>>
+	Promise<Result>::Promise(PromiseResolution<T> resolution)
+		: Promise([&](auto resolve, auto reject) {
+			resolve(std::move(resolution.value));
+		}) {
+		//
+	}
+	
+	template<typename Result>
+	template<typename E>
+	Promise<Result>::Promise(PromiseRejection<E> rejection)
+		: Promise([&](auto resolve, auto reject) {
+			reject(std::move(rejection.error));
+		}) {
+		//
 	}
 	
 	
@@ -2044,6 +2088,20 @@ namespace fgl {
 	Promise<std::remove_cvref_t<T>> promiseWith(T&& value) {
 		using U = std::remove_cvref_t<T>;
 		return Promise<U>::resolve(value);
+	}
+	
+	template<typename T>
+	PromiseResolution<std::remove_cvref_t<T>> resolveWith(T&& value) {
+		return PromiseResolution<std::remove_cvref_t<T>>{
+			.value = value
+		};
+	}
+	
+	template<typename E>
+	PromiseRejection<std::remove_cvref_t<E>> rejectWith(E&& error) {
+		return PromiseRejection<std::remove_cvref_t<E>>{
+			.error = error
+		};
 	}
 
 

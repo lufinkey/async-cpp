@@ -22,18 +22,18 @@ namespace fgl {
 		
 		template<
 			typename E,
-			typename E_TYPE = typename std::remove_reference<typename std::remove_cv<E>::type>::type,
-			typename std::enable_if<
-				!std::is_same<E_TYPE,std::exception_ptr>::value
-				&& !std::is_same<E_TYPE,PromiseErrorPtr>::value, std::nullptr_t>::type = nullptr>
+			typename E_TYPE = typename std::remove_cvref_t<E>,
+			typename std::enable_if_t<
+				!std::is_same_v<E_TYPE,std::exception_ptr>
+				&& !std::is_same_v<E_TYPE,PromiseErrorPtr>, std::nullptr_t> = nullptr>
 		PromiseErrorPtr(const E& e) : except_ptr(std::make_exception_ptr(e)) {}
 		
 		template<
 			typename E,
-			typename E_TYPE = typename std::remove_reference<typename std::remove_cv<E>::type>::type,
-			typename std::enable_if<
-				!std::is_same<E_TYPE,std::exception_ptr>::value
-				&& !std::is_same<E_TYPE,PromiseErrorPtr>::value, std::nullptr_t>::type = nullptr>
+			typename E_TYPE = typename std::remove_cvref_t<E>,
+			typename std::enable_if_t<
+				!std::is_same_v<E_TYPE,std::exception_ptr>
+				&& !std::is_same_v<E_TYPE,PromiseErrorPtr>, std::nullptr_t> = nullptr>
 		PromiseErrorPtr(E&& e) : except_ptr(std::make_exception_ptr(e)) {}
 		
 		PromiseErrorPtr() : except_ptr() {}
