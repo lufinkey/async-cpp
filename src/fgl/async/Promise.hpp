@@ -97,6 +97,9 @@ namespace fgl {
 		Value value;
 	};
 
+	template<>
+	struct PromiseResolution<void> {};
+
 	template<typename Error>
 	struct PromiseRejection {
 		Error error;
@@ -349,9 +352,10 @@ namespace fgl {
 	Promise<std::remove_cvref_t<T>> promiseWith(T&&);
 
 	template<typename T>
-	PromiseResolution<std::remove_cvref_t<T>> resolveWith(T&&);
+	inline PromiseResolution<std::remove_cvref_t<T>> resolveWith(T&&);
+	inline PromiseResolution<void> resolveVoid();
 	template<typename E>
-	PromiseRejection<std::remove_cvref_t<E>> rejectWith(E&&);
+	inline PromiseRejection<std::remove_cvref_t<E>> rejectWith(E&&);
 	
 	
 	
@@ -395,7 +399,11 @@ namespace fgl {
 	template<typename T, typename std::enable_if_t<std::is_convertible_v<T,Result>, std::nullptr_t>>
 	Promise<Result>::Promise(PromiseResolution<T> resolution)
 		: Promise([&](auto resolve, auto reject) {
-			resolve(std::move(resolution.value));
+			if constexpr(std::is_same_v<std::remove_cvref_t<T>,void>) {
+				resolve();
+			} else {
+				resolve(std::move(resolution.value));
+			}
 		}) {
 		//
 	}
@@ -2095,6 +2103,10 @@ namespace fgl {
 		return PromiseResolution<std::remove_cvref_t<T>>{
 			.value = value
 		};
+	}
+	
+	PromiseResolution<void> resolveVoid() {
+		return PromiseResolution<void>{};
 	}
 	
 	template<typename E>
