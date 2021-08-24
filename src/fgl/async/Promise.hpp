@@ -2039,6 +2039,12 @@ namespace fgl {
 		#endif
 		return tuplePromiseOf<PromiseTypes...>(promiseName, promises...);
 	}
+	
+	template<typename T>
+	Promise<std::remove_cvref_t<T>> promiseWith(T&& value) {
+		using U = std::remove_cvref_t<T>;
+		return Promise<U>::resolve(value);
+	}
 
 
 	
