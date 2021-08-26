@@ -1156,7 +1156,7 @@ namespace fgl {
 						return false;
 					}
 					// check if generator has already called .next
-					bool hasNext = continuer->nextPromise.hasValue();
+					bool hasNext = continuer->nextPromise.has_value();
 					bool noInnerGenerator = (self->innerGenerator == nullptr || self->innerGenerator->isDone());
 					if(hasNext && noInnerGenerator && (self->queue == nullptr || self->queue->isLocal())) {
 						// no need to retain lock or reference anymore, since we're ready to continue execution
@@ -1182,7 +1182,7 @@ namespace fgl {
 						return;
 					}
 					self->handle = handle;
-					bool hasNext = continuer->nextPromise.hasValue();
+					bool hasNext = continuer->nextPromise.has_value();
 					bool noInnerGenerator = (self->innerGenerator == nullptr || self->innerGenerator->isDone());
 					if(hasNext && noInnerGenerator) {
 						// no need to retain lock or reference anymore, since we're ready to continue execution on the queue

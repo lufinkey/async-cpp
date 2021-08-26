@@ -89,7 +89,7 @@ namespace fgl {
 		lock([&]() {
 			size_t endIndex = index + items.size();
 			
-			// add insert mutations to get list to correct size
+			// if index is larger than list size, add insert mutations to get list to correct size
 			if(index > list->itemsSize.value_or(0) && items.size() > 0) {
 				this->mutations.push_back(Mutation{
 					.type = Mutation::Type::MOVE,
@@ -179,7 +179,7 @@ namespace fgl {
 				
 				// begin add/delete chain function
 				auto beginDisplacementChain = [&]() {
-					FGL_ASSERT(!displacing, "you're supposed t call this to START displacing, not while you're already doing it");
+					FGL_ASSERT(!displacing, "you're supposed to call this to START displacing, not while you're already doing it");
 					displacing = true;
 					displacementRemovesEmpty = false;
 					indexRemovalCount = 0;

@@ -19,6 +19,7 @@ namespace fgl {
 	template<typename T, typename InsT>
 	AsyncList<T,InsT>::AsyncList(Options options)
 	: itemsSize(options.initialSize),
+	//overwriteDisabled(options.overwriteDisabled),
 	mutationQueue({
 		.dispatchQueue=options.dispatchQueue
 	}),
@@ -644,7 +645,7 @@ namespace fgl {
 
 
 	template<typename T, typename InsT>
-	Promise<void> AsyncList<T,InsT>::insertItems(size_t index, LinkedList<InsT> items) {
+	Promise<void> AsyncList<T,InsT>::insertItems(size_t index, LinkedList<InsT> items, Map<String,Any> options) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto self = this->shared_from_this();
 		auto indexMarker = watchIndex(index);
@@ -655,12 +656,12 @@ namespace fgl {
 				return Promise<void>::reject(std::runtime_error("AsyncList is destroyed"));
 			}
 			self->unwatchIndex(indexMarker);
-			return self->delegate->insertAsyncListItems(mutator, indexMarker->index, items);
+			return self->delegate->insertAsyncListItems(mutator, indexMarker->index, items, options);
 		});
 	}
 
 	template<typename T, typename InsT>
-	Promise<void> AsyncList<T,InsT>::appendItems(LinkedList<InsT> items) {
+	Promise<void> AsyncList<T,InsT>::appendItems(LinkedList<InsT> items, Map<String,Any> options) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		auto self = this->shared_from_this();
 		return mutate([=](auto mutator) -> Promise<void> {
@@ -668,12 +669,12 @@ namespace fgl {
 			if(self->delegate == nullptr) {
 				return Promise<void>::reject(std::runtime_error("AsyncList is destroyed"));
 			}
-			return self->delegate->appendAsyncListItems(mutator, items);
+			return self->delegate->appendAsyncListItems(mutator, items, options);
 		});
 	}
 
 	template<typename T, typename InsT>
-	Promise<void> AsyncList<T,InsT>::removeItems(size_t index, size_t count) {
+	Promise<void> AsyncList<T,InsT>::removeItems(size_t index, size_t count, Map<String,Any> options) {
 		if(count == 0) {
 			return Promise<void>::resolve();
 		}
@@ -728,12 +729,12 @@ namespace fgl {
 			// remove block
 			size_t index = mutIndexMarkers.front()->index;
 			size_t count = (mutIndexMarkers.back()->index + 1) - index;
-			return self->delegate->removeAsyncListItems(mutator, index, count);
+			return self->delegate->removeAsyncListItems(mutator, index, count, options);
 		});
 	}
 
 	template<typename T, typename InsT>
-	Promise<void> AsyncList<T,InsT>::moveItems(size_t index, size_t count, size_t newIndex) {
+	Promise<void> AsyncList<T,InsT>::moveItems(size_t index, size_t count, size_t newIndex, Map<String,Any> options) {
 		if(count == 0) {
 			return Promise<void>::resolve();
 		}
@@ -798,7 +799,7 @@ namespace fgl {
 				: ((newIndexMarker->index >= count) ?
 					(newIndexMarker->index - count)
 					: 0);
-			return self->delegate->moveAsyncListItems(mutator, index, count, newIndex);
+			return self->delegate->moveAsyncListItems(mutator, index, count, newIndex, options);
 		});
 	}
 }

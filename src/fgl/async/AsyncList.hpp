@@ -137,14 +137,14 @@ namespace fgl {
 			virtual ~Delegate() {}
 			
 			virtual size_t getAsyncListChunkSize(const AsyncList* list) const = 0;
-			virtual Promise<void> loadAsyncListItems(Mutator* mutator, size_t index, size_t count, std::map<String,Any> options) = 0;
+			virtual Promise<void> loadAsyncListItems(Mutator* mutator, size_t index, size_t count, Map<String,Any> options) = 0;
 			
 			virtual bool areAsyncListItemsEqual(const AsyncList* list, const T& item1, const T& item2) const = 0;
 			virtual void mergeAsyncListItem(const AsyncList* list, T& overwritingItem, T& existingItem) = 0;
-			virtual Promise<void> insertAsyncListItems(Mutator* mutator, size_t index, LinkedList<InsT> items) = 0;
-			virtual Promise<void> appendAsyncListItems(Mutator* mutator, LinkedList<InsT> items) = 0;
-			virtual Promise<void> removeAsyncListItems(Mutator* mutator, size_t index, size_t count) = 0;
-			virtual Promise<void> moveAsyncListItems(Mutator* mutator, size_t index, size_t count, size_t newIndex) = 0;
+			virtual Promise<void> insertAsyncListItems(Mutator* mutator, size_t index, LinkedList<InsT> items, Map<String,Any> options) = 0;
+			virtual Promise<void> appendAsyncListItems(Mutator* mutator, LinkedList<InsT> items, Map<String,Any> options) = 0;
+			virtual Promise<void> removeAsyncListItems(Mutator* mutator, size_t index, size_t count, Map<String,Any> options) = 0;
+			virtual Promise<void> moveAsyncListItems(Mutator* mutator, size_t index, size_t count, size_t newIndex, Map<String,Any> options) = 0;
 			
 			virtual void onAsyncListMutations(const AsyncList<T,InsT>* list, AsyncListChange change) = 0;
 		};
@@ -159,6 +159,7 @@ namespace fgl {
 			DispatchQueue* dispatchQueue = defaultPromiseQueue();
 			std::map<size_t,T> initialItems;
 			Optional<size_t> initialSize;
+			//bool overwriteDisabled = false;
 		};
 		
 		static std::shared_ptr<AsyncList<T,InsT>> new$(Options options);
@@ -217,10 +218,10 @@ namespace fgl {
 		void invalidateItems(size_t startIndex, size_t endIndex, bool runInQueue = false);
 		void invalidateAllItems(bool runInQueue = false);
 		
-		Promise<void> insertItems(size_t index, LinkedList<InsT> items);
-		Promise<void> appendItems(LinkedList<InsT> items);
-		Promise<void> removeItems(size_t index, size_t count);
-		Promise<void> moveItems(size_t index, size_t count, size_t newIndex);
+		Promise<void> insertItems(size_t index, LinkedList<InsT> items, Map<String,Any> options = {});
+		Promise<void> appendItems(LinkedList<InsT> items, Map<String,Any> options = {});
+		Promise<void> removeItems(size_t index, size_t count, Map<String,Any> options = {});
+		Promise<void> moveItems(size_t index, size_t count, size_t newIndex, Map<String,Any> options = {});
 		
 	private:
 		static size_t chunkStartIndexForIndex(size_t index, size_t chunkSize);
@@ -228,6 +229,7 @@ namespace fgl {
 		mutable std::recursive_mutex mutex;
 		std::map<size_t,ItemNode> items;
 		Optional<size_t> itemsSize;
+		//bool overwriteDisabled;
 		
 		LinkedList<AsyncListIndexMarker> indexMarkers;
 		

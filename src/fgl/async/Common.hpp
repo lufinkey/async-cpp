@@ -36,16 +36,8 @@ namespace fgl {
 		using Any = std::any;
 		template<typename ...T>
 		using Tuple = std::tuple<T...>;
-
-		template<typename T>
-		struct is_optional: std::false_type {};
-		template<typename T>
-		struct is_optional<Optional<T>>: std::true_type {};
-		template<typename T>
-		struct is_optional<std::optional<T>>: std::true_type {};
-
-		template<typename T>
-		inline constexpr bool is_optional_v = is_optional<T>::value;
+		template<typename Key, typename T>
+		using Map = std::map<Key, T>;
 
 		template<typename T>
 		using Optional = std::optional<T>;
@@ -63,6 +55,14 @@ namespace fgl {
 		};
 		template<typename T>
 		using Optionalized = typename optionalize_t<T>::type;
+
+		template<typename T>
+		struct is_optional: std::false_type {};
+		template<typename T>
+		struct is_optional<Optional<T>>: std::true_type {};
+
+		template<typename T>
+		inline constexpr bool is_optional_v = is_optional<T>::value;
 
 
 		template<typename T>
