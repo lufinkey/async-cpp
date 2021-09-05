@@ -349,13 +349,13 @@ namespace fgl {
 	Promise<Tuple<typename PromiseTypes::ResultType...>> tuplePromiseOf(PromiseTypes... promises);
 
 	template<typename T>
-	Promise<std::remove_cvref_t<T>> promiseWith(T&&);
+	Promise<std::decay_t<T>> promiseWith(T&&);
 
 	template<typename T>
-	inline PromiseResolution<std::remove_cvref_t<T>> resolveWith(T&&);
+	inline PromiseResolution<std::decay_t<T>> resolveWith(T&&);
 	inline PromiseResolution<void> resolveVoid();
 	template<typename E>
-	inline PromiseRejection<std::remove_cvref_t<E>> rejectWith(E&&);
+	inline PromiseRejection<std::decay_t<E>> rejectWith(E&&);
 	
 	
 	
@@ -398,23 +398,27 @@ namespace fgl {
 	template<typename Result>
 	template<typename T, typename std::enable_if_t<std::is_convertible_v<T,Result>, std::nullptr_t>>
 	Promise<Result>::Promise(PromiseResolution<T> resolution)
-		: Promise([&](auto resolve, auto reject) {
-			if constexpr(std::is_same_v<std::remove_cvref_t<T>,void>) {
-				resolve();
-			} else {
-				resolve(std::move(resolution.value));
-			}
-		}) {
-		//
+		#ifdef DEBUG_PROMISE_NAMING
+		: continuer(String("resolution:") + typeid(Result).name(), nullptr) {
+		#else
+		: continuer(String(), nullptr) {
+		#endif
+		if constexpr(std::is_same_v<T,void>) {
+			continuer->resolve();
+		} else {
+			continuer->resolve(std::move(resolution.value));
+		}
 	}
 	
 	template<typename Result>
 	template<typename E>
 	Promise<Result>::Promise(PromiseRejection<E> rejection)
-		: Promise([&](auto resolve, auto reject) {
-			reject(std::move(rejection.error));
-		}) {
-		//
+		#ifdef DEBUG_PROMISE_NAMING
+		: continuer(String("rejection:") + typeid(E).name(), nullptr) {
+		#else
+		: continuer(String(), nullptr) {
+		#endif
+		continuer->reject(std::move(rejection.error));
 	}
 	
 	
@@ -653,7 +657,7 @@ namespace fgl {
 	template<typename Result>
 	template<typename OnReject>
 	Promise<Result> Promise<Result>::except(String name, DispatchQueue* queue, OnReject onreject) {
-		using ErrorType = typename std::remove_reference<typename std::remove_cv<typename lambda_traits<OnReject>::template arg<0>::type>::type>::type;
+		using ErrorType = std::remove_cvref_t<typename lambda_traits<OnReject>::template arg<0>::type>;
 		using ReturnType = typename lambda_traits<OnReject>::return_type;
 		static_assert(
 			std::is_void_v<Result>
@@ -751,7 +755,7 @@ namespace fgl {
 	template<typename OnReject>
 	Promise<Result> Promise<Result>::except(DispatchQueue* queue, OnReject onreject) {
 		#ifdef DEBUG_PROMISE_NAMING
-		using ErrorType = typename std::remove_reference<typename std::remove_cv<typename lambda_traits<OnReject>::template arg<0>::type>::type>::type;
+		using ErrorType = std::remove_cvref_t<typename lambda_traits<OnReject>::template arg<0>::type>;
 		auto exceptName = String::join({
 			this->continuer->getName(),
 			" -> except<", typeid(ErrorType).name(), ">(queue,onreject)"
@@ -772,7 +776,7 @@ namespace fgl {
 	template<typename OnReject>
 	Promise<Result> Promise<Result>::except(OnReject onreject) {
 		#ifdef DEBUG_PROMISE_NAMING
-		using ErrorType = typename std::remove_reference<typename std::remove_cv<typename lambda_traits<OnReject>::template arg<0>::type>::type>::type;
+		using ErrorType = std::remove_cvref_t<typename lambda_traits<OnReject>::template arg<0>::type>;
 		auto exceptName = String::join({
 			this->continuer->getName(),
 			" -> except<", typeid(ErrorType).name(), ">(onreject)"
@@ -2093,14 +2097,14 @@ namespace fgl {
 	}
 	
 	template<typename T>
-	Promise<std::remove_cvref_t<T>> promiseWith(T&& value) {
-		using U = std::remove_cvref_t<T>;
+	Promise<std::decay_t<T>> promiseWith(T&& value) {
+		using U = std::decay_t<T>;
 		return Promise<U>::resolve(value);
 	}
 	
 	template<typename T>
-	PromiseResolution<std::remove_cvref_t<T>> resolveWith(T&& value) {
-		return PromiseResolution<std::remove_cvref_t<T>>{
+	PromiseResolution<std::decay_t<T>> resolveWith(T&& value) {
+		return PromiseResolution<std::decay_t<T>>{
 			.value = value
 		};
 	}
@@ -2110,8 +2114,8 @@ namespace fgl {
 	}
 	
 	template<typename E>
-	PromiseRejection<std::remove_cvref_t<E>> rejectWith(E&& error) {
-		return PromiseRejection<std::remove_cvref_t<E>>{
+	PromiseRejection<std::decay_t<E>> rejectWith(E&& error) {
+		return PromiseRejection<std::decay_t<E>>{
 			.error = error
 		};
 	}
