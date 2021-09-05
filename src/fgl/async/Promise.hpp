@@ -148,6 +148,8 @@ namespace fgl {
 		template<typename OnResolve>
 		auto then(String name, DispatchQueue* queue, OnResolve onresolve);
 		template<typename OnResolve>
+		inline auto then(std::nullptr_t nullQueue, OnResolve onresolve);
+		template<typename OnResolve>
 		inline auto then(DispatchQueue* queue, OnResolve onresolve);
 		template<typename OnResolve>
 		inline auto then(String name, OnResolve onresolve);
@@ -632,6 +634,12 @@ namespace fgl {
 		auto thenName = "";
 		#endif
 		return then<OnResolve>(thenName, queue, onresolve);
+	}
+	
+	template<typename Result>
+	template<typename OnResolve>
+	auto Promise<Result>::then(std::nullptr_t nullQueue, OnResolve onresolve) {
+		return then<OnResolve>((DispatchQueue*)nullptr, onresolve);
 	}
 	
 	template<typename Result>
