@@ -418,7 +418,7 @@ namespace fgl {
 		#else
 		: continuer(std::make_shared<Continuer>(String(), nullptr)) {
 		#endif
-		continuer->reject(std::move(rejection.error));
+		continuer->reject(PromiseErrorPtr(std::move(rejection.error)).ptr());
 	}
 	
 	

@@ -22,7 +22,7 @@ namespace fgl {
 		
 		template<
 			typename E,
-			typename E_TYPE = typename std::remove_cvref_t<E>,
+			typename E_TYPE = typename std::decay_t<E>,
 			typename std::enable_if_t<
 				!std::is_same_v<E_TYPE,std::exception_ptr>
 				&& !std::is_same_v<E_TYPE,PromiseErrorPtr>, std::nullptr_t> = nullptr>
@@ -30,7 +30,7 @@ namespace fgl {
 		
 		template<
 			typename E,
-			typename E_TYPE = typename std::remove_cvref_t<E>,
+			typename E_TYPE = typename std::decay_t<E>,
 			typename std::enable_if_t<
 				!std::is_same_v<E_TYPE,std::exception_ptr>
 				&& !std::is_same_v<E_TYPE,PromiseErrorPtr>, std::nullptr_t> = nullptr>
