@@ -303,11 +303,11 @@ namespace fgl {
 			
 			// send promise result (non-void)
 			template<typename _Result=Result,
-				typename std::enable_if<(std::is_same<_Result,Result>::value && !std::is_same<_Result,void>::value), std::nullptr_t>::type = nullptr>
+				typename std::enable_if<(!std::is_void_v<_Result>), std::nullptr_t>::type = nullptr>
 			void resolve(_Result result);
 			// send promise result (void)
 			template<typename _Result=Result,
-				typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<_Result,void>::value), std::nullptr_t>::type = nullptr>
+				typename std::enable_if<(std::is_void_v<_Result>), std::nullptr_t>::type = nullptr>
 			void resolve();
 			// send promise error
 			void reject(std::exception_ptr error);
@@ -1789,7 +1789,7 @@ namespace fgl {
 
 	template<typename Result>
 	template<typename _Result,
-		typename std::enable_if<(std::is_same<_Result,Result>::value && !std::is_same<_Result,void>::value), std::nullptr_t>::type>
+		typename std::enable_if<(!std::is_void_v<_Result>), std::nullptr_t>::type>
 	void Promise<Result>::Continuer::resolve(_Result result) {
 		std::unique_lock<std::mutex> lock(mutex);
 		FGL_ASSERT(state == State::EXECUTING, "Cannot resolve a promise multiple times");
@@ -1820,7 +1820,7 @@ namespace fgl {
 	
 	template<typename Result>
 	template<typename _Result,
-		typename std::enable_if<(std::is_same<_Result,Result>::value && std::is_same<_Result,void>::value), std::nullptr_t>::type>
+		typename std::enable_if<(std::is_void_v<_Result>), std::nullptr_t>::type>
 	void Promise<Result>::Continuer::resolve() {
 		std::unique_lock<std::mutex> lock(mutex);
 		FGL_ASSERT(state == State::EXECUTING, "Cannot resolve a promise multiple times");
