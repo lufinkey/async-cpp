@@ -399,9 +399,9 @@ namespace fgl {
 	template<typename T, typename std::enable_if_t<std::is_convertible_v<T,Result>, std::nullptr_t>>
 	Promise<Result>::Promise(PromiseResolution<T> resolution)
 		#ifdef DEBUG_PROMISE_NAMING
-		: continuer(String("resolution:") + typeid(Result).name(), nullptr) {
+		: continuer(std::make_shared<Continuer>(String("resolution:") + typeid(Result).name(), nullptr)) {
 		#else
-		: continuer(String(), nullptr) {
+		: continuer(std::make_shared<Continuer>(String(), nullptr)) {
 		#endif
 		if constexpr(std::is_same_v<T,void>) {
 			continuer->resolve();
@@ -414,9 +414,9 @@ namespace fgl {
 	template<typename E>
 	Promise<Result>::Promise(PromiseRejection<E> rejection)
 		#ifdef DEBUG_PROMISE_NAMING
-		: continuer(String("rejection:") + typeid(E).name(), nullptr) {
+		: continuer(std::make_shared<Continuer>(String("rejection:") + typeid(E).name(), nullptr)) {
 		#else
-		: continuer(String(), nullptr) {
+		: continuer(std::make_shared<Continuer>(String(), nullptr)) {
 		#endif
 		continuer->reject(std::move(rejection.error));
 	}
