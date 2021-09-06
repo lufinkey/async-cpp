@@ -215,6 +215,8 @@ namespace fgl {
 		inline Promise<Any> toAny();
 		inline Promise<void> toVoid(String name);
 		inline Promise<void> toVoid();
+		
+		Promise<Result> tick(DispatchQueue* queue = defaultPromiseQueue());
 
 
 		inline Result get();
@@ -1251,6 +1253,50 @@ namespace fgl {
 		auto voidName = "";
 		#endif
 		return toVoid(voidName);
+	}
+			
+	template<typename Result>
+	Promise<Result> Promise<Result>::tick(DispatchQueue* queue) {
+		return Promise<Result>([=](auto resolve, auto reject) {
+			auto onResolve = ([&]() {
+				if constexpr(std::is_void_v<Result>) {
+					return [=]() {
+						if(queue == nullptr) {
+							std::thread([=]() mutable {
+								resolve();
+							}).detach();
+						} else {
+							queue->async([=]() mutable {
+								resolve();
+							});
+						}
+					};
+				} else {
+					return [=](Result result) {
+						if(queue == nullptr) {
+							std::thread([=]() mutable {
+								resolve(std::move(result));
+							}).detach();
+						} else {
+							queue->async([=]() mutable {
+								resolve(std::move(result));
+							});
+						}
+					};
+				}
+			})();
+			handle(nullptr, onResolve, nullptr, [=](std::exception_ptr error) {
+				if(queue == nullptr) {
+					std::thread([=]() mutable {
+						reject(std::move(error));
+					}).detach();
+				} else {
+					queue->async([=]() mutable {
+						reject(std::move(error));
+					});
+				}
+			});
+		});
 	}
 	
 	
