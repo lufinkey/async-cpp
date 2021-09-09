@@ -50,11 +50,11 @@ namespace fgl {
 		AsyncListIndexMarkerState state;
 		
 		AsyncListIndexMarkerData(size_t index, AsyncListIndexMarkerState state);
-		static std::shared_ptr<AsyncListIndexMarkerData> new$(size_t index, AsyncListIndexMarkerState state);
+		static SharedPtr<AsyncListIndexMarkerData> new$(size_t index, AsyncListIndexMarkerState state);
 		
 		String toString() const;
 	};
-	typedef std::shared_ptr<AsyncListIndexMarkerData> AsyncListIndexMarker;
+	typedef SharedPtr<AsyncListIndexMarkerData> AsyncListIndexMarker;
 
 	struct AsyncListMutation {
 		enum class Type {
@@ -162,7 +162,7 @@ namespace fgl {
 			//bool overwriteDisabled = false;
 		};
 		
-		static std::shared_ptr<AsyncList<T,InsT>> new$(Options options);
+		static SharedPtr<AsyncList<T,InsT>> new$(Options options);
 		
 		AsyncList(const AsyncList&) = delete;
 		AsyncList& operator=(const AsyncList&) = delete;

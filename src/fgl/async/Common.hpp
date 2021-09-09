@@ -16,6 +16,7 @@
 	#include <vector>
 	#include <optional>
 	#include <type_traits>
+	#include <memory>
 #else
 	#include <fgl/data.hpp>
 #endif
@@ -82,6 +83,12 @@ namespace fgl {
 
 		template<typename T>
 		using NullifyVoid = typename std::conditional<std::is_void_v<T>,std::nullptr_t,T>::type;
+
+
+		template<typename T>
+		using SharedPtr = std::shared_ptr<T>;
+		template<typename T>
+		using WeakPtr = std::weak_ptr<T>;
 	#endif
 	
 	#ifndef FGL_ASSERT

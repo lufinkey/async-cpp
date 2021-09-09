@@ -12,7 +12,7 @@
 
 namespace fgl {
 	template<typename T, typename InsT>
-	std::shared_ptr<AsyncList<T,InsT>> AsyncList<T,InsT>::new$(Options options) {
+	SharedPtr<AsyncList<T,InsT>> AsyncList<T,InsT>::new$(Options options) {
 		return std::make_shared<AsyncList<T,InsT>>(options);
 	}
 

@@ -17,13 +17,13 @@ namespace fgl {
 		NSArray<NSString*>* callStack;
 	};
 	
-	std::shared_ptr<ObjCCallStack> getObjCCallStack() {
+	SharedPtr<ObjCCallStack> getObjCCallStack() {
 		return std::make_shared<ObjCCallStack>(ObjCCallStack{
 			.callStack = [NSThread callStackSymbols]
 		});
 	}
 	
-	void printObjCCallStack(std::shared_ptr<ObjCCallStack> ptr) {
+	void printObjCCallStack(SharedPtr<ObjCCallStack> ptr) {
 		NSLog(@"%@", ptr->callStack);
 	}
 }

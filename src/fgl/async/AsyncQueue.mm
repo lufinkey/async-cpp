@@ -15,11 +15,11 @@ namespace fgl {
 	public:
 		AsyncQueueTaskObjcEventListener(id<FGLAsyncQueueTaskEventListener> listener);
 		
-		virtual void onAsyncQueueTaskBegin(std::shared_ptr<AsyncQueue::Task> task) override;
-		virtual void onAsyncQueueTaskCancel(std::shared_ptr<AsyncQueue::Task> task) override;
-		virtual void onAsyncQueueTaskStatusChange(std::shared_ptr<AsyncQueue::Task> task) override;
-		virtual void onAsyncQueueTaskError(std::shared_ptr<AsyncQueue::Task> task, std::exception_ptr error) override;
-		virtual void onAsyncQueueTaskEnd(std::shared_ptr<AsyncQueue::Task> task) override;
+		virtual void onAsyncQueueTaskBegin(SharedPtr<AsyncQueue::Task> task) override;
+		virtual void onAsyncQueueTaskCancel(SharedPtr<AsyncQueue::Task> task) override;
+		virtual void onAsyncQueueTaskStatusChange(SharedPtr<AsyncQueue::Task> task) override;
+		virtual void onAsyncQueueTaskError(SharedPtr<AsyncQueue::Task> task, std::exception_ptr error) override;
+		virtual void onAsyncQueueTaskEnd(SharedPtr<AsyncQueue::Task> task) override;
 		
 		__weak id<FGLAsyncQueueTaskEventListener> weakListener;
 	};
@@ -29,7 +29,7 @@ namespace fgl {
 		//
 	}
 	
-	void AsyncQueueTaskObjcEventListener::onAsyncQueueTaskBegin(std::shared_ptr<AsyncQueue::Task> task) {
+	void AsyncQueueTaskObjcEventListener::onAsyncQueueTaskBegin(SharedPtr<AsyncQueue::Task> task) {
 		__strong id<FGLAsyncQueueTaskEventListener> listener = weakListener;
 		if(listener == nil) {
 			task->removeEventListener(this);
@@ -40,7 +40,7 @@ namespace fgl {
 		}
 	}
 	
-	void AsyncQueueTaskObjcEventListener::onAsyncQueueTaskCancel(std::shared_ptr<AsyncQueue::Task> task) {
+	void AsyncQueueTaskObjcEventListener::onAsyncQueueTaskCancel(SharedPtr<AsyncQueue::Task> task) {
 		__strong id<FGLAsyncQueueTaskEventListener> listener = weakListener;
 		if(listener == nil) {
 			task->removeEventListener(this);
@@ -51,7 +51,7 @@ namespace fgl {
 		}
 	}
 	
-	void AsyncQueueTaskObjcEventListener::onAsyncQueueTaskStatusChange(std::shared_ptr<AsyncQueue::Task> task) {
+	void AsyncQueueTaskObjcEventListener::onAsyncQueueTaskStatusChange(SharedPtr<AsyncQueue::Task> task) {
 		__strong id<FGLAsyncQueueTaskEventListener> listener = weakListener;
 		if(listener == nil) {
 			task->removeEventListener(this);
@@ -62,7 +62,7 @@ namespace fgl {
 		}
 	}
 	
-	void AsyncQueueTaskObjcEventListener::onAsyncQueueTaskError(std::shared_ptr<AsyncQueue::Task> task, std::exception_ptr error) {
+	void AsyncQueueTaskObjcEventListener::onAsyncQueueTaskError(SharedPtr<AsyncQueue::Task> task, std::exception_ptr error) {
 		__strong id<FGLAsyncQueueTaskEventListener> listener = weakListener;
 		if(listener == nil) {
 			task->removeEventListener(this);
@@ -73,7 +73,7 @@ namespace fgl {
 		}
 	}
 	
-	void AsyncQueueTaskObjcEventListener::onAsyncQueueTaskEnd(std::shared_ptr<AsyncQueue::Task> task) {
+	void AsyncQueueTaskObjcEventListener::onAsyncQueueTaskEnd(SharedPtr<AsyncQueue::Task> task) {
 		__strong id<FGLAsyncQueueTaskEventListener> listener = weakListener;
 		if(listener == nil) {
 			task->removeEventListener(this);

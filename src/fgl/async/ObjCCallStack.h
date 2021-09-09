@@ -13,8 +13,8 @@
 
 namespace fgl {
 	struct ObjCCallStack;
-	std::shared_ptr<ObjCCallStack> getObjCCallStack();
-	void printObjCCallStack(std::shared_ptr<ObjCCallStack>);
+	SharedPtr<ObjCCallStack> getObjCCallStack();
+	void printObjCCallStack(SharedPtr<ObjCCallStack>);
 }
 
 #endif

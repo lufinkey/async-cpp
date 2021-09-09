@@ -25,20 +25,20 @@ namespace fgl {
 		class Task: public std::enable_shared_from_this<Task> {
 			friend class AsyncQueue;
 		public:
-			using BeginListener = Function<void(std::shared_ptr<Task> task)>;
-			using StatusChangeListener = Function<void(std::shared_ptr<Task> task, size_t listenerId)>;
-			using ErrorListener = Function<void(std::shared_ptr<Task> task, std::exception_ptr)>;
-			using EndListener = Function<void(std::shared_ptr<Task> task)>;
-			using CancelListener = Function<void(std::shared_ptr<Task> task)>;
+			using BeginListener = Function<void(SharedPtr<Task> task)>;
+			using StatusChangeListener = Function<void(SharedPtr<Task> task, size_t listenerId)>;
+			using ErrorListener = Function<void(SharedPtr<Task> task, std::exception_ptr)>;
+			using EndListener = Function<void(SharedPtr<Task> task)>;
+			using CancelListener = Function<void(SharedPtr<Task> task)>;
 			
 			class EventListener {
 			public:
 				virtual ~EventListener() {}
-				virtual void onAsyncQueueTaskBegin(std::shared_ptr<Task> task) {};
-				virtual void onAsyncQueueTaskCancel(std::shared_ptr<Task> task) {};
-				virtual void onAsyncQueueTaskStatusChange(std::shared_ptr<Task> task) {};
-				virtual void onAsyncQueueTaskError(std::shared_ptr<Task> task, std::exception_ptr error) {};
-				virtual void onAsyncQueueTaskEnd(std::shared_ptr<Task> task) {};
+				virtual void onAsyncQueueTaskBegin(SharedPtr<Task> task) {};
+				virtual void onAsyncQueueTaskCancel(SharedPtr<Task> task) {};
+				virtual void onAsyncQueueTaskStatusChange(SharedPtr<Task> task) {};
+				virtual void onAsyncQueueTaskError(SharedPtr<Task> task, std::exception_ptr error) {};
+				virtual void onAsyncQueueTaskEnd(SharedPtr<Task> task) {};
 			};
 			class AutoDeletedEventListener: public EventListener {
 				//
@@ -54,9 +54,9 @@ namespace fgl {
 				String text;
 			};
 			
-			static std::shared_ptr<Task> new$(Options options, Function<Promise<void>(std::shared_ptr<Task>)> executor);
+			static SharedPtr<Task> new$(Options options, Function<Promise<void>(SharedPtr<Task>)> executor);
 			
-			Task(Options options, Function<Promise<void>(std::shared_ptr<Task>)> executor);
+			Task(Options options, Function<Promise<void>(SharedPtr<Task>)> executor);
 			~Task();
 			
 			const String& getTag() const;
@@ -98,7 +98,7 @@ namespace fgl {
 			
 			Options options;
 			mutable std::recursive_mutex mutex;
-			Function<Promise<void>(std::shared_ptr<Task>)> executor;
+			Function<Promise<void>(SharedPtr<Task>)> executor;
 			Optional<Promise<void>> promise;
 			Status status;
 			LinkedList<EventListener*> eventListeners;
@@ -107,7 +107,7 @@ namespace fgl {
 		};
 		
 		struct TaskNode {
-			std::shared_ptr<Task> task;
+			SharedPtr<Task> task;
 			Promise<void> promise;
 		};
 		
@@ -153,7 +153,7 @@ namespace fgl {
 		
 	private:
 		template<typename Work>
-		static Promise<void> performWork(DispatchQueue* dispatchQueue, std::shared_ptr<Task> task, Work work);
+		static Promise<void> performWork(DispatchQueue* dispatchQueue, SharedPtr<Task> task, Work work);
 		
 		template<typename GeneratorType>
 		static Promise<typename GeneratorType::YieldResult> runNextGenerate(DispatchQueue* dispatchQueue, GeneratorType generator);
@@ -162,7 +162,7 @@ namespace fgl {
 		template<typename GeneratorType>
 		static void performRunGenerator(DispatchQueue* queue, GeneratorType gen, typename Promise<typename GeneratorType::YieldResult>::Resolver resolve, typename Promise<typename GeneratorType::YieldResult>::Rejecter reject, Function<bool()> shouldStop);
 		
-		void removeTask(std::shared_ptr<Task> task);
+		void removeTask(SharedPtr<Task> task);
 		
 		Options options;
 		LinkedList<TaskNode> taskQueue;
@@ -172,7 +172,7 @@ namespace fgl {
 		struct AliveStatus {
 			bool alive = true;
 		};
-		std::shared_ptr<AliveStatus> aliveStatus;
+		SharedPtr<AliveStatus> aliveStatus;
 	};
 
 
@@ -196,7 +196,7 @@ namespace fgl {
 			.tag=options.tag
 		};
 		auto dispatchQueue = this->options.dispatchQueue;
-		auto task = Task::new$(taskOptions, [=](std::shared_ptr<Task> task) {
+		auto task = Task::new$(taskOptions, [=](SharedPtr<Task> task) {
 			return performWork<Work>(dispatchQueue, task, work);
 		});
 		typename Promise<void>::Resolver resolveTask;
@@ -250,7 +250,7 @@ namespace fgl {
 
 
 	template<typename Work>
-	Promise<void> AsyncQueue::performWork(DispatchQueue* dispatchQueue, std::shared_ptr<Task> task, Work work) {
+	Promise<void> AsyncQueue::performWork(DispatchQueue* dispatchQueue, SharedPtr<Task> task, Work work) {
 		using ReturnType = decltype(work(task));
 		if(dispatchQueue != nullptr && !dispatchQueue->isLocal()) {
 			return Promise<void>([=](auto resolve, auto reject) {
@@ -340,10 +340,10 @@ namespace fgl {
 #ifdef __OBJC__
 @protocol FGLAsyncQueueTaskEventListener <NSObject>
 @optional
--(void)asyncQueueTaskDidBegin:(std::shared_ptr<fgl::AsyncQueue::Task>)task;
--(void)asyncQueueTaskDidCancel:(std::shared_ptr<fgl::AsyncQueue::Task>) task;
--(void)asyncQueueTaskDidChangeStatus:(std::shared_ptr<fgl::AsyncQueue::Task>)task;
--(void)asyncQueueTask:(std::shared_ptr<fgl::AsyncQueue::Task>)task didThrowError:(std::exception_ptr)error;
--(void)asyncQueueTaskDidEnd:(std::shared_ptr<fgl::AsyncQueue::Task>)task;
+-(void)asyncQueueTaskDidBegin:(fgl::SharedPtr<fgl::AsyncQueue::Task>)task;
+-(void)asyncQueueTaskDidCancel:(fgl::SharedPtr<fgl::AsyncQueue::Task>) task;
+-(void)asyncQueueTaskDidChangeStatus:(fgl::SharedPtr<fgl::AsyncQueue::Task>)task;
+-(void)asyncQueueTask:(fgl::SharedPtr<fgl::AsyncQueue::Task>)task didThrowError:(std::exception_ptr)error;
+-(void)asyncQueueTaskDidEnd:(fgl::SharedPtr<fgl::AsyncQueue::Task>)task;
 @end
 #endif

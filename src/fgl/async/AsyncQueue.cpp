@@ -64,11 +64,11 @@ namespace fgl {
 
 	class AsyncQueueTaskFunctionalEventListener: public AsyncQueue::Task::AutoDeletedEventListener {
 	public:
-		virtual void onAsyncQueueTaskBegin(std::shared_ptr<AsyncQueue::Task> task) override;
-		virtual void onAsyncQueueTaskCancel(std::shared_ptr<AsyncQueue::Task> task) override;
-		virtual void onAsyncQueueTaskStatusChange(std::shared_ptr<AsyncQueue::Task> task) override;
-		virtual void onAsyncQueueTaskError(std::shared_ptr<AsyncQueue::Task> task, std::exception_ptr error) override;
-		virtual void onAsyncQueueTaskEnd(std::shared_ptr<AsyncQueue::Task> task) override;
+		virtual void onAsyncQueueTaskBegin(SharedPtr<AsyncQueue::Task> task) override;
+		virtual void onAsyncQueueTaskCancel(SharedPtr<AsyncQueue::Task> task) override;
+		virtual void onAsyncQueueTaskStatusChange(SharedPtr<AsyncQueue::Task> task) override;
+		virtual void onAsyncQueueTaskError(SharedPtr<AsyncQueue::Task> task, std::exception_ptr error) override;
+		virtual void onAsyncQueueTaskEnd(SharedPtr<AsyncQueue::Task> task) override;
 		
 		std::map<size_t,AsyncQueue::Task::BeginListener> beginListeners;
 		std::map<size_t,AsyncQueue::Task::CancelListener> cancelListeners;
@@ -77,7 +77,7 @@ namespace fgl {
 		std::map<size_t,AsyncQueue::Task::EndListener> endListeners;
 	};
 
-	void AsyncQueueTaskFunctionalEventListener::onAsyncQueueTaskBegin(std::shared_ptr<AsyncQueue::Task> task) {
+	void AsyncQueueTaskFunctionalEventListener::onAsyncQueueTaskBegin(SharedPtr<AsyncQueue::Task> task) {
 		std::map<size_t,AsyncQueue::Task::BeginListener> beginListeners;
 		beginListeners.swap(this->beginListeners);
 		for(auto& pair : beginListeners) {
@@ -85,7 +85,7 @@ namespace fgl {
 		}
 	}
 
-	void AsyncQueueTaskFunctionalEventListener::onAsyncQueueTaskCancel(std::shared_ptr<AsyncQueue::Task> task) {
+	void AsyncQueueTaskFunctionalEventListener::onAsyncQueueTaskCancel(SharedPtr<AsyncQueue::Task> task) {
 		std::map<size_t,AsyncQueue::Task::CancelListener> cancelListeners;
 		cancelListeners.swap(this->cancelListeners);
 		for(auto& pair : cancelListeners) {
@@ -93,14 +93,14 @@ namespace fgl {
 		}
 	}
 
-	void AsyncQueueTaskFunctionalEventListener::onAsyncQueueTaskStatusChange(std::shared_ptr<AsyncQueue::Task> task) {
+	void AsyncQueueTaskFunctionalEventListener::onAsyncQueueTaskStatusChange(SharedPtr<AsyncQueue::Task> task) {
 		auto statusChangeListeners = this->statusChangeListeners;
 		for(auto& pair : statusChangeListeners) {
 			pair.second(task, pair.first);
 		}
 	}
 
-	void AsyncQueueTaskFunctionalEventListener::onAsyncQueueTaskError(std::shared_ptr<AsyncQueue::Task> task, std::exception_ptr error) {
+	void AsyncQueueTaskFunctionalEventListener::onAsyncQueueTaskError(SharedPtr<AsyncQueue::Task> task, std::exception_ptr error) {
 		this->statusChangeListeners.clear();
 		this->cancelListeners.clear();
 		std::map<size_t,AsyncQueue::Task::ErrorListener> errorListeners;
@@ -110,7 +110,7 @@ namespace fgl {
 		}
 	}
 
-	void AsyncQueueTaskFunctionalEventListener::onAsyncQueueTaskEnd(std::shared_ptr<AsyncQueue::Task> task) {
+	void AsyncQueueTaskFunctionalEventListener::onAsyncQueueTaskEnd(SharedPtr<AsyncQueue::Task> task) {
 		this->statusChangeListeners.clear();
 		this->cancelListeners.clear();
 		std::map<size_t,AsyncQueue::Task::EndListener> endListeners;
@@ -238,7 +238,7 @@ namespace fgl {
 		return Promise<void>::all(ArrayList<Promise<void>>(std::make_move_iterator(promises.begin()), std::make_move_iterator(promises.end())));
 	}
 
-	void AsyncQueue::removeTask(std::shared_ptr<Task> task) {
+	void AsyncQueue::removeTask(SharedPtr<Task> task) {
 		std::unique_lock<std::recursive_mutex> lock(mutex);
 		for(auto it=taskQueue.begin(), end=taskQueue.end(); it!=end; it++) {
 			if(it->task == task) {
@@ -253,11 +253,11 @@ namespace fgl {
 
 
 
-	std::shared_ptr<AsyncQueue::Task> AsyncQueue::Task::new$(Options options, Function<Promise<void>(std::shared_ptr<Task>)> executor) {
+	SharedPtr<AsyncQueue::Task> AsyncQueue::Task::new$(Options options, Function<Promise<void>(SharedPtr<Task>)> executor) {
 		return std::make_shared<Task>(options, executor);
 	}
 
-	AsyncQueue::Task::Task(Options options, Function<Promise<void>(std::shared_ptr<Task>)> executor)
+	AsyncQueue::Task::Task(Options options, Function<Promise<void>(SharedPtr<Task>)> executor)
 	: options(options), executor(executor), cancelled(false), done(false) {
 		//
 	}

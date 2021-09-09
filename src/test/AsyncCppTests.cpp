@@ -157,7 +157,7 @@ namespace fgl_async_cpp_tests {
 				genCounter++;
 			}
 
-			std::shared_ptr<AsyncList<String>> asyncList;
+			SharedPtr<AsyncList<String>> asyncList;
 			
 			auto coPromise = coroutineTest();
 			
