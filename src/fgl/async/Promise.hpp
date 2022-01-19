@@ -16,6 +16,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <future>
+#include <iostream>
 #include <list>
 #include <memory>
 #include <mutex>
@@ -1824,6 +1825,11 @@ namespace fgl {
 		if(destructor) {
 			destructor();
 		}
+		#ifndef FGL_DONT_LOG_UNHANDLED_PROMISE_REJECTIONS
+			if(state == State::REJECTED && !handled) {
+				std::cerr << "Unhandled promise rejection" << std::endl;
+			}
+		#endif
 	}
 
 	template<typename Result>
@@ -1929,6 +1935,10 @@ namespace fgl {
 		// call destructor
 		if(destructor) {
 			destructor();
+		}
+		// mark handled if we have callbacks
+		if(callbacks.size() > 0) {
+			markHandled();
 		}
 		// call callbacks
 		for(auto& callback : callbacks) {
